@@ -476,7 +476,9 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         else:
             address_src_pk = pk.encode()
 
-        master_addr = parse_qaddress(master)
+        master_addr = None
+        if master:
+            master_addr = parse_qaddress(master)
         fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -517,7 +519,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
 
 @qrl.command()
 @click.option('--src', type=str, default='', prompt=True, help='signing address index')
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', help='transaction blob (unsigned)')
 @click.pass_context
 def tx_sign(ctx, src, txblob):
     """
@@ -536,7 +538,7 @@ def tx_sign(ctx, src, txblob):
 
 
 @qrl.command()
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', help='transaction blob (unsigned)')
 @click.pass_context
 def tx_inspect(ctx, txblob):
     """
@@ -558,7 +560,7 @@ def tx_inspect(ctx, txblob):
 
 
 @qrl.command()
-@click.option('--txblob', type=str, default='', prompt=True, help='transaction blob (unsigned)')
+@click.option('--txblob', type=str, default='', help='transaction blob (unsigned)')
 @click.pass_context
 def tx_push(ctx, txblob):
     tx = None
@@ -610,7 +612,9 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
 
         message = message.encode()
 
-        master_addr = parse_qaddress(master)
+        master_addr = None
+        if master:
+            master_addr = parse_qaddress(master)
         fee_shor = _shorize(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -881,6 +885,14 @@ def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
         _, src_xmss = _select_wallet(ctx, src)
         if not src_xmss:
             click.echo("A local wallet is required to sign the transaction")
+            quit(1)
+
+        if len(kyber_pk) != 2176:
+            click.echo("Kyber_PK should be 2176 characters")
+            quit(1)
+
+        if len(dilithium_pk) != 2944:
+            click.echo("Dilithium_PK should be 2944 characters")
             quit(1)
 
         address_src_pk = src_xmss.pk

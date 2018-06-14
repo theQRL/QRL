@@ -1,14 +1,17 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from unittest import TestCase, expectedFailure
-from mock import Mock, patch
+from unittest import TestCase
 
-from qrl.core.messagereceipt import MessageReceipt
+from mock import Mock, patch
+from pyqryptonight.pyqryptonight import StringToUInt256
+
 from qrl.core.Block import Block
+from qrl.core.messagereceipt import MessageReceipt
+from qrl.core.p2p.p2pChainManager import P2PChainManager
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pprotocol import P2PProtocol
-from qrl.core.p2p.p2pChainManager import P2PChainManager
+from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 
 
@@ -157,17 +160,18 @@ class TestP2PChainManager(TestCase):
         self.channel.send.assert_not_called()
         self.channel.factory.update_peer_blockheight.assert_not_called()
 
-    @expectedFailure
     def test_handle_block_height_incoming_information(self, m_logger):
         """
         If the incoming message.bhData.block_number is not 0, this means that we should update our knowledge of the
         peer's blockheight.
         """
+
+        some_cumulative_difficulty = bytes(StringToUInt256('0'))
         incoming_info = make_message(func_name=qrllegacy_pb2.LegacyMessage.BH,
                                      bhData=qrl_pb2.BlockHeightData(
                                          block_number=1,
-                                         block_headerhash=b'12345',
-                                         cumulative_difficulty=b'0'
+                                         block_headerhash=sha256(b'some_hash'),
+                                         cumulative_difficulty=some_cumulative_difficulty
                                      ))
         self.manager.handle_block_height(self.channel, incoming_info)
 

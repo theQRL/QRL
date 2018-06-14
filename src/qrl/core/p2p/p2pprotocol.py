@@ -3,14 +3,16 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import struct
 from queue import PriorityQueue
-from typing import Callable
+from typing import Callable, Optional
 
+from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import bin2hstr  # noqa
 from twisted.internet.protocol import Protocol, connectionDone
 
-from qrl.core.misc import logger, ntp
 from qrl.core import config
 from qrl.core.OutgoingMessage import OutgoingMessage
+from qrl.core.misc import logger, ntp
+from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pObservable import P2PObservable
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
@@ -35,51 +37,24 @@ class P2PProtocol(Protocol):
         self._valid_message_count = 0
 
     @property
-    def peer_ip(self):
-        return self.transport.getPeer().host
+    def peer(self):
+        return IPMetadata(self.transport.getPeer().host, self.transport.getPeer().port)
 
     @property
-    def peer_port(self):
-        return self.transport.getPeer().port
-
-    @property
-    def host_ip(self):
-        return self.transport.getHost().host
-
-    @property
-    def host_port(self):
-        return self.transport.getHost().port
-
-    @property
-    def is_banned(self):
-        return self.peer_manager.is_banned(self.addr_remote)
-
-    @property
-    def trusted(self):
-        if self.peer_manager.is_banned(self.addr_remote):
-            return False
-
-        if self._valid_message_count < config.dev.trust_min_msgcount or \
-                self.connection_time < config.dev.trust_min_conntime:
-            return False
-
-        return True
+    def host(self):
+        return IPMetadata(self.transport.getHost().host, self.transport.getHost().port)
 
     @property
     def connected_at(self):
         return self._connected_at
 
     @property
+    def valid_message_count(self):
+        return self._valid_message_count
+
+    @property
     def connection_time(self):
         return ntp.getTime() - self._connected_at
-
-    @property
-    def addr_remote(self):
-        return "{}:{}".format(self.peer_ip, self.peer_port)
-
-    @property
-    def addr_local(self):
-        return "{}:{}".format(self.host_ip, self.host_port)
 
     @property
     def peer_manager(self):
@@ -109,9 +84,7 @@ class P2PProtocol(Protocol):
             self.send_version_request()
 
     def connectionLost(self, reason=connectionDone):
-        logger.debug('%s disconnected. remainder connected: %d',
-                     self.addr_remote,
-                     self.factory.num_connections)
+        logger.debug('%s disconnected. remainder connected: %d', self.peer, self.factory.num_connections)
 
         self.factory.remove_connection(self)
         if self.peer_manager:
@@ -122,17 +95,19 @@ class P2PProtocol(Protocol):
         total_read = len(self._buffer)
 
         if total_read > config.dev.max_bytes_out:
-            logger.warning('Disconnecting peer %s', self.addr_remote)
+            logger.warning('Disconnecting peer %s', self.peer)
             logger.warning('Buffer Size %s', len(self._buffer))
             self.loseConnection()
+            return
 
         read_bytes = [0]
 
+        msg = None
         for msg in self._parse_buffer(read_bytes):
             self.update_counters()
             self.in_counter += 1
             if self.in_counter > self.rate_limit:
-                self.factory.ban_peer(self)
+                self.peer_manager.ban_channel(self)
 
             if self._valid_message_count < config.dev.trust_min_msgcount * 2:
                 # Avoid overflows
@@ -140,14 +115,15 @@ class P2PProtocol(Protocol):
 
             self._observable.notify(msg)
 
-        if read_bytes[0] and msg.func_name != qrllegacy_pb2.LegacyMessage.P2P_ACK:
+        if msg is not None and read_bytes[0] and msg.func_name != qrllegacy_pb2.LegacyMessage.P2P_ACK:
             p2p_ack = qrl_pb2.P2PAcknowledgement(bytes_processed=read_bytes[0])
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.P2P_ACK,
                                               p2pAckData=p2p_ack)
             self.send(msg)
 
     def update_counters(self):
-        if ntp.getTime() - self.last_rate_limit_update > 60:
+        time_diff = ntp.getTime() - self.last_rate_limit_update
+        if time_diff > 60:
             self.out_counter = 0
             self.in_counter = 0
             self.last_rate_limit_update = ntp.getTime()
@@ -171,14 +147,15 @@ class P2PProtocol(Protocol):
             outgoing_msg = self.outgoing_queue.get()[2]
             if not outgoing_msg.is_expired():
                 wrapped_message = self._wrap_message(outgoing_msg.message)
-                if len(wrapped_message) + len(outgoing_bytes) > config.dev.max_bytes_out:
-                    self.outgoing_queue.put((outgoing_msg.priority, outgoing_msg.timestamp, outgoing_msg))
-                    break
-                outgoing_bytes += wrapped_message
+                if wrapped_message is not None:
+                    if len(wrapped_message) + len(outgoing_bytes) > config.dev.max_bytes_out:
+                        self.outgoing_queue.put((outgoing_msg.priority, outgoing_msg.timestamp, outgoing_msg))
+                        break
+                    outgoing_bytes += wrapped_message
 
-                self.out_counter += 1
-                if self.out_counter == self.rate_limit:
-                    break
+                    self.out_counter += 1
+                    if self.out_counter == self.rate_limit:
+                        break
 
         return outgoing_bytes
 
@@ -201,7 +178,7 @@ class P2PProtocol(Protocol):
     # FIXME: This is a temporary refactoring, it will be completely replaced before release
 
     @staticmethod
-    def _wrap_message(protobuf_obj) -> bytes:
+    def _wrap_message(protobuf_obj) -> Optional[bytes]:
         """
         Receives a protobuf object and encodes it as (length)(data)
         :return: the encoded message
@@ -210,11 +187,21 @@ class P2PProtocol(Protocol):
         >>> msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE, veData=veData)
         >>> bin2hstr(P2PProtocol._wrap_message(msg))
         '000000191a170a0776657273696f6e120c67656e657369735f68617368'
+
+                msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
+                                          plData=qrllegacy_pb2.PLData(peer_ips=trusted_peers,
+                                                                      public_port=config.user.p2p_public_port))
+
+        >>> plData = qrllegacy_pb2.PLData(peer_ips=[])
+        >>> msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL, plData=plData)
+        >>> bin2hstr(P2PProtocol._wrap_message(msg))
+        '0000000408012200'
         """
-        # FIXME: This is not the final implementation, it is just a workaround for refactoring
-        # FIXME: struct.pack may result in endianness problems
-        # NOTE: This temporary approach does not allow for alignment. Once the stream is off, it will need to clear
         data = protobuf_obj.SerializeToString()
+        if len(data) == 0:
+            logger.debug("Skipping message. Zero bytes. %s", MessageToJson(protobuf_obj, sort_keys=True))
+            return None
+
         str_data_len = struct.pack('>L', len(data))
         return str_data_len + data
 
@@ -229,30 +216,42 @@ class P2PProtocol(Protocol):
         >>> len(list(messages))
         2
         """
+
+        chunk_size = 0
         while self._buffer:
-            # FIXME: This is not the final implementation, it is just a minimal implementation for refactoring
-            if len(self._buffer) < 4:
+            if len(self._buffer) < 5:
                 # Buffer is still incomplete as it doesn't have message size
                 return
 
-            chunk_size_raw = self._buffer[:4]
-            chunk_size = struct.unpack('>L', chunk_size_raw)[0]  # is m length encoded correctly?
-
-            # FIXME: There is no limitation on the buffer size or timeout
-            if len(self._buffer) < chunk_size:
-                # Buffer is still incomplete as it doesn't have message
-                return
-
             try:
+                chunk_size_raw = self._buffer[:4]
+                chunk_size = struct.unpack('>L', chunk_size_raw)[0]  # is m length encoded correctly?
+
+                if chunk_size <= 0:
+                    logger.debug("<X< %s", bin2hstr(self._buffer))
+                    raise Exception("Invalid chunk size <= 0")
+
+                if chunk_size > config.dev.message_buffer_size:
+                    raise Exception("Invalid chunk size > message_buffer_size")
+
+                if len(self._buffer) < chunk_size:
+                    # Buffer is still incomplete as it doesn't have message
+                    return
+
                 message_raw = self._buffer[4:4 + chunk_size]
                 message = qrllegacy_pb2.LegacyMessage()
                 message.ParseFromString(message_raw)
                 yield message
-            except Exception as e:
-                logger.warning("Problem parsing message. Skipping")
+
+            except Exception as e:  # no qa
+                logger.warning("Problem parsing message. Dropping connection")
+                logger.exception(e)
+                self.loseConnection()
+
             finally:
-                self._buffer = self._buffer[4 + chunk_size:]
-                total_read[0] += 4 + chunk_size
+                skip = 4 + chunk_size
+                self._buffer = self._buffer[skip:]
+                total_read[0] += skip
 
     ###################################################
     ###################################################
@@ -270,7 +269,7 @@ class P2PProtocol(Protocol):
         :return:
         """
         trusted_peers = self.peer_manager.trusted_addresses
-        logger.debug('<<< Sending connected peers to %s [%s]', self.addr_remote, trusted_peers)
+        logger.debug('<<< Sending connected peers to %s [%s]', self.peer, trusted_peers)
 
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
                                           plData=qrllegacy_pb2.PLData(peer_ips=trusted_peers,
@@ -293,12 +292,12 @@ class P2PProtocol(Protocol):
         Sends request for the block number n.
         :return:
         """
-        logger.info('<<<Fetching block: %s from %s', block_idx, self.addr_remote)
+        logger.info('<<<Fetching block: %s from %s', block_idx, self.peer)
         msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.FB,
                                           fbData=qrllegacy_pb2.FBData(index=block_idx))
         self.send(msg)
 
-    def get_headerhash_list(self, current_block_height):
+    def send_get_headerhash_list(self, current_block_height):
         start_blocknumber = max(0, current_block_height - config.dev.reorg_limit)
         node_header_hash = qrl_pb2.NodeHeaderHash(block_number=start_blocknumber,
                                                   headerhashes=[])

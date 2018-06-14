@@ -3,8 +3,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import contextlib
 from unittest import TestCase
+from mock import Mock, MagicMock, patch
 
-from mock import Mock, MagicMock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from tests.misc.helper import get_alice_xmss, get_random_xmss
@@ -14,6 +14,8 @@ from qrl.core.AddressState import AddressState
 from qrl.core.ESyncState import ESyncState
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.node import POW
+
+from tests.misc.helper import replacement_getTime
 
 logger.initialize_default()
 
@@ -28,6 +30,7 @@ def set_mining_enabled(new_value):
         config.user.mining_enabled = old_value
 
 
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestNode(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestNode, self).__init__(*args, **kwargs)

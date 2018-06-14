@@ -53,6 +53,7 @@ class UserConfig(object):
         self.chain_state_broadcast_period = 30
         # must be less than ping_timeout
 
+        self.transaction_minimum_fee = 0 * DevConfig().shor_per_quanta
         self.transaction_pool_size = 25000
         self.pending_transaction_pool_size = 75000
         # 1% of the pending_transaction_pool will be reserved for moving stale txn
@@ -185,7 +186,7 @@ class DevConfig(object):
 
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message
-        self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
+        self.message_buffer_size = 64 * 1024 * 1024  # 64 MB
 
         self.max_coin_supply = decimal.Decimal(105000000)
         self.coin_remaning_at_genesis = decimal.Decimal(40000000)
@@ -216,7 +217,7 @@ class DevConfig(object):
 
         # Directories and files
         self.db_name = 'state'
-        self.peers_filename = 'peers.qrl'
+        self.peers_filename = 'known_peers.json'
         self.chain_file_directory = 'data'
         self.wallet_dat_filename = 'wallet.json'
         self.slave_dat_filename = 'slave.qrl'
@@ -255,11 +256,6 @@ class DevConfig(object):
         self.block_min_size_limit = 1024 * 1024  # 1 MB - Initial Block Size Limit
 
         # ======================================
-        # SHOR PER QUANTA / MAX ALLOWED DECIMALS
-        # ======================================
-        self.shor_per_quanta = decimal.Decimal(10 ** 9)
-
-        # ======================================
         #            P2P SETTINGS
         # ======================================
         self.max_receivable_bytes = 10 * 1024 * 1024  # 10 MB [Temporary Restriction]
@@ -271,6 +267,11 @@ class DevConfig(object):
         #            API SETTINGS
         # ======================================
         self.block_timeseries_size = 1440
+
+        # ======================================
+        # SHOR PER QUANTA / MAX ALLOWED DECIMALS
+        # ======================================
+        self.shor_per_quanta = decimal.Decimal(10 ** 9)
 
     @staticmethod
     def getInstance():
