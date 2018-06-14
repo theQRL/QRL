@@ -5,6 +5,7 @@ jobs:
       - image: qrledger/qrl-docker:xenial
     steps:
       - checkout
+      - run: apt-get -y install libudev-dev libusb-1.0-0-dev
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
@@ -17,6 +18,7 @@ jobs:
       - image: qrledger/qrl-docker:xenial
     steps:
       - checkout
+      - run: apt-get -y install libudev-dev libusb-1.0-0-dev
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
@@ -36,6 +38,7 @@ jobs:
       - image: qrledger/qrl-docker:xenial
     steps:
       - checkout
+      - run: apt-get -y install libudev-dev libusb-1.0-0-dev
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
@@ -47,6 +50,7 @@ jobs:
       - image: qrledger/qrl-docker:trusty
     steps:
       - checkout
+      - run: apt-get -y install libudev-dev libusb-1.0-0-dev
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
@@ -58,6 +62,7 @@ jobs:
       - image: qrledger/qrl-docker:bionic
     steps:
       - checkout
+      - run: apt-get -y install libudev-dev libusb-1.0-0-dev
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
