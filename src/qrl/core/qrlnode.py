@@ -80,8 +80,7 @@ class QRLNode:
 
     @property
     def num_known_peers(self):
-        # FIXME
-        return len(self.peer_addresses)
+        return len(self.peer_manager.known_peer_addresses)
 
     @property
     def uptime(self):
@@ -145,18 +144,8 @@ class QRLNode:
     ####################################################
     ####################################################
 
-    @property
-    def peer_addresses(self):
-        return self.peer_manager.peer_addresses
-
     def get_peers_stat(self) -> list:
         return self.peer_manager.get_peers_stat()
-
-    def is_banned(self, addr_remote: str):
-        return self.peer_manager.is_banned(addr_remote)
-
-    def ban_peer(self, peer_obj):
-        self.peer_manager.ban_peer(peer_obj)
 
     def connect_peers(self):
         self.peer_manager.connect_peers()
@@ -181,8 +170,8 @@ class QRLNode:
         channel = self.peer_manager.get_better_difficulty(block_metadata.cumulative_difficulty)
         logger.debug('Got better difficulty %s', channel)
         if channel:
-            logger.debug('Connection id >> %s', channel.addr_remote)
-            channel.get_headerhash_list(self._chain_manager.height)
+            logger.debug('Connection id >> %s', channel.peer)
+            channel.send_get_headerhash_list(self._chain_manager.height)
         reactor.callLater(config.user.chain_state_broadcast_period, self.monitor_chain_state)
 
     # FIXME: REMOVE. This is temporary

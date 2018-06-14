@@ -118,22 +118,6 @@ class BlockHeader(object):
                prev_block_timestamp: int,
                hashedtransactions: bytes,
                fee_reward: int):
-        """
-        Create a block header based on the parameters
-
-        >>> BlockHeader.create(blocknumber=1,
-        ...                    prev_block_headerhash=b'headerhash',
-        ...                    prev_block_timestamp=10,
-        ...                    hashedtransactions=b'some_data', fee_reward=1) is not None
-        True
-        >>> b=BlockHeader.create(blocknumber=1,
-        ...                      prev_block_headerhash=b'headerhash',
-        ...                      prev_block_timestamp=10,
-        ...                      hashedtransactions=b'some_data', fee_reward=1)
-        >>> b.epoch
-        0
-        """
-
         bh = BlockHeader()
         bh._data.block_number = blocknumber
 

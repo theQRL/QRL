@@ -4,7 +4,7 @@
 from unittest import TestCase
 
 import os
-from mock import Mock
+from mock import Mock, patch
 
 from qrl.core import config
 from qrl.core.misc import logger
@@ -12,10 +12,12 @@ from qrl.core.State import State
 from qrl.core.qrlnode import QRLNode
 from qrl.generated.qrlbase_pb2 import GetNodeInfoReq
 from qrl.services.BaseService import BaseService
+from tests.misc.helper import replacement_getTime
 
 logger.initialize_default()
 
 
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestBaseAPI(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestBaseAPI, self).__init__(*args, **kwargs)

@@ -1,5 +1,4 @@
 import contextlib
-import time
 from math import ceil, log
 
 from mock import mock, MagicMock, Mock
@@ -46,8 +45,12 @@ class MockedBlockchain(object):
             slave_tx._data.nonce = 1
             transactions = [slave_tx]
 
-        self.time_mock.return_value = self.time_mock.return_value + 60
-        self.ntp_mock.return_value = self.ntp_mock.return_value + 60
+        time_offset = 60
+        if block_idx % 2 == 0:
+            time_offset += 2
+
+        self.time_mock.return_value = self.time_mock.return_value + time_offset
+        self.ntp_mock.return_value = self.ntp_mock.return_value + time_offset
 
         block_new = Block.create(block_number=block_idx,
                                  prev_block_headerhash=block_prev.headerhash,
@@ -80,7 +83,8 @@ class MockedBlockchain(object):
     @staticmethod
     @contextlib.contextmanager
     def create(num_blocks, mining_address=None):
-        start_time = int(time.time())
+        tmp_gen = GenesisBlock()
+        start_time = tmp_gen.timestamp + config.dev.mining_setpoint_blocktime
         with mock.patch('qrl.core.misc.ntp.getTime') as ntp_mock, \
                 set_qrl_dir('no_data'), \
                 State() as state, \
