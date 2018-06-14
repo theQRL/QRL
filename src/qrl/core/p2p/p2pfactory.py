@@ -366,6 +366,11 @@ class P2PFactory(ServerFactory):
         self._txn_processor_running = False
 
     def add_unprocessed_txn(self, tx, ip) -> bool:
+        if tx.fee < config.user.transaction_minimum_fee:
+            logger.info("Dropping Txn %s", bin2hstr(tx.txhash))
+            logger.info("Reason: Fee %s is below threshold fee %s", tx.fee, config.user.transaction_minimum_fee)
+            return False
+
         if not self._chain_manager.tx_pool.update_pending_tx_pool(tx, ip):
             return False
 

@@ -399,6 +399,7 @@ class TestP2PFactory(TestCase):
         self.factory._chain_manager = Mock(autospec=ChainManager)
         self.factory._chain_manager.tx_pool.update_pending_tx_pool.return_value = True
         m_tx = Mock(autospec=TransferTransaction)
+        m_tx.fee = 0
 
         self.assertFalse(self.factory._txn_processor_running)
         # It worked, and a TxnProcessor was started
@@ -414,6 +415,7 @@ class TestP2PFactory(TestCase):
         self.factory._chain_manager.tx_pool.update_pending_tx_pool.return_value = True
         self.factory._txn_processor_running = True
         m_tx = Mock(autospec=TransferTransaction)
+        m_tx.fee = 0
 
         # It worked
         result = self.factory.add_unprocessed_txn(m_tx, '1.1.1.1')
@@ -426,6 +428,7 @@ class TestP2PFactory(TestCase):
         self.factory._chain_manager = Mock(autospec=ChainManager)
         self.factory._chain_manager.tx_pool.update_pending_tx_pool.return_value = False
         m_tx = Mock(autospec=TransferTransaction)
+        m_tx.fee = 0
 
         result = self.factory.add_unprocessed_txn(m_tx, '1.1.1.1')
         self.assertFalse(result)
