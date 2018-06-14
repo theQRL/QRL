@@ -53,6 +53,7 @@ class UserConfig(object):
         self.chain_state_broadcast_period = 30
         # must be less than ping_timeout
 
+        self.transaction_minimum_fee = 0 * DevConfig().shor_per_quanta
         self.transaction_pool_size = 25000
         self.pending_transaction_pool_size = 75000
         # 1% of the pending_transaction_pool will be reserved for moving stale txn
@@ -255,11 +256,6 @@ class DevConfig(object):
         self.block_min_size_limit = 1024 * 1024  # 1 MB - Initial Block Size Limit
 
         # ======================================
-        # SHOR PER QUANTA / MAX ALLOWED DECIMALS
-        # ======================================
-        self.shor_per_quanta = decimal.Decimal(10 ** 9)
-
-        # ======================================
         #            P2P SETTINGS
         # ======================================
         self.max_receivable_bytes = 10 * 1024 * 1024  # 10 MB [Temporary Restriction]
@@ -271,6 +267,11 @@ class DevConfig(object):
         #            API SETTINGS
         # ======================================
         self.block_timeseries_size = 1440
+
+        # ======================================
+        # SHOR PER QUANTA / MAX ALLOWED DECIMALS
+        # ======================================
+        self.shor_per_quanta = decimal.Decimal(10 ** 9)
 
     @staticmethod
     def getInstance():
