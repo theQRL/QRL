@@ -2,9 +2,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import Set
+
 import simplejson as json
 
-from qrl.core.misc import ntp
+from qrl.core.misc import ntp, logger
 
 
 class ExpiringSet(Set):
@@ -32,15 +33,26 @@ class ExpiringSet(Set):
         self._data[x] = current_time + self.expiration_time
 
     def _refresh(self):
-        # FIXME: refactored from banned peers. Rework to use a priority queue instead
+        # TODO: refactored from banned peers. Rework to use a priority queue instead
         current_time = ntp.getTime()
+
+        len_before = len(self._data)
         self._data = {k: v for k, v in self._data.items() if v < current_time}
-        self._store()
+        len_after = len(self._data)
+
+        # FIXME: Drop peers beyond configuration limit
+
+        if len_before != len_after:
+            self._store()
 
     def _store(self):
         if self._filename is not None:
-            with open(self._filename, 'w') as f:
-                json.dump(self._data, f)
+            try:
+                with open(self._filename, 'w') as f:
+                    json.dump(self._data, f)
+            except Exception as e:
+                logger.error("not possible to save banned peers")
+                logger.exception(e)
 
     def _load(self):
         if self._filename is not None:
