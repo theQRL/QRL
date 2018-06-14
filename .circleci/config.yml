@@ -76,6 +76,7 @@ jobs:
       TESTINPLACE: 1
     steps:
       - checkout
+      - run: apt-get -y install libudev-dev libusb-1.0-0-dev
       - run: git submodule update --init --recursive --remote
       - run: apt install -y python3-venv
       - run: pip install -U -r tests_integration/requirements.txt
@@ -92,6 +93,7 @@ jobs:
     steps:
       - checkout
       - run: git submodule update --init --recursive --remote
+      - run: apt-get -y install libudev-dev libusb-1.0-0-dev
       - run: apt install -y python3-venv
       - run: pip install -U -r tests_integration/requirements.txt
       - run: pip install git+https://github.com/CurataEng/hypothesis-protobuf.git
