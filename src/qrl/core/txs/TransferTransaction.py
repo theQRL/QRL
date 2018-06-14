@@ -58,12 +58,14 @@ class TransferTransaction(Transaction):
 
         transaction._data.fee = int(fee)  # FIXME: Review conversions for quantities
 
+        transaction.validate_or_raise(verify_signature=False)
+
         return transaction
 
     def _validate_custom(self):
         for amount in self.amounts:
             if amount == 0:
-                logger.warning('Amount cannot be 0', self.amounts)
+                logger.warning('Amount cannot be 0 - %s', self.amounts)
                 logger.warning('Invalid TransferTransaction')
                 return False
 

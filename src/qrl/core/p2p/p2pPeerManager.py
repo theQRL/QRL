@@ -3,17 +3,19 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import os
 from enum import Enum
-from typing import Callable
+from typing import Callable, Set, List
 
+import simplejson as json
 from pyqryptonight.pyqryptonight import UInt256ToString
 
 from qrl.core import config
 from qrl.core.misc import logger, ntp
 from qrl.core.misc.expiring_set import ExpiringSet
-from qrl.core.misc.helper import parse_peer_addr
 from qrl.core.notification.Observable import Observable
 from qrl.core.notification.ObservableEvent import ObservableEvent
+from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pObserver import P2PBaseObserver
+from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 
@@ -29,13 +31,13 @@ class P2PPeerManager(P2PBaseObserver):
 
         self._peer_node_status = dict()
 
-        self._peer_addresses = set()
+        self._known_peers = set()
         self.peers_path = os.path.join(config.user.data_dir,
                                        config.dev.peers_filename)
 
         self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
-        self._banned_peers = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
-                                         filename=self.banned_peers_filename)
+        self._banned_peer_ips = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
+                                            filename=self.banned_peers_filename)
 
         self._observable = Observable(self)
         self._p2pfactory = None
@@ -44,69 +46,76 @@ class P2PPeerManager(P2PBaseObserver):
         self._observable.register(message_type, func)
 
     @property
-    def peer_addresses(self):
-        return self._peer_addresses
+    def known_peer_addresses(self):
+        return self._known_peers
+
+    def trusted_peer(self, channel: P2PProtocol):
+        if self.is_banned(channel.peer):
+            return False
+
+        if channel.valid_message_count < config.dev.trust_min_msgcount:
+            return False
+
+        if channel.connection_time < config.dev.trust_min_conntime:
+            return False
+
+        return True
 
     @property
     def trusted_addresses(self):
-        return set([peer.addr_remote for peer in self._p2pfactory.connections if peer.trusted])
+        return set([peer.peer.full_address for peer in self._p2pfactory.connections if self.trusted_peer(peer)])
 
     @property
     def peer_node_status(self):
         return self._peer_node_status
 
-    def load_peer_addresses(self) -> None:
+    def load_known_peers(self) -> List[str]:
+        known_peers = []
         try:
-            if os.path.isfile(self.peers_path):
-                logger.info('Opening peers.qrl')
-                with open(self.peers_path, 'rb') as infile:
-                    known_peers = qrl_pb2.StoredPeers()
-                    known_peers.ParseFromString(infile.read())
-
-                    # FIXME: Refactor, move to json?
-                    self._peer_addresses |= set([peer.ip for peer in known_peers.peers])
-                    self._peer_addresses |= set(config.user.peer_list)
-                    return
-
+            logger.info('Loading known peers')
+            with open(self.peers_path, 'r') as infile:
+                known_peers = json.load(infile)
         except Exception as e:
-            logger.warning("Error loading peers")
-            logger.exception(e)
+            logger.info("Could not open known_peers list")
 
-        logger.info('Creating peers.qrl')
-        # Ensure the data path exists
+        return [IPMetadata.canonical_full_address(fa) for fa in known_peers]
+
+    def save_known_peers(self, known_peers: List[str]):
+        tmp = list(known_peers)
         config.create_path(config.user.data_dir)
-        self.update_peer_addresses(config.user.peer_list)
+        with open(self.peers_path, 'w') as outfile:
+            json.dump(tmp, outfile)
 
-        logger.info('Known Peers: %s', self._peer_addresses)
+    def load_peer_addresses(self) -> None:
+        known_peers = self.load_known_peers()
+        self._known_peers = self.combine_peer_lists(known_peers, config.user.peer_list, )
+        logger.info('Loaded known peers: %s', self._known_peers)
+        self.save_known_peers(self._known_peers)
 
-    @staticmethod
-    def get_valid_peers(peer_ips, peer_ip, public_port):
-        new_peers = set()
-        tmp = list(peer_ips)
-        tmp.append("{0}:{1}".format(peer_ip, public_port))
-
-        for ip_port in tmp:
-            try:
-                parse_peer_addr(ip_port, True)
-                new_peers.add(ip_port)
-            except Exception as e:
-                logger.warning("Invalid Peer Address {} sent by {} - {}".format(ip_port, peer_ip, e))
-
-        return new_peers
-
-    def update_peer_addresses(self, peer_addresses: set) -> None:
-        new_addresses = set(peer_addresses) - self._peer_addresses
+    def extend_known_peers(self, new_peer_addresses: set) -> None:
+        new_addresses = set(new_peer_addresses) - self._known_peers
 
         if self._p2pfactory is not None:
             for peer_address in new_addresses:
                 self._p2pfactory.connect_peer(peer_address)
 
-        self._peer_addresses |= set(peer_addresses)
+        self._known_peers |= set(new_peer_addresses)
+        self.save_known_peers(list(self._known_peers))
 
-        known_peers = qrl_pb2.StoredPeers()
-        known_peers.peers.extend([qrl_pb2.Peer(ip=p) for p in self._peer_addresses])
-        with open(self.peers_path, "wb") as outfile:
-            outfile.write(known_peers.SerializeToString())
+    @staticmethod
+    def combine_peer_lists(peer_ips, sender_full_addresses: List, check_global=False) -> Set[IPMetadata]:
+        tmp_list = list(peer_ips)
+        tmp_list.extend(sender_full_addresses)
+
+        answer = set()
+        for item in tmp_list:
+            try:
+                answer.add(IPMetadata.canonical_full_address(item, check_global))
+            except Exception as e:  # no_qa
+                logger.warning("Invalid Peer Address {}".format(item))
+                logger.exception(e)
+
+        return answer
 
     def get_better_difficulty(self, current_cumulative_difficulty):
         best_cumulative_difficulty = int(UInt256ToString(current_cumulative_difficulty))
@@ -124,7 +133,8 @@ class P2PPeerManager(P2PBaseObserver):
         return best_channel
 
     def remove_channel(self, channel):
-        self._channels.remove(channel)
+        if channel in self._channels:
+            self._channels.remove(channel)
         if channel in self._peer_node_status:
             del self._peer_node_status[channel]
 
@@ -160,14 +170,14 @@ class P2PPeerManager(P2PBaseObserver):
             return
 
         logger.info('%s version: %s | genesis prev_headerhash %s',
-                    source.peer_ip,
+                    source.peer.ip,
                     message.veData.version,
                     message.veData.genesis_prev_hash)
 
         source.rate_limit = min(config.user.peer_rate_limit, message.veData.rate_limit)
 
         if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
-            logger.warning('%s genesis_prev_headerhash mismatch', source.addr_remote)
+            logger.warning('%s genesis_prev_headerhash mismatch', source.peer)
             logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
             logger.warning('Found: %s', message.veData.genesis_prev_hash)
             source.loseConnection()
@@ -178,16 +188,16 @@ class P2PPeerManager(P2PBaseObserver):
         if not config.user.enable_peer_discovery:
             return
 
-        if message.plData.peer_ips is None:
+        if not message.plData.peer_ips:
             return
 
-        new_peers = self.get_valid_peers(message.plData.peer_ips,
-                                         source.peer_ip,
-                                         message.plData.public_port)
-        new_peers.discard(source.host_ip)  # Remove local address
+        sender_peer = IPMetadata(source.peer.ip, message.plData.public_port)
 
-        logger.info('%s peers data received: %s', source.peer_ip, new_peers)
-        self.update_peer_addresses(new_peers)
+        new_peers = self.combine_peer_lists(message.plData.peer_ips, [sender_peer.full_address], check_global=True)
+        new_peers.discard(source.host.full_address)  # Remove local address
+
+        logger.info('%s peers data received: %s', source.peer.ip, new_peers)
+        self.extend_known_peers(new_peers)
 
     def handle_sync(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SYNC)
@@ -212,7 +222,7 @@ class P2PPeerManager(P2PBaseObserver):
             delta = current_timestamp - self._peer_node_status[channel].timestamp
             if delta > config.user.chain_state_timeout:
                 del self._peer_node_status[channel]
-                logger.debug('>>>> No State Update [%18s] %2.2f (TIMEOUT)', channel.addr_remote, delta)
+                logger.debug('>>>> No State Update [%18s] %2.2f (TIMEOUT)', channel.peer, delta)
                 channel.loseConnection()
 
     def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
@@ -244,7 +254,7 @@ class P2PPeerManager(P2PBaseObserver):
 
         source.bytes_sent -= message.p2pAckData.bytes_processed
         if source.bytes_sent < 0:
-            logger.warning('Disconnecting Peer %s', source.addr_remote)
+            logger.warning('Disconnecting Peer %s', source.peer)
             logger.warning('Reason: negative bytes_sent value')
             logger.warning('bytes_sent %s', source.bytes_sent)
             logger.warning('Ack bytes_processed %s', message.p2pAckData.bytes_processed)
@@ -256,18 +266,18 @@ class P2PPeerManager(P2PBaseObserver):
     ####################################################
     ####################################################
     ####################################################
-    def is_banned(self, addr_remote: str):
-        return addr_remote in self._banned_peers
+    def is_banned(self, peer: IPMetadata):
+        return peer.ip in self._banned_peer_ips
 
-    def ban_peer(self, peer_obj):
-        self._banned_peers.add(peer_obj.addr_remote)
-        logger.warning('Banned %s', peer_obj.addr_remote)
-        peer_obj.loseConnection()
+    def ban_channel(self, channel: P2PProtocol):
+        self._banned_peer_ips.add(channel.peer.ip)
+        logger.warning('Banned %s', channel.peer.ip)
+        channel.loseConnection()
 
     def connect_peers(self):
-        logger.info('<<<Reconnecting to peer list: %s', self.peer_addresses)
-        for peer_address in self.peer_addresses:
-            if self.is_banned(peer_address):
+        logger.info('<<<Reconnecting to peer list: %s', self.known_peer_addresses)
+        for peer_address in self.known_peer_addresses:
+            if self.is_banned(IPMetadata.from_full_address(peer_address)):
                 continue
             self._p2pfactory.connect_peer(peer_address)
 
@@ -276,8 +286,8 @@ class P2PPeerManager(P2PBaseObserver):
         # Copying the list of keys, to avoid any change by other thread
         for source in list(self.peer_node_status.keys()):
             try:
-                peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer_ip.encode(),
-                                             port=source.peer_port,
+                peer_stat = qrl_pb2.PeerStat(peer_ip=source.peer.ip.encode(),
+                                             port=source.peer.port,
                                              node_chain_state=self.peer_node_status[source])
                 peers_stat.append(peer_stat)
             except KeyError:

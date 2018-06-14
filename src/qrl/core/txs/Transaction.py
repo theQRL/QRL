@@ -98,7 +98,7 @@ class Transaction(object, metaclass=ABCMeta):
         if not isinstance(value, int):
             raise ValueError('value should be of integer type')
         if value == 0:
-            raise ValueError('Invalid input 0')
+            return 19
 
         # floor value could be negative, so return 0 when the floor value is negative
         return max(floor(19 - log(value, 10)), 0)

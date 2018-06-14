@@ -19,6 +19,7 @@ class TestTokenTransaction(TestCase):
         super(TestTokenTransaction, self).__init__(*args, **kwargs)
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
+        self._decimals = 15
 
         self.alice.set_ots_index(10)
         self.maxDiff = None
@@ -30,7 +31,7 @@ class TestTokenTransaction(TestCase):
         self.params = {"symbol": b'QRL',
                        "name": b'Quantum Resistant Ledger',
                        "owner": self.alice.address,
-                       "decimals": 15,
+                       "decimals": self._decimals,
                        "initial_balances": self.initial_balances_valid,
                        "fee": 1,
                        "xmss_pk": self.alice.pk}
@@ -124,25 +125,20 @@ class TestTokenTransaction(TestCase):
     def test_validate_tx2(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=10000000000000000000))
+                                                      amount=10000000000000000001))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=10000000000000000000))
-
-        tx = self.make_tx(decimals=4, initial_balances=initial_balances)
-
-        # We must sign the tx before validation will work.
-        tx.sign(self.alice)
+                                                      amount=10000000000000000001))
 
         # Transaction Validation should fail as the decimals is higher than the possible decimals
         with self.assertRaises(ValueError):
-            self.assertFalse(tx.validate_or_raise())
+            self.make_tx(decimals=4, initial_balances=initial_balances)
 
     def test_validate_tx3(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
-                                                      amount=1000))
+                                                      amount=1000 * 10 ** self._decimals))
         initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
-                                                      amount=1000))
+                                                      amount=1000 * 10 ** self._decimals))
 
         tx = self.make_tx(initial_balances=initial_balances)
 
@@ -154,50 +150,43 @@ class TestTokenTransaction(TestCase):
 
     def test_validate_custom(self, m_logger):
         # Token symbol too long
-        tx = self.make_tx(symbol=b'QRLSQRLSQRL')
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            tx = self.make_tx(symbol=b'QRLSQRLSQRL')
+            tx.sign(self.alice)
 
         # Token name too long
-        tx = self.make_tx(name=b'Quantum Resistant LedgerQuantum')
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            tx = self.make_tx(name=b'Quantum Resistant LedgerQuantum')
+            tx.sign(self.alice)
 
         # Token symbol missing
-        tx = self.make_tx(symbol=b'')
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            tx = self.make_tx(symbol=b'')
+            tx.sign(self.alice)
 
         # Token name missing
-        tx = self.make_tx(name=b'')
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            tx = self.make_tx(name=b'')
+            tx.sign(self.alice)
 
         # Empty initial_balances
-        tx = self.make_tx(initial_balances=[])
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            tx = self.make_tx(initial_balances=[])
+            tx.sign(self.alice)
 
         # Invalid initial balances... 0!
-        initial_balances_0_0 = [qrl_pb2.AddressAmount(address=self.alice.address, amount=0),
-                                qrl_pb2.AddressAmount(address=self.bob.address, amount=0)]
-        tx = self.make_tx(initial_balances=initial_balances_0_0)
-        tx.sign(self.alice)
         with self.assertRaises(ValueError):
-            tx.validate_or_raise()
+            initial_balances_0_0 = [qrl_pb2.AddressAmount(address=self.alice.address, amount=0),
+                                    qrl_pb2.AddressAmount(address=self.bob.address, amount=0)]
+            tx = self.make_tx(initial_balances=initial_balances_0_0)
+            tx.sign(self.alice)
 
         # Fee is -1
-        tx = self.make_tx()
-        tx.sign(self.alice)
         with patch('qrl.core.txs.TokenTransaction.TokenTransaction.fee', new_callable=PropertyMock) as m_fee:
             m_fee.return_value = -1
             with self.assertRaises(ValueError):
-                tx.validate_or_raise()
+                tx = self.make_tx()
+                tx.sign(self.alice)
 
         # Invalid initial balances... -1!
         # tx = self.make_tx()

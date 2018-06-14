@@ -20,7 +20,9 @@ from qrl.core.TokenMetadata import TokenMetadata
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.generated import qrl_pb2
-from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_bob_xmss, get_token_transaction
+
+from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_bob_xmss, get_token_transaction, get_some_address, \
+    replacement_getTime
 
 logger.initialize_default()
 
@@ -69,6 +71,7 @@ def gen_blocks(block_count, state, miner_address):
     return blocks
 
 
+@mock.patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestState(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestState, self).__init__(*args, **kwargs)
@@ -378,7 +381,7 @@ class TestState(TestCase):
                 tmp_json = state.get_block_metadata(b'block_headerhash2').to_json()
 
                 expected_json = b'{\n  "blockDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",\n  ' \
-                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}' \
+                                b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}'
 
                 self.assertEqual(tmp_json, expected_json)
 
@@ -389,28 +392,28 @@ class TestState(TestCase):
                                      prev_block_headerhash=b'',
                                      prev_block_timestamp=10,
                                      transactions=[],
-                                     miner_address=b'addr1')
+                                     miner_address=get_some_address(1))
                 # Test Case: without any transactions of block
                 self.assertEqual(state.prepare_address_list(block),
-                                 {config.dev.coinbase_address, b'addr1'})
+                                 {config.dev.coinbase_address, get_some_address(1)})
 
                 alice_xmss = get_alice_xmss()
                 block = Block.create(block_number=10,
                                      prev_block_headerhash=b'',
                                      prev_block_timestamp=10,
-                                     transactions=[TransferTransaction.create(addrs_to=[b'addr2',
-                                                                                        b'addr3'],
+                                     transactions=[TransferTransaction.create(addrs_to=[get_some_address(2),
+                                                                                        get_some_address(3)],
                                                                               amounts=[100, 100],
                                                                               fee=0,
                                                                               xmss_pk=alice_xmss.pk)],
-                                     miner_address=b'addr1')
+                                     miner_address=get_some_address(1))
 
                 # Test Case, with one Transaction
                 self.assertEqual(state.prepare_address_list(block),
                                  {config.dev.coinbase_address,
-                                  b'addr1',
-                                  b'addr2',
-                                  b'addr3',
+                                  get_some_address(1),
+                                  get_some_address(2),
+                                  get_some_address(3),
                                   alice_xmss.address})
 
     def test_put_addresses_state(self):
@@ -532,7 +535,7 @@ class TestState(TestCase):
                 self.assertEqual(state.get_last_txs(), [])
 
                 block = Block()
-                tx1 = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
+                tx1 = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                                  amounts=[1, 2],
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
@@ -545,12 +548,12 @@ class TestState(TestCase):
                 self.assertEqual(last_txns[0].to_json(), tx1.to_json())
 
                 block = Block()
-                tx2 = TransferTransaction.create(addrs_to=[b'q2', b'q3'],
+                tx2 = TransferTransaction.create(addrs_to=[get_some_address(2), get_some_address(3)],
                                                  amounts=[1, 2],
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
 
-                tx3 = TransferTransaction.create(addrs_to=[b'q4', b'q5'],
+                tx3 = TransferTransaction.create(addrs_to=[get_some_address(4), get_some_address(5)],
                                                  amounts=[1, 2],
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
@@ -574,7 +577,7 @@ class TestState(TestCase):
 
                 alice_xmss = get_alice_xmss()
                 block = Block()
-                tx1 = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
+                tx1 = TransferTransaction.create(addrs_to=[get_some_address(0), get_some_address(1)],
                                                  amounts=[1, 2],
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
@@ -595,7 +598,7 @@ class TestState(TestCase):
                 alice_xmss = get_alice_xmss()
 
                 block = Block()
-                tx1 = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
+                tx1 = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                                  amounts=[1, 2],
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
@@ -614,7 +617,7 @@ class TestState(TestCase):
             with State() as state:
                 alice_xmss = get_alice_xmss()
 
-                tx1 = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
+                tx1 = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                                  amounts=[1, 2],
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
@@ -638,7 +641,7 @@ class TestState(TestCase):
         with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                tx = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
+                tx = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                                 amounts=[1, 2],
                                                 fee=0,
                                                 xmss_pk=alice_xmss.pk)
@@ -655,7 +658,7 @@ class TestState(TestCase):
                 self.assertIsNone(state.get_tx_metadata(b'test1'))
 
                 alice_xmss = get_alice_xmss()
-                tx = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
+                tx = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                                 amounts=[1, 2],
                                                 fee=0,
                                                 xmss_pk=alice_xmss.pk)
@@ -675,7 +678,7 @@ class TestState(TestCase):
                 self.assertIsNone(state.get_tx_metadata(b'test1'))
 
                 alice_xmss = get_alice_xmss()
-                tx = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
+                tx = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                                 amounts=[1, 2],
                                                 fee=0,
                                                 xmss_pk=alice_xmss.pk)
@@ -692,7 +695,7 @@ class TestState(TestCase):
                 self.assertIsNone(state.get_tx_metadata(b'test1'))
 
                 alice_xmss = get_alice_xmss()
-                tx = TransferTransaction.create(addrs_to=[b'q1', b'q2'],
+                tx = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                                 amounts=[1, 2],
                                                 fee=0,
                                                 xmss_pk=alice_xmss.pk)

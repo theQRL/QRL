@@ -5,7 +5,7 @@ import json
 import os
 import shutil
 import tempfile
-from unittest import TestCase, mock, skip, expectedFailure
+from unittest import TestCase, mock, skip
 
 from click.testing import CliRunner
 from pyqrllib.dilithium import Dilithium
@@ -786,7 +786,6 @@ class TestCLI(TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertEqual(result.output.strip(), '3')
 
-    @expectedFailure
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_latticepk_invalid_input(self, mock_stub):
         m_push_transaction_resp = mock.MagicMock(name='my big fake pushTransactionResp', error_code=3)
@@ -810,7 +809,7 @@ class TestCLI(TestCase):
                                         "--fee=0",
                                         "--ots_key_index=0"
                                     ])
-        self.assertEqual(result.exit_code, -1)
+        self.assertEqual(1, result.exit_code)
 
         # What if we have malformed dilithium pks?
         result = self.runner.invoke(qrl_cli,
@@ -823,4 +822,4 @@ class TestCLI(TestCase):
                                         "--fee=0",
                                         "--ots_key_index=0"
                                     ])
-        self.assertEqual(result.exit_code, -1)
+        self.assertEqual(1, result.exit_code)

@@ -525,7 +525,8 @@ message NodeChainState {
     uint64 block_number = 1;
     bytes header_hash = 2;
     bytes cumulative_difficulty = 3;
-    uint64 timestamp = 4;
+    string version = 4;
+    uint64 timestamp = 5;
 }
 
 message NodeHeaderHash {

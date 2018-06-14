@@ -4,7 +4,7 @@
 from unittest import TestCase
 
 from grpc import ServicerContext
-from mock import Mock
+from mock import Mock, patch
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
 from qrl.core.ChainManager import ChainManager
@@ -17,11 +17,12 @@ from qrl.core.qrlnode import QRLNode
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_default_balance_size, set_qrl_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_default_balance_size, set_qrl_dir, replacement_getTime
 
 logger.initialize_default()
 
 
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestPublicAPI(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestPublicAPI, self).__init__(*args, **kwargs)

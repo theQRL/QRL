@@ -104,6 +104,13 @@ def clean_genesis():
         config.user.qrl_dir = prev_val
 
 
+def get_some_address(idx=0) -> bytes:
+    seed = bytearray([i for i in range(48)])
+    seed[0] = idx
+    xmss = XMSS(XmssFast(seed, 4))
+    return xmss.address
+
+
 def get_alice_xmss(xmss_height=6) -> XMSS:
     seed = bytes([i for i in range(48)])
     return XMSS(XmssFast(seed, xmss_height))

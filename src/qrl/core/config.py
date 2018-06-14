@@ -180,12 +180,12 @@ class DevConfig(object):
         self.min_margin_block_number = 7
 
         self.public_ip = None
-        self.reorg_limit = 7 * 24 * 60  # 7 days * 24 hours * 60 blocks per hour
+        self.reorg_limit = 22000
         self.cache_frequency = 1000
 
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message
-        self.message_buffer_size = 3 * 1024 * 1024  # 3 MB
+        self.message_buffer_size = 64 * 1024 * 1024  # 64 MB
 
         self.max_coin_supply = decimal.Decimal(105000000)
         self.coin_remaning_at_genesis = decimal.Decimal(40000000)
@@ -198,7 +198,7 @@ class DevConfig(object):
 
         # Maximum number of ots index upto which OTS index should be tracked. Any OTS index above the specified value
         # will be managed by OTS Counter
-        self.max_ots_tracking_index = 4096
+        self.max_ots_tracking_index = 8192
         self.mining_nonce_offset = 39
         self.extra_nonce_offset = 43
         self.mining_blob_size = 76
@@ -216,7 +216,7 @@ class DevConfig(object):
 
         # Directories and files
         self.db_name = 'state'
-        self.peers_filename = 'peers.qrl'
+        self.peers_filename = 'known_peers.json'
         self.chain_file_directory = 'data'
         self.wallet_dat_filename = 'wallet.json'
         self.slave_dat_filename = 'slave.qrl'

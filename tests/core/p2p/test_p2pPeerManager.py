@@ -1,19 +1,22 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from unittest import TestCase, expectedFailure
-from unittest.mock import Mock, patch
 import os
 import time
+from unittest import TestCase
 
-from tests.misc.helper import set_qrl_dir
+from mock import Mock, patch, mock
+from pyqrllib.pyqrllib import hstr2bin
+from pyqryptonight.pyqryptonight import StringToUInt256
+
 from qrl.core import config
+from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrl_pb2, qrllegacy_pb2
-from pyqryptonight.pyqryptonight import StringToUInt256
 from tests.misc.helper import replacement_getTime
+from tests.misc.helper import set_qrl_dir
 
 
 def make_channel(name=''):
@@ -60,29 +63,29 @@ class TestP2PPeerManager(TestCase):
         Should load peers from peers.qrl AND from config.user.peer_list
         """
         with set_qrl_dir('peers') as tmp_dir:
-            self.peer_manager.peers_path = os.path.join(tmp_dir, 'peers.qrl')
+            self.peer_manager.peers_path = os.path.join(tmp_dir, 'peers.json')
 
             self.peer_manager.load_peer_addresses()
 
             # This was in peers.qrl
-            self.assertIn('34.208.138.15', self.peer_manager.peer_addresses)
+            self.assertIn(IPMetadata.canonical_full_address('34.208.138.15'), self.peer_manager.known_peer_addresses)
             # config.user.peer_list is all in there too
             for p in config.user.peer_list:
-                self.assertIn(p, self.peer_manager.peer_addresses)
+                self.assertIn(IPMetadata.canonical_full_address(p), self.peer_manager.known_peer_addresses)
 
     def test_load_peer_addresses_no_file(self):
         """
         If no peers.qrl exists, use config.user.peer_list
         """
         with set_qrl_dir('no_data') as tmp_dir:
-            self.peer_manager.peers_path = os.path.join(tmp_dir, 'peers.qrl')
+            self.peer_manager.peers_path = os.path.join(tmp_dir, config.dev.peers_filename)
 
             self.peer_manager.load_peer_addresses()
 
             # config.user.peer_list is all in there too
-            self.assertEqual(len(config.user.peer_list), len(self.peer_manager.peer_addresses))
+            self.assertEqual(len(config.user.peer_list), len(self.peer_manager.known_peer_addresses))
             for p in config.user.peer_list:
-                self.assertIn(p, self.peer_manager.peer_addresses)
+                self.assertIn(IPMetadata.canonical_full_address(p), self.peer_manager.known_peer_addresses)
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_load_peer_addresses_corrupt_file(self, logger):
@@ -90,20 +93,20 @@ class TestP2PPeerManager(TestCase):
         If peers.qrl is corrupt, load_peer_addresses should rewrite it with valid peers from config.user.peer_list
         """
         with set_qrl_dir('peers') as tmp_dir:
-            self.peer_manager.peers_path = os.path.join(tmp_dir, 'peers_corrupt.qrl')
+            self.peer_manager.peers_path = os.path.join(tmp_dir, 'peers_corrupt.json')
 
             self.peer_manager.load_peer_addresses()
 
             # config.user.peer_list is all in there too
-            with open(os.path.join(tmp_dir, 'peers_corrupt.qrl')) as f:
+            with open(os.path.join(tmp_dir, 'peers_corrupt.json')) as f:
                 contents = f.read()
                 for p in config.user.peer_list:
                     self.assertIn(p, contents)
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
-    def test_get_valid_peers_works(self, logger):
+    def test_combine_peer_lists_works(self, logger):
         """
-        get_valid_peers takes: a set of IP:PORTs from a peer; the peer's ip; the peer's port
+        combine_peer_lists takes: a set of IP:PORTs from a peer; the peer's ip; the peer's port
         It validates the set of IP:PORTs and adds valid ones to the node's peerlist.
         Global IP addresses only.
         Because we are connected to the peer from whom we downloaded this list, the peer's ip and port are validated
@@ -111,42 +114,45 @@ class TestP2PPeerManager(TestCase):
         If the same IP appears with different ports, they should appear as different records in the peerlist (max 2)
         """
         # The second IP in the set has an invalid port, but the peer to which we are connected should be in the set.
-        result = self.peer_manager.get_valid_peers({'1.1.1.1:9000', '1.2.3.4:65536'}, '187.0.0.1', 1000)
+        result = self.peer_manager.combine_peer_lists({'1.1.1.1:9000', '1.2.3.4:65536'},
+                                                      ['187.0.0.1:1000'], check_global=True)
         self.assertEqual(result, {'1.1.1.1:9000', '187.0.0.1:1000'})
 
         # What happens if the peer we are connected to now has a different port? it should replace the entry in the set.
-        result = self.peer_manager.get_valid_peers({'1.1.1.1:9000', '127.0.0.1:1000'}, '187.0.0.1', 2000)
+        result = self.peer_manager.combine_peer_lists({'1.1.1.1:9000', '127.0.0.1:1000'},
+                                                      ['187.0.0.1:2000'], check_global=True)
         self.assertEqual(result, {'1.1.1.1:9000', '187.0.0.1:2000'})
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
-    def test_get_valid_peers_bad_ip_list(self, logger):
+    def test_combine_peer_lists_bad_ip_list(self, logger):
         """
-        get_valid_peers should revalidate all existing ip:port pairs when adding a new one to the list.
+        combine_peer_lists should revalidate all existing ip:port pairs when adding a new one to the list.
         but why isn't validation happening in another layer so that the set is always clean?
         """
-        bad_ip_list_result = self.peer_manager.get_valid_peers({'256.256.256.256:9000', '187.0.0.3:90000'},
-                                                               '187.0.0.1',
-                                                               9000)
+        bad_ip_list_result = self.peer_manager.combine_peer_lists({'256.256.256.256:9000', '187.0.0.3:90000'},
+                                                                  ['187.0.0.1:9000'], check_global=True)
         self.assertEqual(bad_ip_list_result, {'187.0.0.1:9000'})
 
         # A local IP in the incoming set should be ignored.
-        result = self.peer_manager.get_valid_peers({'1.1.1.1:8000', '127.0.0.1:1111'}, '127.0.0.1', 3000)
+        result = self.peer_manager.combine_peer_lists({'1.1.1.1:8000', '127.0.0.1:1111'},
+                                                      ['127.0.0.1:3000'], check_global=True)
         self.assertEqual(result, {'1.1.1.1:8000'})
 
         # A bad IP in the set should not pass.
-        result = self.peer_manager.get_valid_peers({'255.255.255.255:8000'}, '127.0.0.1', 3000)
+        result = self.peer_manager.combine_peer_lists({'255.255.255.255:8000'},
+                                                      ['127.0.0.1:3000'], check_global=True)
         self.assertEqual(result, set())
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_update_peer_addresses_also_connects_to_new_peers(self, logger):
         """
-        update_peer_addresses() not only writes out, it automatically connects to any new peers.
+        extend_known_peers() not only writes out, it automatically connects to any new peers.
         """
         self.peer_manager._p2pfactory = Mock()
-        self.peer_manager._peer_addresses = {'1.1.1.1:9000'}
+        self.peer_manager._known_peers = {'1.1.1.1:9000'}
         with set_qrl_dir('no_data') as tempdir:
             self.peer_manager.peers_path = os.path.join(tempdir, config.dev.peers_filename)
-            self.peer_manager.update_peer_addresses({'2.2.2.2:9000'})
+            self.peer_manager.extend_known_peers({'2.2.2.2:9000'})
 
         self.peer_manager._p2pfactory.connect_peer.assert_called_once_with('2.2.2.2:9000')
 
@@ -195,7 +201,7 @@ class TestP2PPeerManager(TestCase):
                                                                           genesis_prev_hash=config.dev.genesis_prev_headerhash,
                                                                           rate_limit=config.user.peer_rate_limit))
         self.peer_manager.handle_version(channel, message)
-        channel.peer_manager.ban_peer.assert_not_called()
+        channel.peer_manager.ban_channel.assert_not_called()
         channel.loseConnection.assert_not_called()
 
     def test_handle_version_empty_version_message(self):
@@ -268,22 +274,21 @@ class TestP2PPeerManager(TestCase):
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_handle_peer_list_works(self, logger):
         """
-        Heavy error testing should be done in get_valid_peers() and update_peer_addresses(), which this fx uses.
+        Heavy error testing should be done in combine_peer_lists() and extend_known_peers(), which this fx uses.
         """
         peer_list_message = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PL,
                                                         plData=qrllegacy_pb2.PLData(
                                                             peer_ips={'127.0.0.3:5000', '127.0.0.4:5001'},
                                                             public_port=9000))
         channel = make_channel()
-        channel.host_ip = '187.0.0.1'
-        channel.peer_ip = '187.0.0.2'
+        channel.host = IPMetadata('187.0.0.1', 9000)
+        channel.peer = IPMetadata('187.0.0.2', 9000)
 
-        # handle_peer_list() will call update_peer_addresses(), so we gotta mock it out. It's tested elsewhere anyway.
-        self.peer_manager.update_peer_addresses = Mock(autospec=P2PPeerManager.update_peer_addresses)
+        # handle_peer_list() will call extend_known_peers(), so we gotta mock it out. It's tested elsewhere anyway.
+        self.peer_manager.extend_known_peers = Mock(autospec=P2PPeerManager.extend_known_peers)
         self.peer_manager.handle_peer_list(channel, peer_list_message)
-        self.peer_manager.update_peer_addresses.assert_called_once_with({"{0}:{1}".format(channel.peer_ip, 9000)})
+        self.peer_manager.extend_known_peers.assert_called_once_with({channel.peer.full_address})
 
-    @expectedFailure
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_handle_peer_list_empty_peer_list_message(self, logger):
         """
@@ -295,13 +300,13 @@ class TestP2PPeerManager(TestCase):
         channel.host_ip = '127.0.0.1'
         channel.peer_ip = '127.0.0.2'
 
-        self.peer_manager.update_peer_addresses = Mock(autospec=P2PPeerManager.update_peer_addresses)
-        self.peer_manager.get_valid_peers = Mock(autospec=P2PPeerManager.get_valid_peers)
+        self.peer_manager.extend_known_peers = Mock(autospec=P2PPeerManager.extend_known_peers)
+        self.peer_manager.combine_peer_lists = Mock(autospec=P2PPeerManager.combine_peer_lists)
 
         self.peer_manager.handle_peer_list(channel, peer_list_message)
 
-        self.peer_manager.get_valid_peers.assert_not_called()
-        self.peer_manager.update_peer_addresses.assert_not_called()
+        self.peer_manager.combine_peer_lists.assert_not_called()
+        self.peer_manager.extend_known_peers.assert_not_called()
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     @patch('qrl.core.p2p.p2pPeerManager.config', autospec=True)
@@ -318,13 +323,13 @@ class TestP2PPeerManager(TestCase):
         channel.host_ip = '127.0.0.1'
         channel.peer_ip = '127.0.0.2'
 
-        self.peer_manager.update_peer_addresses = Mock(autospec=P2PPeerManager.update_peer_addresses)
-        self.peer_manager.get_valid_peers = Mock(autospec=P2PPeerManager.get_valid_peers)
+        self.peer_manager.extend_known_peers = Mock(autospec=P2PPeerManager.extend_known_peers)
+        self.peer_manager.combine_peer_lists = Mock(autospec=P2PPeerManager.combine_peer_lists)
 
         self.peer_manager.handle_peer_list(channel, peer_list_message)
 
-        self.peer_manager.get_valid_peers.assert_not_called()
-        self.peer_manager.update_peer_addresses.assert_not_called()
+        self.peer_manager.combine_peer_lists.assert_not_called()
+        self.peer_manager.extend_known_peers.assert_not_called()
 
     def test_handle_sync(self):
         """
@@ -448,3 +453,37 @@ class TestP2PPeerManager(TestCase):
         self.peer_manager.handle_p2p_acknowledgement(channel, ack)
 
         channel.loseConnection.assert_called_once_with()
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer')
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.send')
+    def test_trusted_message_count(self, send, get_peer):
+        channel = P2PProtocol()
+        with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+            time_mock.return_value = channel.connected_at + 100
+            get_peer.return_value = IPMetadata('192.168.0.1', 1000)
+
+            self.assertFalse(self.peer_manager.trusted_peer(channel))
+
+            for _ in range(config.dev.trust_min_msgcount - 1):
+                buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+                channel.dataReceived(buffer)
+                self.assertFalse(self.peer_manager.trusted_peer(channel))
+
+            buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+            channel.dataReceived(buffer)
+            self.assertTrue(self.peer_manager.trusted_peer(channel))
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer')
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.send')
+    def test_trusted_time(self, send, get_peer):
+        channel = P2PProtocol()
+        with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+            time_mock.return_value = channel.connected_at + 1
+            get_peer.return_value = IPMetadata('192.168.0.1', 1000)
+
+            for _ in range(config.dev.trust_min_msgcount):
+                buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+                channel.dataReceived(buffer)
+
+            time_mock.return_value = channel.connected_at + config.dev.trust_min_conntime + 1
+            self.assertTrue(self.peer_manager.trusted_peer(channel))
