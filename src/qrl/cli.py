@@ -426,6 +426,7 @@ def wallet_decrypt(ctx):
         click.echo(str(e))
         quit(1)
 
+
 @qrl.command()
 @click.option('--txblob', type=str, default='', prompt=True, help='transaction blob')
 @click.pass_context
@@ -505,7 +506,7 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
         master_addr = None
         if master:
             master_addr = parse_qaddress(master)
-        fee_shor = _shorize(fee)
+        fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
