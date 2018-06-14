@@ -3,18 +3,16 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from collections import namedtuple
 from unittest import TestCase
-from mock import Mock, patch, MagicMock
 
+from mock import Mock, patch, MagicMock
 from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
-from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.p2p import p2pPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory, p2p_msg_priority
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
 from qrl.generated import qrllegacy_pb2
-
 from tests.misc.helper import replacement_getTime
 
 logger.initialize_default()
@@ -52,13 +50,13 @@ class TestP2PProtocol(TestCase):
         """
         This is more to ensure that the transport is mocked correctly.
         """
-        self.assertEqual('127.0.0.2:9000', self.channel.addr_remote)
+        self.assertEqual('127.0.0.2:9000', self.channel.peer.full_address)
 
     def test_addr_local_works(self):
         """
         This is more to ensure that the transport is mocked correctly.
         """
-        self.assertEqual('127.0.0.1:9000', self.channel.addr_local)
+        self.assertEqual('127.0.0.1:9000', self.channel.host.full_address)
 
     @patch('qrl.core.misc.ntp.getTime')
     def test_connectionMade_behavior(self, getTime):
@@ -122,7 +120,7 @@ class TestP2PProtocol(TestCase):
         acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x88\x01'
         self.channel._buffer = 10 * acknowledgement_bytes
         self.channel.dataReceived(acknowledgement_bytes)
-        self.channel.factory.ban_peer.assert_called_with(self.channel)
+        self.channel.peer_manager.ban_channel.assert_called_with(self.channel)
 
     @patch('qrl.core.misc.ntp.getTime')
     def test_send_sync(self, getTime):
@@ -154,31 +152,6 @@ class TestP2PProtocol(TestCase):
                                               '000000191a170a0776657273696f6e120c67656e657369735f68617368'))
         messages = self.channel._parse_buffer([0])
         self.assertEqual(2, len(list(messages)))
-
-    @patch('qrl.core.misc.ntp.getTime')
-    def test_trusted_message_count(self, getTime):
-        getTime.return_value = self.channel.connected_at + 20
-        self.assertFalse(self.channel.trusted)
-
-        for _ in range(config.dev.trust_min_msgcount - 1):
-            buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
-            self.channel.dataReceived(buffer)
-            self.assertFalse(self.channel.trusted)
-
-        buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
-        self.channel.dataReceived(buffer)
-        self.assertTrue(self.channel.trusted)
-
-    @patch('qrl.core.misc.ntp.getTime')
-    def test_trusted_time(self, getTime):
-        getTime.return_value = self.channel.connected_at + 1
-
-        for _ in range(config.dev.trust_min_msgcount):
-            buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'))
-            self.channel.dataReceived(buffer)
-
-        getTime.return_value = self.channel.connected_at + config.dev.trust_min_conntime + 1
-        self.assertTrue(self.channel.trusted)
 
     @patch('qrl.core.p2p.p2pprotocol.logger', autospec=True)
     def test_parse_buffer_invalid_data(self, logger):
