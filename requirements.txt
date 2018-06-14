@@ -17,5 +17,6 @@ pyqrllib>=0.9.0,<0.10.0
 pyqryptonight>=0.10.9,<0.11.0
 Flask==0.12.2
 json-rpc==1.10.8
+pyledgerqrl>=0.4.0
 cryptography==2.2.2
 mock==2.0.0

@@ -30,7 +30,7 @@ class TransferTransaction(Transaction):
     def amounts(self):
         return self._data.transfer.amounts
 
-    def get_hashable_bytes(self):
+    def get_data_hash(self):
         tmptxhash = (self.master_addr +
                      self.fee.to_bytes(8, byteorder='big', signed=False))
 

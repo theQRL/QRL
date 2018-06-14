@@ -3,7 +3,6 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core.AddressState import AddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
-from qrl.crypto.misc import sha256
 
 
 class LatticePublicKey(Transaction):
@@ -23,13 +22,11 @@ class LatticePublicKey(Transaction):
     def dilithium_pk(self):
         return self._data.latticePK.dilithium_pk
 
-    def get_hashable_bytes(self):
-        return sha256(
-            self.master_addr +
-            self.fee.to_bytes(8, byteorder='big', signed=False) +
-            self.kyber_pk +
-            self.dilithium_pk
-        )
+    def get_data_bytes(self) -> bytes:
+        return self.master_addr + \
+               self.fee.to_bytes(8, byteorder='big', signed=False) + \
+               self.kyber_pk + \
+               self.dilithium_pk
 
     @staticmethod
     def create(fee, kyber_pk, dilithium_pk, xmss_pk, master_addr: bytes = None):
