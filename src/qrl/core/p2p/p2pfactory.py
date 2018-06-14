@@ -191,9 +191,12 @@ class P2PFactory(ServerFactory):
         logger.info('>>> Received Block #%d %s', block.block_number, bin2hstr(block.headerhash))
 
         if source != self._target_channel:
-            logger.warning('Received block from unexpected peer')
-            logger.warning('Expected peer: %s', self._target_channel.peer)
-            logger.warning('Found peer: %s', source.peer)
+            if self._target_channel is None:
+                logger.warning('Received block and target channel is None')
+            else:
+                logger.warning('Received block from unexpected peer')
+                logger.warning('Expected peer: %s', self._target_channel.peer)
+                logger.warning('Found peer: %s', source.peer)
             return
 
         if block.block_number != self._last_requested_block_number:

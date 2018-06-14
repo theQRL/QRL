@@ -642,6 +642,7 @@ class TestP2PFactoryBlockReceived(TestCase):
         block = Mock(autospec=Block, block_number=1, headerhash=bhstr2bin('123456'))
         block.validate.return_value = True
 
+        self.factory._target_channel = self.channel_1
         self.factory.block_received(self.channel_1, block)
 
         self.factory._chain_manager.add_block.assert_called_once()
