@@ -20,7 +20,6 @@ from qrl.core.p2p.p2pChainManager import P2PChainManager
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement
 from qrl.core.p2p.p2pfactory import P2PFactory
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
@@ -284,18 +283,6 @@ class QRLNode:
                         master_addr: bytes) -> SlaveTransaction:
         return SlaveTransaction.create(slave_pks=slave_pks,
                                        access_types=access_types,
-                                       fee=fee,
-                                       xmss_pk=xmss_pk,
-                                       master_addr=master_addr)
-
-    def create_lattice_public_key_txn(self,
-                                      kyber_pk: bytes,
-                                      dilithium_pk: bytes,
-                                      fee: int,
-                                      xmss_pk: bytes,
-                                      master_addr: bytes) -> SlaveTransaction:
-        return LatticePublicKey.create(kyber_pk=kyber_pk,
-                                       dilithium_pk=dilithium_pk,
                                        fee=fee,
                                        xmss_pk=xmss_pk,
                                        master_addr=master_addr)
