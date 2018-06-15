@@ -43,6 +43,13 @@ class ChainManager:
         return last_block_metadata.cumulative_difficulty
 
     def load(self, genesis_block):
+        # load() has the following tasks:
+        # Write Genesis Block into State immediately
+        # Register block_number <-> blockhash mapping
+        # Calculate difficulty Metadata for Genesis Block
+        # Generate AddressStates from Genesis Block balances
+        # Apply Genesis Block's transactions to the state
+        # Detect if we are forked from genesis block and if so initiate recovery.
         height = self.state.get_mainchain_height()
 
         if height == -1:

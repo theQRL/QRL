@@ -8,9 +8,6 @@ import tempfile
 from unittest import TestCase, mock, skip
 
 from click.testing import CliRunner
-from pyqrllib.dilithium import Dilithium
-from pyqrllib.kyber import Kyber
-from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.cli import qrl as qrl_cli
 from qrl.core import config
@@ -693,49 +690,3 @@ class TestCLI(TestCase):
 
         self.assertEqual(result.exit_code, 1)
         self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
-
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_tx_latticepk(self, mock_stub):
-        m_pushTransactionResp = mock.MagicMock(name='my big fake pushTransactionResp', error_code=3)
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.PushTransaction.return_value = m_pushTransactionResp
-
-        mock_stub.name = 'fake qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
-
-        kyber_pk = bin2hstr(Kyber().getPK())
-        dilithium_pk = bin2hstr(Dilithium().getPK())
-
-        result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=",
-                                     "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk),
-                                     "--fee=0", "--ots_key_index=0"])
-        print(result.exit_code)
-        self.assertEqual(result.exit_code, 0)
-        self.assertEqual(result.output.strip(), '3')
-
-    @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
-    def test_tx_latticepk_invalid_input(self, mock_stub):
-        m_push_transaction_resp = mock.MagicMock(name='my big fake pushTransactionResp', error_code=3)
-        mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
-        mock_stub_instance.PushTransaction.return_value = m_push_transaction_resp
-
-        mock_stub.name = 'fake qrl_pb2_grpc.PublicAPIStub'
-        mock_stub.return_value = mock_stub_instance
-
-        kyber_pk = bin2hstr(Kyber().getPK())
-        dilithium_pk = bin2hstr(Dilithium().getPK())
-
-        # What if we have malformed kyber pks?
-        result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=",
-                                     "--kyber-pk={}".format(kyber_pk[1:]), "--dilithium-pk={}".format(dilithium_pk),
-                                     "--fee=0", "--ots_key_index=0"])
-        self.assertEqual(1, result.exit_code)
-
-        # What if we have malformed dilithium pks?
-        result = self.runner.invoke(qrl_cli,
-                                    ["-r", "tx_latticepk", "--src=0", "--master=",
-                                     "--kyber-pk={}".format(kyber_pk), "--dilithium-pk={}".format(dilithium_pk[1:]),
-                                     "--fee=0", "--ots_key_index=0"])
-        self.assertEqual(1, result.exit_code)

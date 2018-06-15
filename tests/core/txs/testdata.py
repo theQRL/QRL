@@ -11,13 +11,13 @@ test_json_Simple = """{
   }
 }"""
 test_json_CoinBase = """{
-  "masterAddr": "AQMACCOCpS+LqcLTOtgHws3VvQhsLC/mPG6hO2MNEoCJTDo54cOA",
-  "nonce": "2",
-  "transactionHash": "x/Ph4JLnD0mpQ6Fi3osRCJm2CrHa/QxyYl+6b8GtzQE=",
   "coinbase": {
     "addrTo": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
     "amount": "90"
-  }
+  },
+  "masterAddr": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw",
+  "nonce": "2",
+  "transactionHash": "P4+RED6DZRoYtF/XPQhOxOXtimHVegGE+AtaNZbU49s="
 }"""
 test_json_Token = """{
   "fee": "1",

@@ -63,6 +63,20 @@ jobs:
       - run: pip install -U -r test-requirements.txt
       - run: python3 setup.py test
 
+  integration_fast:
+    docker:
+      - image: qrledger/qrl-docker:xenial
+    environment:
+      PYTHONPATH: /root/project:/root/project/tests_integration
+      TESTINPLACE: 1
+    steps:
+      - checkout
+      - run: git submodule update --init --recursive --remote
+      - run: apt install -y python3-venv
+      - run: pip install -U -r tests_integration/requirements.txt
+      - run: ls tests_integration/tmp
+      - run: pytest tests_integration/tests/python/fastnet
+
   integration_smoke:
     docker:
       - image: qrledger/qrl-docker:xenial
@@ -77,6 +91,7 @@ jobs:
       - run: ls tests_integration/tmp
       - run: pytest tests_integration/tests/python/basic
       - run: pytest tests_integration/tests/python/fork_recovery
+      - run: pytest tests_integration/tests/python/fastnet
 
   integration_fuzzing:
     docker:

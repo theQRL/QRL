@@ -90,7 +90,8 @@ class TestMiner(TestCase):
         # From sample run of test_prepare_next_unmined_block_template_works()
         self.miner._measurement = 60
         self.miner._current_difficulty = StringToUInt256('0')
-        self.miner._current_target = '115792089237316195423570985008687907853269984665640564039457584007913129639807'
+        self.miner._current_target = \
+            StringToUInt256('115792089237316195423570985008687907853269984665640564039457584007913129639807')
 
         # start() is from Qryptominer, let's not actually mine in a test
         with patch('qrl.core.Miner.Miner.start', spec=True) as m_start:
@@ -116,7 +117,7 @@ class TestMiner(TestCase):
 
         self.assertEqual(difficulty, 1)  # because self.miner._current_difficulty was set above
         self.assertEqual(blob,
-                         '00cd3fa2359b82fe564bb20a41b16556ca591d10dde86838a75f0be4aa82a0c09638c0313924c10000000000000000000000000000000000bdb655cfe5d1f2959e0783ff2b84eb9e91c3da2d')  # noqa
+                         '002388f98d71b9af68fc27d24bfa973c6c7532ea8da10589267e56ac02a281419cf4c7b4ce01db000000000000000000000000000000000046642a24130ced5e65f862c6fd8ee767ab659220')  # noqa
 
     def test_get_block_to_mine_not_mining_upon_last_block(self, m_getTime, m_logger):
         """
@@ -135,7 +136,7 @@ class TestMiner(TestCase):
 
         self.assertEqual(difficulty, 1)  # because self.miner._current_difficulty was set above
         self.assertEqual(blob,
-                         '00cd3fa2359b82fe564bb20a41b16556ca591d10dde86838a75f0be4aa82a0c09638c0313924c10000000000000000000000000000000000bdb655cfe5d1f2959e0783ff2b84eb9e91c3da2d')  # noqa
+                         '002388f98d71b9af68fc27d24bfa973c6c7532ea8da10589267e56ac02a281419cf4c7b4ce01db000000000000000000000000000000000046642a24130ced5e65f862c6fd8ee767ab659220')  # noqa
 
     def test_get_block_to_mine_perfect_block_no_changes(self, m_getTime, m_logger):
         """

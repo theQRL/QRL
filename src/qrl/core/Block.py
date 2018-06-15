@@ -24,6 +24,12 @@ class Block(object):
 
         self.blockheader = BlockHeader(self._data.header)
 
+    def __eq__(self, other):
+        equality = (self.block_number == other.block_number) and (self.headerhash == other.headerhash) and (
+                self.prev_headerhash == other.prev_headerhash) and (self.timestamp == other.timestamp) and (
+                           self.mining_nonce == other.mining_nonce)
+        return equality
+
     @property
     def size(self):
         return self._data.ByteSize()
@@ -51,7 +57,7 @@ class Block(object):
 
     @property
     def prev_headerhash(self):
-        return self.blockheader.prev_blockheaderhash
+        return self.blockheader.prev_headerhash
 
     @property
     def transactions(self):
@@ -78,11 +84,11 @@ class Block(object):
         return self.blockheader.timestamp
 
     @property
-    def mining_blob(self)->bytes:
+    def mining_blob(self) -> bytes:
         return self.blockheader.mining_blob
 
     @property
-    def mining_nonce_offset(self)->bytes:
+    def mining_nonce_offset(self) -> bytes:
         return self.blockheader.nonce_offset
 
     @staticmethod
@@ -114,8 +120,8 @@ class Block(object):
 
     @staticmethod
     def create(block_number: int,
-               prev_block_headerhash: bytes,
-               prev_block_timestamp: int,
+               prev_headerhash: bytes,
+               prev_timestamp: int,
                transactions: list,
                miner_address: bytes):
 
@@ -138,11 +144,11 @@ class Block(object):
             hashedtransactions.append(tx.txhash)
             block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
 
-        txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
+        txs_hash = merkle_tx_hash(hashedtransactions)  # FIXME: Find a better name, type changes
 
         tmp_blockheader = BlockHeader.create(blocknumber=block_number,
-                                             prev_block_headerhash=prev_block_headerhash,
-                                             prev_block_timestamp=prev_block_timestamp,
+                                             prev_headerhash=prev_headerhash,
+                                             prev_timestamp=prev_timestamp,
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)
 

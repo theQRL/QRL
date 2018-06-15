@@ -25,7 +25,7 @@ class TestCoinBase(TestCase):
         self.mock_blockheader.stake_selector = self.alice.address
         self.mock_blockheader.block_reward = 50
         self.mock_blockheader.fee_reward = 40
-        self.mock_blockheader.prev_blockheaderhash = sha256(b'prev_headerhash')
+        self.mock_blockheader.prev_headerhash = sha256(b'prev_headerhash')
         self.mock_blockheader.block_number = 1
         self.mock_blockheader.headerhash = sha256(b'headerhash')
 
@@ -52,7 +52,7 @@ class TestCoinBase(TestCase):
         self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
                          bin2hstr(tx.addr_to))
 
-        self.assertEqual('c7f3e1e092e70f49a943a162de8b110899b60ab1dafd0c72625fba6fc1adcd01', bin2hstr(tx.txhash))
+        self.assertEqual('3f8f91103e83651a18b45fd73d084ec4e5ed8a61d57a0184f80b5a3596d4e3db', bin2hstr(tx.txhash))
         self.assertEqual(tx.amount, 90)
 
     def test_validate_custom(self, m_logger):

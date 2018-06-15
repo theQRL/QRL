@@ -20,7 +20,6 @@ from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.qrlnode import QRLNode
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
@@ -339,7 +338,6 @@ class TestP2PFactory(TestCase):
         self.factory.broadcast_tx(TransferTransaction())
         self.factory.broadcast_tx(TokenTransaction())
         self.factory.broadcast_tx(TransferTokenTransaction())
-        self.factory.broadcast_tx(LatticePublicKey())
         self.factory.broadcast_tx(SlaveTransaction())
         with self.assertRaises(ValueError):
             m_tx = Mock(autospec=TransferTransaction, txhash=bhstr2bin('deadbeef'))

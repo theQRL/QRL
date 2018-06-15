@@ -1,7 +1,8 @@
 # coding=utf-8
 import functools
+
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import shake128
+from pyqrllib.pyqrllib import shake128, bin2hstr
 
 from qrl.core import config
 from qrl.core.formulas import block_reward
@@ -46,7 +47,7 @@ class BlockHeader(object):
         return self._data.hash_header
 
     @property
-    def prev_blockheaderhash(self):
+    def prev_headerhash(self):
         return self._data.hash_header_prev
 
     @property
@@ -81,7 +82,7 @@ class BlockHeader(object):
     def mining_blob(self) -> bytes:
         blob = self.block_number.to_bytes(8, byteorder='big', signed=False) \
                + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
-               + self.prev_blockheaderhash \
+               + self.prev_headerhash \
                + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.tx_merkle_root
@@ -96,26 +97,29 @@ class BlockHeader(object):
             raise Exception("Mining blob size below 56 bytes")
 
         # Now insert mining nonce and extra nonce in offset 56 for compatibility
-        mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False) \
-            + self.extra_nonce.to_bytes(8, byteorder='big', signed=False) \
-            + zero.to_bytes(5, byteorder='big', signed=False)
+        mining_nonce_bytes = \
+            self.mining_nonce.to_bytes(4, byteorder='big', signed=False) + \
+            self.extra_nonce.to_bytes(8, byteorder='big', signed=False) + \
+            zero.to_bytes(5, byteorder='big', signed=False)
 
         blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
 
         return bytes(blob)
 
+    @staticmethod
     @functools.lru_cache(maxsize=5)
-    def _get_qryptonight_hash(self, blob):
+    def _get_qryptonight_hash(blob):
         qn = Qryptonight()
-        return bytes(qn.hash(blob))
+        qnhash = bytes(qn.hash(blob))
+        return qnhash
 
     def generate_headerhash(self):
         return self._get_qryptonight_hash(self.mining_blob)
 
     @staticmethod
     def create(blocknumber: int,
-               prev_block_headerhash: bytes,
-               prev_block_timestamp: int,
+               prev_headerhash: bytes,
+               prev_timestamp: int,
                hashedtransactions: bytes,
                fee_reward: int):
         bh = BlockHeader()
@@ -124,16 +128,16 @@ class BlockHeader(object):
         if bh._data.block_number != 0:
             bh._data.timestamp_seconds = int(ntp.getTime())
             # If current block timestamp is less than or equals to the previous block timestamp
-            # then set current block timestamp 1 sec higher than prev_block_timestamp
-            if bh._data.timestamp_seconds <= prev_block_timestamp:
-                bh._data.timestamp_seconds = prev_block_timestamp + 1
+            # then set current block timestamp 1 sec higher than prev_timestamp
+            if bh._data.timestamp_seconds <= prev_timestamp:
+                bh._data.timestamp_seconds = prev_timestamp + 1
             if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
         else:
-            bh._data.timestamp_seconds = prev_block_timestamp  # Set timestamp for genesis block
+            bh._data.timestamp_seconds = prev_timestamp  # Set timestamp for genesis block
 
-        bh._data.hash_header_prev = prev_block_headerhash
+        bh._data.hash_header_prev = prev_headerhash
         bh._data.merkle_root = hashedtransactions
         bh._data.reward_fee = fee_reward
 
@@ -185,7 +189,10 @@ class BlockHeader(object):
             logger.warning('Block Timestamp %s', self.timestamp)
             return False
 
-        if self.generate_headerhash() != self.headerhash:
+        generated_hash = self.generate_headerhash()
+        if generated_hash != self.headerhash:
+            logger.warning('received:   {}'.format(bin2hstr(self.headerhash)))
+            logger.warning('calculated: {}'.format(bin2hstr(generated_hash)))
             logger.warning('Headerhash false for block: failed validation')
             return False
 
@@ -220,7 +227,7 @@ class BlockHeader(object):
             logger.warning('Block numbers out of sequence: failed validation')
             return False
 
-        if parent_block.headerhash != self.prev_blockheaderhash:
+        if parent_block.headerhash != self.prev_headerhash:
             logger.warning('Headerhash not in sequence: failed validation')
             return False
 

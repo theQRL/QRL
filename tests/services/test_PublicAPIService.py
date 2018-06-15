@@ -4,7 +4,7 @@
 import heapq
 from unittest import TestCase
 
-from grpc import ServicerContext, StatusCode
+from grpc import ServicerContext
 from mock import Mock, MagicMock, patch
 from pyqrllib.pyqrllib import str2bin, hstr2bin, bin2hstr
 
@@ -276,8 +276,8 @@ class TestPublicAPI(TestCase):
         # Find a block
         db_state.get_block_by_number = MagicMock(
             return_value=Block.create(block_number=1,
-                                      prev_block_headerhash=sha256(b'reveal'),
-                                      prev_block_timestamp=10,
+                                      prev_headerhash=sha256(b'reveal'),
+                                      prev_timestamp=10,
                                       transactions=[],
                                       miner_address=alice_xmss.address))
 
@@ -303,8 +303,8 @@ class TestPublicAPI(TestCase):
                                                       xmss_pk=alice_xmss.pk))
 
             blocks.append(Block.create(block_number=i,
-                                       prev_block_headerhash=sha256(b'reveal'),
-                                       prev_block_timestamp=10,
+                                       prev_headerhash=sha256(b'reveal'),
+                                       prev_timestamp=10,
                                        transactions=txs,
                                        miner_address=alice_xmss.address))
 
@@ -395,26 +395,3 @@ class TestPublicAPI(TestCase):
         response = service.GetAddressFromPK(request=request, context=None)
         self.assertEqual('010600b56d161c7de8aa741962e3e49b973b7e53456fa47f2443d69f17c632f29c8b1aab7d2491',
                          bin2hstr(response.address))
-
-    def test_GetTokenTxn_Error(self):
-        db_state = Mock(spec=State)
-        p2p_factory = Mock(spec=P2PFactory)
-        p2p_factory.sync_state = SyncState()
-        p2p_factory.num_connections = 23
-        p2p_factory.pow = Mock()
-
-        chain_manager = Mock(spec=ChainManager)
-        chain_manager.height = 0
-
-        qrlnode = QRLNode(db_state, mining_address=b'')
-        qrlnode.set_chain_manager(chain_manager)
-        qrlnode._p2pfactory = p2p_factory
-        qrlnode._pow = p2p_factory.pow
-
-        service = PublicAPIService(qrlnode)
-        request = qrl_pb2.TokenTxnReq()
-        context = Mock(spec=ServicerContext)
-        context.set_code = MagicMock()
-
-        service.GetTokenTxn(request=request, context=context)
-        context.set_code.assert_called_with(StatusCode.INVALID_ARGUMENT)

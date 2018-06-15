@@ -45,8 +45,8 @@ class TestMiningAPI(TestCase):
 
         block_header = BlockHeader.create(
             blocknumber=10,
-            prev_block_headerhash=sha256(b'prevblock'),
-            prev_block_timestamp=1234567890,
+            prev_headerhash=sha256(b'prevblock'),
+            prev_timestamp=1234567890,
             hashedtransactions=sha256(b'tx1'),
             fee_reward=1)
 

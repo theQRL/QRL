@@ -20,12 +20,6 @@ from qrl.core.p2p.p2pChainManager import P2PChainManager
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement
 from qrl.core.p2p.p2pfactory import P2PFactory
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
-from qrl.core.txs.MessageTransaction import MessageTransaction
-from qrl.core.txs.SlaveTransaction import SlaveTransaction
-from qrl.core.txs.TokenTransaction import TokenTransaction
-from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
-from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.generated import qrl_pb2
 
 
@@ -217,89 +211,6 @@ class QRLNode:
     ####################################################
     ####################################################
 
-    @staticmethod
-    def create_message_txn(message: bytes,
-                           fee: int,
-                           xmss_pk: bytes,
-                           master_addr: bytes):
-        return MessageTransaction.create(message_hash=message,
-                                         fee=fee,
-                                         xmss_pk=xmss_pk,
-                                         master_addr=master_addr)
-
-    @staticmethod
-    def create_token_txn(symbol: bytes,
-                         name: bytes,
-                         owner: bytes,
-                         decimals: int,
-                         initial_balances,
-                         fee: int,
-                         xmss_pk: bytes,
-                         master_addr: bytes):
-        return TokenTransaction.create(symbol,
-                                       name,
-                                       owner,
-                                       decimals,
-                                       initial_balances,
-                                       fee,
-                                       xmss_pk,
-                                       master_addr)
-
-    @staticmethod
-    def create_transfer_token_txn(addrs_to: list,
-                                  token_txhash: bytes,
-                                  amounts: list,
-                                  fee: int,
-                                  xmss_pk: bytes,
-                                  master_addr: bytes):
-        return TransferTokenTransaction.create(token_txhash,
-                                               addrs_to,
-                                               amounts,
-                                               fee,
-                                               xmss_pk,
-                                               master_addr)
-
-    def create_send_tx(self,
-                       addrs_to: list,
-                       amounts: list,
-                       fee: int,
-                       xmss_pk: bytes,
-                       master_addr: bytes) -> TransferTransaction:
-        addr_from = self.get_addr_from(xmss_pk, master_addr)
-        balance = self.db_state.balance(addr_from)
-        if sum(amounts) + fee > balance:
-            raise ValueError("Not enough funds in the source address")
-
-        return TransferTransaction.create(addrs_to=addrs_to,
-                                          amounts=amounts,
-                                          fee=fee,
-                                          xmss_pk=xmss_pk,
-                                          master_addr=master_addr)
-
-    def create_slave_tx(self,
-                        slave_pks: list,
-                        access_types: list,
-                        fee: int,
-                        xmss_pk: bytes,
-                        master_addr: bytes) -> SlaveTransaction:
-        return SlaveTransaction.create(slave_pks=slave_pks,
-                                       access_types=access_types,
-                                       fee=fee,
-                                       xmss_pk=xmss_pk,
-                                       master_addr=master_addr)
-
-    def create_lattice_public_key_txn(self,
-                                      kyber_pk: bytes,
-                                      dilithium_pk: bytes,
-                                      fee: int,
-                                      xmss_pk: bytes,
-                                      master_addr: bytes) -> SlaveTransaction:
-        return LatticePublicKey.create(kyber_pk=kyber_pk,
-                                       dilithium_pk=dilithium_pk,
-                                       fee=fee,
-                                       xmss_pk=xmss_pk,
-                                       master_addr=master_addr)
-
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx) -> bool:
         if tx is None:
@@ -419,7 +330,7 @@ class QRLNode:
     def get_block_timeseries(self, block_count) -> Iterator[qrl_pb2.BlockDataPoint]:
         result = []
 
-        if self._chain_manager.height == 0:
+        if self.block_height == 0:
             return result
 
         block = self._chain_manager.get_last_block()
@@ -438,9 +349,8 @@ class QRLNode:
 
         return reversed(result)
 
-    def get_blockheader_and_metadata(self, block_number) -> Tuple:
-        if block_number == 0:
-            block_number = self.block_height
+    def get_blockheader_and_metadata(self, block_number=0) -> Tuple:
+        block_number = block_number or self.block_height  # if both are non-zero, then block_number takes priority
 
         result = (None, None)
         block = self.get_block_from_index(block_number)

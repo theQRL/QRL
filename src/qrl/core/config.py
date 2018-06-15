@@ -213,7 +213,7 @@ class DevConfig(object):
         self.mining_setpoint_blocktime = 60
         self.genesis_difficulty = 5000
         self.tx_extra_overhead = 15  # 15 bytes
-        self.coinbase_address = b'\x01\x03\x00\x08#\x82\xa5/\x8b\xa9\xc2\xd3:\xd8\x07\xc2\xcd\xd5\xbd\x08l,/\xe6<n\xa1;c\r\x12\x80\x89L:9\xe1\xc3\x80'
+        self.coinbase_address = b'000000000000000000000000000000000000000000000000000000000000000000000000000000'
 
         # Directories and files
         self.db_name = 'state'
