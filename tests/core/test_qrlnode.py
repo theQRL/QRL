@@ -8,11 +8,6 @@ from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.ESyncState import ESyncState
 from qrl.core.qrlnode import QRLNode
 from qrl.core.State import State
-from qrl.core.txs.TransferTransaction import TransferTransaction
-from qrl.core.txs.TokenTransaction import TokenTransaction
-from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
-from qrl.core.txs.MessageTransaction import MessageTransaction
-from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.ChainManager import ChainManager
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
@@ -477,79 +472,3 @@ class TestQRLNodeProperties(TestCase):
     def test_connect_peers(self):
         self.qrlnode.connect_peers()
         self.m_peer_manager.connect_peers.assert_called_once()
-
-
-@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
-class TestQRLNodeCreateTX(TestCase):
-    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
-    def setUp(self):
-        self.db_state = Mock(autospec=State, name='mocked State')
-
-        self.qrlnode = QRLNode(db_state=self.db_state, mining_address=b'')
-
-    def test_create_message_txn(self):
-        params = {
-            'message_hash': b'deadbeef',
-            'fee': 1,
-            'xmss_pk': alice.pk,
-            'master_addr': None
-        }
-        tx = QRLNode.create_message_txn(**params)
-        self.assertIsInstance(tx, MessageTransaction)
-
-    def test_create_token_txn(self):
-        params = {
-            "symbol": b'QRL',
-            "name": b'Quantum Resistant Ledger',
-            "owner": alice.address,
-            "decimals": 15,
-            "initial_balances": [qrl_pb2.AddressAmount(address=alice.address, amount=1000)],
-            "fee": 1,
-            "xmss_pk": alice.pk,
-            "master_addr": None
-        }
-        tx = QRLNode.create_token_txn(**params)
-        self.assertIsInstance(tx, TokenTransaction)
-
-    def test_create_transfer_token_txn(self):
-        params = {
-            "token_txhash": b'',
-            "addrs_to": [slave.address],
-            "amounts": [100],
-            "fee": 1,
-            "xmss_pk": alice.pk,
-            "master_addr": None
-        }
-        tx = QRLNode.create_transfer_token_txn(**params)
-        self.assertIsInstance(tx, TransferTokenTransaction)
-
-    def test_create_send_tx(self):
-        """
-        This wrapper function also checks the addr_from's balance, even though it is also checked elsewhere.
-        """
-        self.db_state.balance.return_value = 10
-
-        params = {
-            "addrs_to": [slave.address],
-            "amounts": [100],
-            "fee": 1,
-            "xmss_pk": alice.pk,
-            "master_addr": None,
-        }
-        with self.assertRaises(ValueError):
-            self.qrlnode.create_send_tx(**params)
-
-        self.db_state.balance.return_value = 1000
-        tx = self.qrlnode.create_send_tx(**params)
-        self.assertIsInstance(tx, TransferTransaction)
-
-    def test_create_slave_tx(self):
-        params = {
-            "slave_pks": [slave.pk],
-            "access_types": [0],
-            "fee": 1,
-            "xmss_pk": alice.pk,
-            "master_addr": None
-        }
-        tx = self.qrlnode.create_slave_tx(**params)
-        self.assertIsInstance(tx, SlaveTransaction)
