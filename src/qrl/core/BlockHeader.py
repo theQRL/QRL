@@ -1,7 +1,8 @@
 # coding=utf-8
 import functools
+
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import shake128
+from pyqrllib.pyqrllib import shake128, bin2hstr
 
 from qrl.core import config
 from qrl.core.formulas import block_reward
@@ -96,18 +97,21 @@ class BlockHeader(object):
             raise Exception("Mining blob size below 56 bytes")
 
         # Now insert mining nonce and extra nonce in offset 56 for compatibility
-        mining_nonce_bytes = self.mining_nonce.to_bytes(4, byteorder='big', signed=False) \
-            + self.extra_nonce.to_bytes(8, byteorder='big', signed=False) \
-            + zero.to_bytes(5, byteorder='big', signed=False)
+        mining_nonce_bytes = \
+            self.mining_nonce.to_bytes(4, byteorder='big', signed=False) + \
+            self.extra_nonce.to_bytes(8, byteorder='big', signed=False) + \
+            zero.to_bytes(5, byteorder='big', signed=False)
 
         blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
 
         return bytes(blob)
 
+    @staticmethod
     @functools.lru_cache(maxsize=5)
-    def _get_qryptonight_hash(self, blob):
+    def _get_qryptonight_hash(blob):
         qn = Qryptonight()
-        return bytes(qn.hash(blob))
+        qnhash = bytes(qn.hash(blob))
+        return qnhash
 
     def generate_headerhash(self):
         return self._get_qryptonight_hash(self.mining_blob)
@@ -185,7 +189,10 @@ class BlockHeader(object):
             logger.warning('Block Timestamp %s', self.timestamp)
             return False
 
-        if self.generate_headerhash() != self.headerhash:
+        generated_hash = self.generate_headerhash()
+        if generated_hash != self.headerhash:
+            logger.warning('received:   {}'.format(bin2hstr(self.headerhash)))
+            logger.warning('calculated: {}'.format(bin2hstr(generated_hash)))
             logger.warning('Headerhash false for block: failed validation')
             return False
 
