@@ -20,6 +20,11 @@ from qrl.core.p2p.p2pChainManager import P2PChainManager
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement
 from qrl.core.p2p.p2pfactory import P2PFactory
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.generated import qrl_pb2
 
 
@@ -210,6 +215,77 @@ class QRLNode:
     ####################################################
     ####################################################
     ####################################################
+
+    @staticmethod
+    def create_message_txn(message_hash: bytes,
+                           fee: int,
+                           xmss_pk: bytes,
+                           master_addr: bytes):
+        return MessageTransaction.create(message_hash=message_hash,
+                                         fee=fee,
+                                         xmss_pk=xmss_pk,
+                                         master_addr=master_addr)
+
+    @staticmethod
+    def create_token_txn(symbol: bytes,
+                         name: bytes,
+                         owner: bytes,
+                         decimals: int,
+                         initial_balances,
+                         fee: int,
+                         xmss_pk: bytes,
+                         master_addr: bytes):
+        return TokenTransaction.create(symbol,
+                                       name,
+                                       owner,
+                                       decimals,
+                                       initial_balances,
+                                       fee,
+                                       xmss_pk,
+                                       master_addr)
+
+    @staticmethod
+    def create_transfer_token_txn(addrs_to: list,
+                                  token_txhash: bytes,
+                                  amounts: list,
+                                  fee: int,
+                                  xmss_pk: bytes,
+                                  master_addr: bytes):
+        return TransferTokenTransaction.create(token_txhash,
+                                               addrs_to,
+                                               amounts,
+                                               fee,
+                                               xmss_pk,
+                                               master_addr)
+
+    def create_send_tx(self,
+                       addrs_to: list,
+                       amounts: list,
+                       fee: int,
+                       xmss_pk: bytes,
+                       master_addr: bytes) -> TransferTransaction:
+        addr_from = self.get_addr_from(xmss_pk, master_addr)
+        balance = self.db_state.balance(addr_from)
+        if sum(amounts) + fee > balance:
+            raise ValueError("Not enough funds in the source address")
+
+        return TransferTransaction.create(addrs_to=addrs_to,
+                                          amounts=amounts,
+                                          fee=fee,
+                                          xmss_pk=xmss_pk,
+                                          master_addr=master_addr)
+
+    def create_slave_tx(self,
+                        slave_pks: list,
+                        access_types: list,
+                        fee: int,
+                        xmss_pk: bytes,
+                        master_addr: bytes) -> SlaveTransaction:
+        return SlaveTransaction.create(slave_pks=slave_pks,
+                                       access_types=access_types,
+                                       fee=fee,
+                                       xmss_pk=xmss_pk,
+                                       master_addr=master_addr)
 
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx) -> bool:
