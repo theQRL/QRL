@@ -72,7 +72,7 @@ class CoinBase(Transaction):
             logger.warning('%s %s', self.master_addr, config.dev.coinbase_address)
             return False
 
-        if not (AddressState.address_is_valid(self.master_addr) and AddressState.address_is_valid(self.addr_to)):
+        if not AddressState.address_is_valid(self.addr_to):
             logger.warning('Invalid address addr_from: %s addr_to: %s', self.master_addr, self.addr_to)
             return False
 

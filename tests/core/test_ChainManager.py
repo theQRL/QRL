@@ -59,7 +59,7 @@ class TestChainManager(TestCase):
                                            prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(200, 0)
+                    block_1.set_nonces(99, 0)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -112,7 +112,7 @@ class TestChainManager(TestCase):
                                            prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[transfer_transaction],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(3, 0)
+                    block_1.set_nonces(78, 0)
 
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
@@ -176,7 +176,7 @@ class TestChainManager(TestCase):
                                            prev_block_timestamp=genesis_block.timestamp,
                                            transactions=[slave_tx],
                                            miner_address=alice_xmss.address)
-                    block_1.set_nonces(3, 0)
+                    block_1.set_nonces(0, 0)
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
                     # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
@@ -201,7 +201,7 @@ class TestChainManager(TestCase):
                                          transactions=[],
                                          miner_address=bob_xmss.address)
 
-                    block.set_nonces(1, 0)
+                    block.set_nonces(3, 0)
                     # Uncomment only to determine the correct mining_nonce of above blocks
                     # from qrl.core.PoWValidator import PoWValidator
                     # while not PoWValidator().validate_mining_nonce(state, block.blockheader, False):
