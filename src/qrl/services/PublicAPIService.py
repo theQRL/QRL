@@ -177,20 +177,6 @@ class PublicAPIService(PublicAPIServicer):
                                                                     size=tx.size)
         return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
-    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
-    def GetLatticePublicKeyTxn(self, request: qrl_pb2.LatticePublicKeyTxnReq, context) -> qrl_pb2.TransferCoinsResp:
-        logger.debug("[PublicAPI] GetLatticePublicKeyTxn")
-        tx = self.qrlnode.create_lattice_public_key_txn(kyber_pk=request.kyber_pk,
-                                                        dilithium_pk=request.dilithium_pk,
-                                                        fee=request.fee,
-                                                        xmss_pk=request.xmss_pk,
-                                                        master_addr=request.master_addr)
-
-        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
-                                                                    addr_from=tx.addr_from,
-                                                                    size=tx.size)
-        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
-
     @GrpcExceptionWrapper(qrl_pb2.GetObjectResp)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
         logger.debug("[PublicAPI] GetObject")
