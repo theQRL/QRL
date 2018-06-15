@@ -16,10 +16,10 @@ class PoWValidator(object, metaclass=Singleton):
         self._powv = PoWHelper()
 
     def validate_mining_nonce(self, state, blockheader: BlockHeader, enable_logging=False):
-        parent_metadata = state.get_block_metadata(blockheader.prev_blockheaderhash)
-        parent_block = state.get_block(blockheader.prev_blockheaderhash)
+        parent_metadata = state.get_block_metadata(blockheader.prev_headerhash)
+        parent_block = state.get_block(blockheader.prev_headerhash)
 
-        measurement = state.get_measurement(blockheader.timestamp, blockheader.prev_blockheaderhash, parent_metadata)
+        measurement = state.get_measurement(blockheader.timestamp, blockheader.prev_headerhash, parent_metadata)
         diff, target = DifficultyTracker.get(
             measurement=measurement,
             parent_difficulty=parent_metadata.block_difficulty)

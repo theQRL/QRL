@@ -330,7 +330,7 @@ class QRLNode:
     def get_block_timeseries(self, block_count) -> Iterator[qrl_pb2.BlockDataPoint]:
         result = []
 
-        if self._chain_manager.height == 0:
+        if self.block_height == 0:
             return result
 
         block = self._chain_manager.get_last_block()
@@ -349,9 +349,8 @@ class QRLNode:
 
         return reversed(result)
 
-    def get_blockheader_and_metadata(self, block_number) -> Tuple:
-        if block_number == 0:
-            block_number = self.block_height
+    def get_blockheader_and_metadata(self, block_number=0) -> Tuple:
+        block_number = block_number or self.block_height  # if both are non-zero, then block_number takes priority
 
         result = (None, None)
         block = self.get_block_from_index(block_number)

@@ -46,7 +46,7 @@ class BlockHeader(object):
         return self._data.hash_header
 
     @property
-    def prev_blockheaderhash(self):
+    def prev_headerhash(self):
         return self._data.hash_header_prev
 
     @property
@@ -81,7 +81,7 @@ class BlockHeader(object):
     def mining_blob(self) -> bytes:
         blob = self.block_number.to_bytes(8, byteorder='big', signed=False) \
                + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
-               + self.prev_blockheaderhash \
+               + self.prev_headerhash \
                + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
                + self.tx_merkle_root
@@ -114,8 +114,8 @@ class BlockHeader(object):
 
     @staticmethod
     def create(blocknumber: int,
-               prev_block_headerhash: bytes,
-               prev_block_timestamp: int,
+               prev_headerhash: bytes,
+               prev_timestamp: int,
                hashedtransactions: bytes,
                fee_reward: int):
         bh = BlockHeader()
@@ -124,16 +124,16 @@ class BlockHeader(object):
         if bh._data.block_number != 0:
             bh._data.timestamp_seconds = int(ntp.getTime())
             # If current block timestamp is less than or equals to the previous block timestamp
-            # then set current block timestamp 1 sec higher than prev_block_timestamp
-            if bh._data.timestamp_seconds <= prev_block_timestamp:
-                bh._data.timestamp_seconds = prev_block_timestamp + 1
+            # then set current block timestamp 1 sec higher than prev_timestamp
+            if bh._data.timestamp_seconds <= prev_timestamp:
+                bh._data.timestamp_seconds = prev_timestamp + 1
             if bh._data.timestamp_seconds == 0:
                 logger.warning('Failed to get NTP timestamp')
                 return
         else:
-            bh._data.timestamp_seconds = prev_block_timestamp  # Set timestamp for genesis block
+            bh._data.timestamp_seconds = prev_timestamp  # Set timestamp for genesis block
 
-        bh._data.hash_header_prev = prev_block_headerhash
+        bh._data.hash_header_prev = prev_headerhash
         bh._data.merkle_root = hashedtransactions
         bh._data.reward_fee = fee_reward
 
@@ -220,7 +220,7 @@ class BlockHeader(object):
             logger.warning('Block numbers out of sequence: failed validation')
             return False
 
-        if parent_block.headerhash != self.prev_blockheaderhash:
+        if parent_block.headerhash != self.prev_headerhash:
             logger.warning('Headerhash not in sequence: failed validation')
             return False
 

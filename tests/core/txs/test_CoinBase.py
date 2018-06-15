@@ -25,7 +25,7 @@ class TestCoinBase(TestCase):
         self.mock_blockheader.stake_selector = self.alice.address
         self.mock_blockheader.block_reward = 50
         self.mock_blockheader.fee_reward = 40
-        self.mock_blockheader.prev_blockheaderhash = sha256(b'prev_headerhash')
+        self.mock_blockheader.prev_headerhash = sha256(b'prev_headerhash')
         self.mock_blockheader.block_number = 1
         self.mock_blockheader.headerhash = sha256(b'headerhash')
 

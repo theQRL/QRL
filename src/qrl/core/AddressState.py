@@ -115,10 +115,9 @@ class AddressState(object):
         self._data.latticePK_list.extend([lattice_pk])
 
     def remove_lattice_pk(self, lattice_txn):
-        for lattice_pk_idx in range(len(self._data.latticePK_list)):
-            lattice_pk = self._data.latticePK_list[lattice_pk_idx]
+        for i, lattice_pk in enumerate(self._data.latticePK_list):
             if lattice_pk.txhash == lattice_txn.txhash:
-                del self._data.latticePK_list[lattice_pk_idx]
+                del self._data.latticePK_list[i]
                 break
 
     def increase_nonce(self):

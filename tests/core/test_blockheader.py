@@ -20,11 +20,11 @@ class TestBlockHeader(TestCase):
         super(TestBlockHeader, self).__init__(*args, **kwargs)
 
     def test_create(self, time_mock):
-        b = BlockHeader.create(blocknumber=1, prev_block_headerhash=b'headerhash', prev_block_timestamp=10,
+        b = BlockHeader.create(blocknumber=1, prev_headerhash=b'headerhash', prev_timestamp=10,
                                hashedtransactions=b'some_data', fee_reward=1)
         self.assertIsNotNone(b)
 
-        b = BlockHeader.create(blocknumber=1, prev_block_headerhash=b'headerhash', prev_block_timestamp=10,
+        b = BlockHeader.create(blocknumber=1, prev_headerhash=b'headerhash', prev_timestamp=10,
                                hashedtransactions=b'some_data', fee_reward=1)
         self.assertEqual(b.epoch, 0)
 
