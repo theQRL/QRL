@@ -9,7 +9,6 @@ import click
 import grpc
 import simplejson as json
 from google.protobuf.json_format import MessageToJson
-from pyledgerqrl.ledgerqrl import LedgerQRL
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, QRLHelper, bin2hstr
 
 from qrl.core import config
@@ -231,21 +230,12 @@ def qrl(ctx, verbose, host, port_pub, wallet_dir, json):
 
 @qrl.command()
 @click.pass_context
-@click.option('--ledger', '-l', default=False, is_flag=True, help='Use Ledger Nano S')
-def wallet_ls(ctx, ledger):
+def wallet_ls(ctx):
     """
     Lists available wallets
     """
-    if ledger:
-        ledger_dev = LedgerQRL()
-        ledger_dev.connect()
-        ledger_dev.print_info()
-        if ledger_dev.pk_raw:
-            addr = bytes(QRLHelper.getAddress(ledger_dev.pk_raw))
-            print("Address    : Q{}".format(hexlify(addr).decode()))
-    else:
-        wallet = Wallet(wallet_path=ctx.obj.wallet_path)
-        _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
+    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
 
 
 @qrl.command()
@@ -541,7 +531,6 @@ def tx_unbase64(tx_json_str):
 
 
 @qrl.command()
-@click.option('--ledger', '-l', default=False, is_flag=True, help='Use Ledger Nano S')
 @click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
 @click.option('--master', type=str, default='', help='master QRL address')
 @click.option('--dsts', type=str, prompt=True, help='List of destination addresses')
@@ -549,7 +538,7 @@ def tx_unbase64(tx_json_str):
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=1, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
-def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
+def tx_transfer(ctx, src, master, dsts, amounts, fee, ots_key_index):
     """
     Transfer coins from src to dsts
     """
@@ -564,44 +553,23 @@ def tx_transfer(ctx, ledger, src, master, dsts, amounts, fee, ots_key_index):
 
     try:
         # Retrieve signing object
-        if ledger:
-            print("Using Ledger Nano S")
-            ledger_dev = LedgerQRL()
-            ledger_dev.connect()
-            if not ledger_dev.connected:
-                print("Could not retrieve information from the device")
-                quit(1)
+        selected_wallet = _select_wallet(ctx, src)
+        if selected_wallet is None or len(selected_wallet) != 2:
+            click.echo("A wallet was not found")
+            quit(1)
 
-            ledger_dev.print_info()
+        _, src_xmss = selected_wallet
 
-            if not ledger_dev.pk_raw:
-                print("Could not get Public Key from the device")
-                quit(1)
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
 
-            address_src_pk = ledger_dev.pk_raw
-            addr = bytes(QRLHelper.getAddress(ledger_dev.pk_raw))
-            print("Address    : Q{}".format(hexlify(addr).decode()))
+        address_src_pk = src_xmss.pk
 
-            signing_object = ledger_dev
+        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
+        src_xmss.set_ots_index(ots_key_index)
 
-        else:
-            selected_wallet = _select_wallet(ctx, src)
-            if selected_wallet is None or len(selected_wallet) != 2:
-                click.echo("A wallet was not found")
-                quit(1)
-
-            _, src_xmss = selected_wallet
-
-            if not src_xmss:
-                click.echo("A local wallet is required to sign the transaction")
-                quit(1)
-
-            address_src_pk = src_xmss.pk
-
-            ots_key_index = validate_ots_index(ots_key_index, src_xmss)
-            src_xmss.set_ots_index(ots_key_index)
-
-            signing_object = src_xmss
+        signing_object = src_xmss
 
         # Get and validate other inputs
         if master:
