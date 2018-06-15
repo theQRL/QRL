@@ -18,7 +18,6 @@ from qrl.core.node import SyncState
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.processors.TxnProcessor import TxnProcessor
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
@@ -401,8 +400,6 @@ class P2PFactory(ServerFactory):
             legacy_type = qrllegacy_pb2.LegacyMessage.TK
         elif isinstance(tx, TransferTokenTransaction):
             legacy_type = qrllegacy_pb2.LegacyMessage.TT
-        elif isinstance(tx, LatticePublicKey):
-            legacy_type = qrllegacy_pb2.LegacyMessage.LT
         elif isinstance(tx, SlaveTransaction):
             legacy_type = qrllegacy_pb2.LegacyMessage.SL
         else:
