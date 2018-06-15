@@ -9,7 +9,7 @@ import click
 import grpc
 import simplejson as json
 from google.protobuf.json_format import MessageToJson
-from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, QRLHelper, bin2hstr
+from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
 from qrl.core.Wallet import Wallet, WalletDecryptionError
