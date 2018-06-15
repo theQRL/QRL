@@ -90,7 +90,8 @@ class TestMiner(TestCase):
         # From sample run of test_prepare_next_unmined_block_template_works()
         self.miner._measurement = 60
         self.miner._current_difficulty = StringToUInt256('0')
-        self.miner._current_target = '115792089237316195423570985008687907853269984665640564039457584007913129639807'
+        self.miner._current_target = \
+            StringToUInt256('115792089237316195423570985008687907853269984665640564039457584007913129639807')
 
         # start() is from Qryptominer, let's not actually mine in a test
         with patch('qrl.core.Miner.Miner.start', spec=True) as m_start:
