@@ -14,8 +14,8 @@ from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
 from qrl.core.TransactionPool import TransactionPool
-from qrl.core.txs.Transaction import Transaction
 from qrl.core.misc import logger
+from qrl.core.txs.Transaction import Transaction
 
 
 class Miner(Qryptominer):
@@ -71,11 +71,11 @@ class Miner(Qryptominer):
             mining_blob = self._mining_block.mining_blob
             nonce_offset = self._mining_block.mining_nonce_offset
 
-            logger.debug('!!! Mine #{} | {} ({}) | {} -> {} | {}'.format(
+            logger.debug('!!! Mine #{} | {} ({}) | {} -> {} | {} '.format(
                 self._mining_block.block_number,
                 self._measurement, self._mining_block.timestamp - parent_block.timestamp,
                 UInt256ToString(parent_difficulty), UInt256ToString(self._current_difficulty),
-                self._current_target
+                bin2hstr(bytearray(self._current_target))
             ))
 
             self.start(input=mining_blob,
