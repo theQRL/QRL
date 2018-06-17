@@ -13,7 +13,6 @@ from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.PoWValidator import PoWValidator
-from qrl.core.State import State
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
@@ -23,7 +22,7 @@ class Miner(Qryptominer):
     def __init__(self,
                  pre_block_logic,
                  mining_address: bytes,
-                 state: State,
+                 chain_manager,
                  mining_thread_count,
                  add_unprocessed_txn_fn):
         super().__init__()
@@ -36,7 +35,7 @@ class Miner(Qryptominer):
 
         self._mining_address = mining_address
         self._reward_address = None
-        self.state = state
+        self._chain_manager = chain_manager
         self._add_unprocessed_txn_fn = add_unprocessed_txn_fn
         self._mining_thread_count = mining_thread_count
         self._dummy_xmss = None
@@ -53,10 +52,10 @@ class Miner(Qryptominer):
                                                        tx_pool=tx_pool,
                                                        miner_address=mining_address)
 
-                parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
-                self._measurement = self.state.get_measurement(self._mining_block.timestamp,
-                                                               self._mining_block.prev_headerhash,
-                                                               parent_metadata)
+                parent_metadata = self._chain_manager.get_block_metadata(parent_block.headerhash)
+                self._measurement = self._chain_manager.get_measurement(self._mining_block.timestamp,
+                                                                        self._mining_block.prev_headerhash,
+                                                                        parent_metadata)
 
                 self._current_difficulty, self._current_target = DifficultyTracker.get(
                     measurement=self._measurement,
@@ -140,10 +139,10 @@ class Miner(Qryptominer):
 
         addresses_state = dict()
         for address in addresses_set:
-            addresses_state[address] = self.state.get_address_state(address)
+            addresses_state[address] = self._chain_manager.get_address_state(address)
 
         block_size = dummy_block.size
-        block_size_limit = self.state.get_block_size_limit(last_block)
+        block_size_limit = self._chain_manager.get_block_size_limit(last_block)
 
         transactions = []
         for tx_set in t_pool2:
@@ -205,7 +204,7 @@ class Miner(Qryptominer):
         blockheader = copy.deepcopy(self._mining_block.blockheader)
         blockheader.set_mining_nonce_from_blob(blob)
 
-        if not PoWValidator().validate_mining_nonce(self.state, blockheader=blockheader):
+        if not self._chain_manager.validate_mining_nonce(blockheader):
             return False
 
         self._mining_block.set_nonces(blockheader.mining_nonce, blockheader.extra_nonce)

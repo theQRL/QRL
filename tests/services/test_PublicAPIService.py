@@ -99,7 +99,7 @@ class TestPublicAPI(TestCase):
         chain_manager.height = 0
         chain_manager.get_last_block = MagicMock(return_value=GenesisBlock())
         chain_manager.get_block_by_number = MagicMock(return_value=None)
-        chain_manager.state = db_state
+        chain_manager._state = db_state
 
         qrlnode = QRLNode(db_state, mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)

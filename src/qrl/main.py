@@ -140,7 +140,7 @@ def main():
     chain_manager = ChainManager(state=persistent_state)
     chain_manager.load(Block.deserialize(GenesisBlock().serialize()))
 
-    qrlnode = QRLNode(db_state=persistent_state, mining_address=mining_address)
+    qrlnode = QRLNode(state=persistent_state, mining_address=mining_address)
     qrlnode.set_chain_manager(chain_manager)
 
     set_logger(args, qrlnode.sync_state)

@@ -4,6 +4,7 @@ from mock import patch, Mock
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.AddressState import AddressState
+from qrl.core.ChainManager import ChainManager
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.generated import qrl_pb2
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss
@@ -25,7 +26,8 @@ class TestTokenTransactionStateChanges(TestCase):
             "xmss_pk": self.alice.pk
         }
 
-        self.unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+        self.unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
+
 
     def generate_addresses_state(self, tx):
         addresses_state = {
@@ -161,7 +163,7 @@ class TestTokenTransactionStateChanges(TestCase):
         addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
 
         # After applying the Transaction, it should be as if Alice had never created the tokens in the first place.
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
@@ -184,7 +186,7 @@ class TestTokenTransactionStateChanges(TestCase):
         tx.sign(self.alice)
         addresses_state = {}
 
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state, {})
 
@@ -205,7 +207,7 @@ class TestTokenTransactionStateChanges(TestCase):
         addresses_state[self.bob.address].tokens[bin2hstr(tx.txhash)] = 1000
         addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
 
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
@@ -250,7 +252,7 @@ class TestTokenTransactionStateChanges(TestCase):
         addresses_state[self.bob.address].tokens[bin2hstr(tx.txhash)] = 1000
         addresses_state[slave.address].transaction_hashes = [tx.txhash]
 
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         addresses_state[self.alice.address].update_token_balance.assert_called_with(tx.txhash, -1000)

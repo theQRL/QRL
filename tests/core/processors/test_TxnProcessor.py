@@ -44,7 +44,8 @@ class TestTxnProcessor(TestCase):
                                                              (self.tx4, replacement_getTime())]
 
         self.m_broadcast_tx = Mock(autospec=P2PFactory.broadcast_tx)
-        self.txnprocessor = TxnProcessor(state=self.m_state, transaction_pool_obj=self.m_txpool,
+        self.txnprocessor = TxnProcessor(chain_manager=None,
+                                         transaction_pool_obj=self.m_txpool,
                                          broadcast_tx=self.m_broadcast_tx)
 
     def test_txnprocessor_all_valid(self, m_get_slave, m_logger):

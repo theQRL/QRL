@@ -7,6 +7,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.BlockHeader import BlockHeader
+from qrl.core.ChainManager import ChainManager
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.crypto.misc import sha256
 from tests.core.txs.testdata import test_json_CoinBase
@@ -126,9 +127,9 @@ class TestCoinBase(TestCase):
             self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[tx.txhash],
                                      balance=self.amount),
         }
-        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+        unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
 
-        tx.revert_state_changes(addresses_state, unused_state_mock)
+        tx.revert_state_changes(addresses_state, unused_chain_manager_mock)
 
         self.assertEqual(1000000, addresses_state[config.dev.coinbase_address].balance)
         self.assertEqual([], addresses_state[config.dev.coinbase_address].transaction_hashes)
@@ -138,7 +139,7 @@ class TestCoinBase(TestCase):
         # A blank addresses_state doesn't get modified at all (but in practice, every node should have an AddressState
         # for the CoinBase addr
         addresses_state_empty = {}
-        tx.revert_state_changes(addresses_state_empty, unused_state_mock)
+        tx.revert_state_changes(addresses_state_empty, unused_chain_manager_mock)
         self.assertEqual({}, addresses_state_empty)
 
     def test_affected_address(self, m_logger):

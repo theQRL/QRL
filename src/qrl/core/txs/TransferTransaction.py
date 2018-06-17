@@ -130,7 +130,7 @@ class TransferTransaction(Transaction):
 
         self._apply_state_changes_for_PK(addresses_state)
 
-    def revert_state_changes(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, chain_manager):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance += (self.total_amount + self.fee)
             addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
@@ -144,7 +144,7 @@ class TransferTransaction(Transaction):
                     continue
                 addresses_state[addr_to].transaction_hashes.remove(self.txhash)
 
-        self._revert_state_changes_for_PK(addresses_state, state)
+        self._revert_state_changes_for_PK(addresses_state, chain_manager)
 
     def set_affected_address(self, addresses_set: set):
         super().set_affected_address(addresses_set)
