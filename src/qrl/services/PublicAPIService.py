@@ -4,7 +4,7 @@
 import traceback
 from statistics import variance, mean
 
-from pyqrllib.pyqrllib import QRLHelper
+from pyqrllib.pyqrllib import hstr2bin, QRLHelper
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
@@ -78,6 +78,20 @@ class PublicAPIService(PublicAPIServicer):
         address_state = self.qrlnode.get_address_state(request.address)
         return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
 
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] TransferCoins")
+        tx = self.qrlnode.create_send_tx(addrs_to=request.addresses_to,
+                                         amounts=request.amounts,
+                                         fee=request.fee,
+                                         xmss_pk=request.xmss_pk,
+                                         master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
     @GrpcExceptionWrapper(qrl_pb2.PushTransactionResp)
     def PushTransaction(self, request: qrl_pb2.PushTransactionReq, context) -> qrl_pb2.PushTransactionResp:
         logger.debug("[PublicAPI] PushTransaction")
@@ -102,6 +116,66 @@ class PublicAPIService(PublicAPIServicer):
             answer.error_code = qrl_pb2.PushTransactionResp.ERROR
 
         return answer
+
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetMessageTxn(self, request: qrl_pb2.TokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetMessageTxn")
+        tx = self.qrlnode.create_message_txn(message_hash=request.message,
+                                             fee=request.fee,
+                                             xmss_pk=request.xmss_pk,
+                                             master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetTokenTxn(self, request: qrl_pb2.TokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetTokenTxn")
+        tx = self.qrlnode.create_token_txn(symbol=request.symbol,
+                                           name=request.name,
+                                           owner=request.owner,
+                                           decimals=request.decimals,
+                                           initial_balances=request.initial_balances,
+                                           fee=request.fee,
+                                           xmss_pk=request.xmss_pk,
+                                           master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetTransferTokenTxn(self, request: qrl_pb2.TransferTokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetTransferTokenTxn")
+        bin_token_txhash = bytes(hstr2bin(request.token_txhash.decode()))
+        tx = self.qrlnode.create_transfer_token_txn(addrs_to=request.addresses_to,
+                                                    token_txhash=bin_token_txhash,
+                                                    amounts=request.amounts,
+                                                    fee=request.fee,
+                                                    xmss_pk=request.xmss_pk,
+                                                    master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetSlaveTxn(self, request: qrl_pb2.SlaveTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetSlaveTxn")
+        tx = self.qrlnode.create_slave_tx(slave_pks=request.slave_pks,
+                                          access_types=request.access_types,
+                                          fee=request.fee,
+                                          xmss_pk=request.xmss_pk,
+                                          master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
     @GrpcExceptionWrapper(qrl_pb2.GetObjectResp)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:

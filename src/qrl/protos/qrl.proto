@@ -29,7 +29,17 @@ service PublicAPI
 
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
+    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
+
     rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp);
+
+    rpc GetMessageTxn (MessageTxnReq) returns (TransferCoinsResp);
+
+    rpc GetTokenTxn (TokenTxnReq) returns (TransferCoinsResp);
+
+    rpc GetTransferTokenTxn (TransferTokenTxnReq) returns (TransferCoinsResp);
+
+    rpc GetSlaveTxn (SlaveTxnReq) returns (TransferCoinsResp);
 
 }
 
@@ -187,6 +197,18 @@ message GetLatestDataResp {
     repeated TransactionExtended transactions_unconfirmed = 3;
 }
 
+message TransferCoinsReq {
+    bytes master_addr = 1;                 // Transaction source address
+    repeated bytes addresses_to = 2;                   // Transaction destination address
+    repeated uint64 amounts = 3;                      // Amount. It should be expressed in Shor
+    uint64 fee = 4;                         // Fee. It should be expressed in Shor
+    bytes xmss_pk = 5;                      // XMSS Public key
+}
+
+message TransferCoinsResp {
+    TransactionExtended extended_transaction_unsigned = 1;
+}
+
 message PushTransactionReq {    Transaction transaction_signed = 1;     }
 message PushTransactionResp {
     enum ResponseCode {
@@ -199,6 +221,41 @@ message PushTransactionResp {
     ResponseCode error_code = 1;
     string error_description = 2;
     bytes tx_hash = 3;
+}
+
+message MessageTxnReq {
+    bytes master_addr = 1;
+    bytes message = 2;
+    uint64 fee = 3;
+    bytes xmss_pk = 4;
+}
+
+message TokenTxnReq {
+    bytes master_addr = 1;
+    bytes symbol = 2;
+    bytes name = 3;
+    bytes owner = 4;
+    uint64 decimals = 5;
+    repeated AddressAmount initial_balances = 6;
+    uint64 fee = 7;
+    bytes xmss_pk = 8;
+}
+
+message TransferTokenTxnReq {
+    bytes master_addr = 1;
+    repeated bytes addresses_to = 2;
+    bytes token_txhash = 3;
+    repeated uint64 amounts = 4;
+    uint64 fee = 5;
+    bytes xmss_pk = 6;
+}
+
+message SlaveTxnReq {
+    bytes master_addr = 1;
+    repeated bytes slave_pks = 2;
+    repeated uint32 access_types = 3;
+    uint64 fee = 4;
+    bytes xmss_pk = 5;
 }
 
 ////////////////////////////
