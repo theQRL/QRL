@@ -43,7 +43,19 @@ class State:
             del self._db
             self._db = None
 
+    @property
+    def batch(self):
+        return self._db.get_batch()
+
+    @property
+    def total_coin_supply(self):
+        try:
+            return int.from_bytes(self._db.get_raw(b'total_coin_supply'), byteorder='big', signed=False)
+        except KeyError:
+            return 0
+
     def get_block_size_limit(self, block: Block):
+        # NOTE: Miner /
         block_size_list = []
         for _ in range(0, 10):
             block = self.get_block(block.prev_headerhash)
@@ -156,7 +168,7 @@ class State:
     def update_mainchain_height(self, height, batch):
         self._db.put_raw(b'blockheight', height.to_bytes(8, byteorder='big', signed=False), batch)
 
-    def remove_last_tx(self, block, batch):
+    def _remove_last_tx(self, block, batch):
         if len(block.transactions) == 0:
             return
 
@@ -177,7 +189,7 @@ class State:
 
         self._db.put_raw(b'last_txn', last_txn.serialize(), batch)
 
-    def update_last_tx(self, block, batch):
+    def _update_last_tx(self, block, batch):
         if len(block.transactions) == 0:
             return
         last_txn = LastTransactions()
@@ -281,12 +293,12 @@ class State:
                 self.remove_transfer_token_metadata(txn)
             elif isinstance(txn, TokenTransaction):
                 self.remove_token_metadata(txn)
-            self.decrease_txn_count(self.get_txn_count(txn.addr_from),
-                                    txn.addr_from)
+            self._decrease_txn_count(self.get_txn_count(txn.addr_from),
+                                     txn.addr_from)
 
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
-        self.update_total_coin_supply(fee_reward - txn.amount)
-        self.remove_last_tx(block, batch)
+        self._update_total_coin_supply(fee_reward - txn.amount)
+        self._remove_last_tx(block, batch)
 
     def update_tx_metadata(self, block, batch):
         fee_reward = 0
@@ -303,12 +315,12 @@ class State:
                 self.update_token_metadata(txn)
             elif isinstance(txn, TokenTransaction):
                 self.create_token_metadata(txn)
-            self.increase_txn_count(self.get_txn_count(txn.addr_from),
-                                    txn.addr_from)
+            self._increase_txn_count(self.get_txn_count(txn.addr_from),
+                                     txn.addr_from)
 
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
-        self.update_total_coin_supply(txn.amount - fee_reward)
-        self.update_last_tx(block, batch)
+        self._update_total_coin_supply(txn.amount - fee_reward)
+        self._update_last_tx(block, batch)
 
     def remove_tx_metadata(self, txn, batch):
         try:
@@ -342,11 +354,11 @@ class State:
     #########################################
     #########################################
 
-    def increase_txn_count(self, last_count: int, addr: bytes):
+    def _increase_txn_count(self, last_count: int, addr: bytes):
         # FIXME: This should be transactional
         self._db.put_raw(b'txn_count_' + addr, (last_count + 1).to_bytes(8, byteorder='big', signed=False))
 
-    def decrease_txn_count(self, last_count: int, addr: bytes):
+    def _decrease_txn_count(self, last_count: int, addr: bytes):
         # FIXME: This should be transactional
         if last_count == 0:
             raise ValueError('Cannot decrease transaction count last_count: %s, addr %s',
@@ -363,16 +375,13 @@ class State:
         except KeyError:
             return AddressState.get_default(address)
 
-    def nonce(self, addr: bytes) -> int:
-        return self.get_address_state(addr).nonce
-
-    def balance(self, addr: bytes) -> int:
+    def get_address_balance(self, addr: bytes) -> int:
         return self.get_address_state(addr).balance
 
-    def address_used(self, address: bytes):
+    def get_address_is_used(self, address: bytes) -> bool:
         # FIXME: Probably obsolete
         try:
-            return self.get_address_state(address)
+            return self.get_address_state(address) is not None
         except KeyError:
             return False
         except Exception as e:
@@ -381,7 +390,7 @@ class State:
             logger.exception(e)
             raise
 
-    def return_all_addresses(self):
+    def _return_all_addresses(self):
         addresses = []
         for key, data in self._db.RangeIter(b'Q', b'Qz'):
             pbdata = qrl_pb2.AddressState()
@@ -389,9 +398,6 @@ class State:
             address_state = AddressState(pbdata)
             addresses.append(address_state)
         return addresses
-
-    def get_batch(self):
-        return self._db.get_batch()
 
     def write_batch(self, batch):
         self._db.write_batch(batch)
@@ -402,14 +408,8 @@ class State:
     #########################################
     #########################################
 
-    def update_total_coin_supply(self, balance):
-        self._db.put_raw(b'total_coin_supply', (self.total_coin_supply() + balance).to_bytes(8, byteorder='big', signed=False))
-
-    def total_coin_supply(self):
-        try:
-            return int.from_bytes(self._db.get_raw(b'total_coin_supply'), byteorder='big', signed=False)
-        except KeyError:
-            return 0
+    def _update_total_coin_supply(self, balance):
+        self._db.put_raw(b'total_coin_supply', (self.total_coin_supply + balance).to_bytes(8, byteorder='big', signed=False))
 
     def get_measurement(self, block_timestamp, parent_headerhash, parent_metadata: BlockMetadata):
         count_headerhashes = len(parent_metadata.last_N_headerhashes)
@@ -428,7 +428,7 @@ class State:
 
         return (block_timestamp - nth_block_timestamp) // count_headerhashes
 
-    def delete(self, key, batch):
+    def _delete(self, key, batch):
         self._db.delete(key, batch)
 
     def put_fork_state(self, fork_state: qrlstateinfo_pb2.ForkState, batch=None):

@@ -111,9 +111,8 @@ class P2PPeerManager(P2PBaseObserver):
         for item in tmp_list:
             try:
                 answer.add(IPMetadata.canonical_full_address(item, check_global))
-            except Exception as e:  # no_qa
+            except:  # noqa
                 logger.warning("Invalid Peer Address {}".format(item))
-                logger.exception(e)
 
         return answer
 

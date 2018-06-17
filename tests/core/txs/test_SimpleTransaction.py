@@ -5,6 +5,7 @@ from mock import patch, PropertyMock, Mock
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.AddressState import AddressState
+from qrl.core.ChainManager import ChainManager
 from qrl.core.TransactionInfo import TransactionInfo
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
@@ -391,10 +392,11 @@ class TestSimpleTransaction(TestCase):
                                    balance=100),
             self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
         }
-        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+        unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
         self.tx._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
 
-        self.tx.revert_state_changes(addresses_state, unused_state_mock)
+        self.tx.revert_state_changes(addresses_state, unused_chain_manager_mock)
 
         self.assertEqual(200, addresses_state[self.alice.address].balance)
         self.assertEqual(0, addresses_state[self.bob.address].balance)
@@ -409,7 +411,7 @@ class TestSimpleTransaction(TestCase):
             b'a': 'ABC',
             b'b': 'DEF'
         }
-        self.tx.revert_state_changes(addresses_state_dummy, unused_state_mock)
+        self.tx.revert_state_changes(addresses_state_dummy, unused_chain_manager_mock)
         self.assertEqual(addresses_state_dummy, {b'a': 'ABC', b'b': 'DEF'})
         self.tx._revert_state_changes_for_PK.assert_called_once()
 
@@ -426,7 +428,8 @@ class TestSimpleTransaction(TestCase):
             self.slave.address: Mock(autospec=AddressState, name='slave AddressState',
                                      transaction_hashes=[self.tx.txhash], balance=20)
         }
-        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+        unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
+
         tx_multisend = TransferTransaction.create(
             addrs_to=[self.bob.address, self.slave.address],
             amounts=[20, 20],
@@ -435,7 +438,7 @@ class TestSimpleTransaction(TestCase):
         )
         tx_multisend._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
 
-        tx_multisend.revert_state_changes(addresses_state, unused_state_mock)
+        tx_multisend.revert_state_changes(addresses_state, unused_chain_manager_mock)
 
         self.assertEqual(200, addresses_state[self.alice.address].balance)
         self.assertEqual(0, addresses_state[self.bob.address].balance)
@@ -458,7 +461,9 @@ class TestSimpleTransaction(TestCase):
                                    balance=0),
             self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
         }
-        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+        unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
+
         tx = TransferTransaction.create(
             addrs_to=[self.alice.address],
             amounts=[100],
@@ -468,7 +473,7 @@ class TestSimpleTransaction(TestCase):
 
         tx._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
 
-        tx.revert_state_changes(addresses_state, unused_state_mock)
+        tx.revert_state_changes(addresses_state, unused_chain_manager_mock)
 
         self.assertEqual(200, addresses_state[self.alice.address].balance)
         self.assertEqual(0, addresses_state[self.bob.address].balance)

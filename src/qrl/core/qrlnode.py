@@ -29,9 +29,9 @@ from qrl.generated import qrl_pb2
 
 
 class QRLNode:
-    def __init__(self, db_state: State, mining_address: bytes):
+    def __init__(self, state: State, mining_address: bytes):
         self.start_time = ntp.getTime()
-        self.db_state = db_state
+        self._state = state
         self._sync_state = SyncState()
 
         self.peer_manager = P2PPeerManager()
@@ -91,9 +91,9 @@ class QRLNode:
 
     @property
     def epoch(self):
-        if not self._chain_manager.get_last_block():
+        if not self._chain_manager.last_block:
             return 0
-        return self._chain_manager.get_last_block().block_number // config.dev.blocks_per_epoch
+        return self._chain_manager.last_block.block_number // config.dev.blocks_per_epoch
 
     @property
     def uptime_network(self):
@@ -105,22 +105,22 @@ class QRLNode:
 
     @property
     def block_last_reward(self):
-        if not self._chain_manager.get_last_block():
+        if not self._chain_manager.last_block:
             return 0
 
-        return self._chain_manager.get_last_block().block_reward
+        return self._chain_manager.last_block.block_reward
 
     @property
     def block_time_mean(self):
-        block = self._chain_manager.get_last_block()
+        block = self._chain_manager.last_block
 
-        prev_block_metadata = self._chain_manager.state.get_block_metadata(block.prev_headerhash)
+        prev_block_metadata = self._chain_manager.get_block_metadata(block.prev_headerhash)
         if prev_block_metadata is None:
             return config.dev.mining_setpoint_blocktime
 
-        movavg = self._chain_manager.state.get_measurement(block.timestamp,
-                                                           block.prev_headerhash,
-                                                           prev_block_metadata)
+        movavg = self._chain_manager.get_measurement(block.timestamp,
+                                                     block.prev_headerhash,
+                                                     prev_block_metadata)
         return movavg
 
     @property
@@ -131,7 +131,7 @@ class QRLNode:
     @property
     def coin_supply(self):
         # FIXME: Keep a moving var
-        return self.db_state.total_coin_supply()
+        return self._state.total_coin_supply()
 
     @property
     def coin_supply_max(self):
@@ -157,8 +157,8 @@ class QRLNode:
     def monitor_chain_state(self):
         self.peer_manager.monitor_chain_state()
 
-        last_block = self._chain_manager.get_last_block()
-        block_metadata = self.db_state.get_block_metadata(last_block.headerhash)
+        last_block = self._chain_manager.last_block
+        block_metadata = self._chain_manager.get_block_metadata(last_block.headerhash)
         node_chain_state = qrl_pb2.NodeChainState(block_number=last_block.block_number,
                                                   header_hash=last_block.headerhash,
                                                   cumulative_difficulty=bytes(block_metadata.cumulative_difficulty),
@@ -265,7 +265,7 @@ class QRLNode:
                        xmss_pk: bytes,
                        master_addr: bytes) -> TransferTransaction:
         addr_from = self.get_addr_from(xmss_pk, master_addr)
-        balance = self.db_state.balance(addr_from)
+        balance = self._chain_manager.get_address_balance(addr_from)
         if sum(amounts) + fee > balance:
             raise ValueError("Not enough funds in the source address")
 
@@ -308,13 +308,13 @@ class QRLNode:
         if not AddressState.address_is_valid(address):
             raise ValueError("Invalid Address")
 
-        return self.db_state.address_used(address)
+        return self._chain_manager.get_address_is_used(address)
 
     def get_address_state(self, address: bytes) -> qrl_pb2.AddressState:
         if not AddressState.address_is_valid(address):
             raise ValueError("Invalid Address")
 
-        address_state = self.db_state.get_address_state(address)
+        address_state = self._chain_manager.get_address_state(address)
 
         return address_state
 
@@ -326,7 +326,7 @@ class QRLNode:
         # TODO: Search tx hash
         # FIXME: We dont need searches, etc.. getting a protobuf indexed by hash from DB should be enough
         # FIXME: This is just a workaround to provide functionality
-        result = self._chain_manager.get_transaction(query_hash)
+        result = self._chain_manager.get_tx_metadata(query_hash)
         return result
 
     def get_unconfirmed_transaction(self, query_hash: bytes):
@@ -337,22 +337,22 @@ class QRLNode:
         """
         This method returns an object that matches the query hash
         """
-        return self._chain_manager.get_last_block()
+        return self._chain_manager.last_block
 
     def get_block_from_hash(self, query_hash: bytes) -> Optional[Block]:
         """
         This method returns an object that matches the query hash
         """
-        return self.db_state.get_block(query_hash)
+        return self._chain_manager.get_block(query_hash)
 
     def get_block_from_index(self, index: int) -> Block:
         """
         This method returns an object that matches the query hash
         """
-        return self.db_state.get_block_by_number(index)
+        return self._chain_manager.get_block_by_number(index)
 
     def get_blockidx_from_txhash(self, transaction_hash):
-        result = self.db_state.get_tx_metadata(transaction_hash)
+        result = self._chain_manager.get_tx_metadata(transaction_hash)
         if result:
             return result[1]
         return None
@@ -369,7 +369,7 @@ class QRLNode:
     def get_latest_transactions(self, offset, count):
         answer = []
         skipped = 0
-        for tx in self.db_state.get_last_txs():
+        for tx in self._chain_manager.get_last_transactions():
             if skipped >= offset:
                 answer.append(tx)
                 if len(answer) >= count:
@@ -399,8 +399,8 @@ class QRLNode:
         info.num_known_peers = self.num_known_peers
         info.uptime = self.uptime
         info.block_height = self.block_height
-        info.block_last_hash = self._chain_manager.get_last_block().headerhash  # FIXME
-        info.network_id = config.dev.genesis_prev_headerhash  # FIXME
+        info.block_last_hash = self._chain_manager.last_block.headerhash
+        info.network_id = config.dev.genesis_prev_headerhash
         return info
 
     def get_block_timeseries(self, block_count) -> Iterator[qrl_pb2.BlockDataPoint]:
@@ -409,13 +409,13 @@ class QRLNode:
         if self.block_height == 0:
             return result
 
-        block = self._chain_manager.get_last_block()
+        block = self._chain_manager.last_block
         if block is None:
             return result
 
         headerhash_current = block.headerhash
         while len(result) < block_count:
-            data_point = self._chain_manager.state.get_block_datapoint(headerhash_current)
+            data_point = self._chain_manager.get_block_datapoint(headerhash_current)
 
             if data_point is None:
                 break
@@ -432,14 +432,14 @@ class QRLNode:
         block = self.get_block_from_index(block_number)
         if block:
             blockheader = block.blockheader
-            blockmetadata = self.db_state.get_block_metadata(blockheader.headerhash)
+            blockmetadata = self._chain_manager.get_block_metadata(blockheader.headerhash)
             result = (blockheader, blockmetadata)
 
         return result
 
     def get_block_to_mine(self, wallet_address) -> list:
-        last_block = self._chain_manager.get_last_block()
-        last_block_metadata = self._chain_manager.state.get_block_metadata(last_block.headerhash)
+        last_block = self._chain_manager.last_block
+        last_block_metadata = self._chain_manager.get_block_metadata(last_block.headerhash)
         return self._pow.miner.get_block_to_mine(wallet_address,
                                                  self._chain_manager.tx_pool,
                                                  last_block,

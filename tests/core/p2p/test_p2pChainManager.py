@@ -38,7 +38,7 @@ class TestP2PChainManager(TestCase):
         :return:
         """
         self.channel.factory.chain_height = 10
-        self.channel.factory.get_block.return_value = Mock(autospec=Block, pbdata=qrl_pb2.Block())
+        self.channel.factory.get_block_by_number.return_value = Mock(autospec=Block, pbdata=qrl_pb2.Block())
         msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.FB, fbData=qrllegacy_pb2.FBData(index=1))
         self.manager.handle_fetch_block(self.channel, msg)
 
@@ -133,7 +133,7 @@ class TestP2PChainManager(TestCase):
         If the incoming message.bhData.block_number is not 0, this means that we should update our knowledge of the
         peer's blockheight.
         """
-        self.channel.factory.get_last_block.return_value = Mock(autospec=Block, block_number=5, headerhash=b'')
+        self.channel.factory.last_block.return_value = Mock(autospec=Block, block_number=5, headerhash=b'')
         self.channel.factory.get_cumulative_difficulty.return_value = (0,)
         incoming_request = make_message(func_name=qrllegacy_pb2.LegacyMessage.BH,
                                         bhData=qrl_pb2.BlockHeightData(
@@ -149,7 +149,7 @@ class TestP2PChainManager(TestCase):
         If the incoming message.bhData.block_number is 0, this means that the peer wants to know our block height.
         However, if we are at blockheight 0 ourselves, we shamefully reply with silence.
         """
-        self.channel.factory.get_last_block.return_value = Mock(autospec=Block, block_number=0, headerhash=b'')
+        self.channel.factory.last_block.return_value = Mock(autospec=Block, block_number=0, headerhash=b'')
         self.channel.factory.get_cumulative_difficulty.return_value = (b'0',)
         incoming_request = make_message(func_name=qrllegacy_pb2.LegacyMessage.BH,
                                         bhData=qrl_pb2.BlockHeightData(

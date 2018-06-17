@@ -31,7 +31,7 @@ class TestQRLNodeReal(TestCase):
         with set_qrl_dir('no_data'):
             self.db_state = State()
             self.chainmanager = ChainManager(self.db_state)
-            self.qrlnode = QRLNode(db_state=self.db_state, mining_address=b'')
+            self.qrlnode = QRLNode(state=self.db_state, mining_address=b'')
             self.qrlnode.set_chain_manager(self.chainmanager)
 
     @patch('qrl.core.qrlnode.QRLNode.block_height', new_callable=PropertyMock, return_value=19)
@@ -62,7 +62,7 @@ class TestQRLNode(TestCase):
         self.db_state = Mock(autospec=State, name='mocked State')
         # self.db_state = State()
 
-        self.qrlnode = QRLNode(db_state=self.db_state, mining_address=b'')
+        self.qrlnode = QRLNode(state=self.db_state, mining_address=b'')
 
         # As the QRLNode is instantiated and torn down for each test, the minuscule or negative diff between present
         # time and start_time can cause problems.
@@ -208,11 +208,11 @@ class TestQRLNode(TestCase):
         m_block = Mock(autospec=Block, name='mock Block')
         m_block_metadata = Mock(autospec=BlockMetadata, name='mock BlockMetadata', block_difficulty=0)
         self.chain_manager.get_last_block.return_value = m_block
-        self.chain_manager.state.get_block_metadata.return_value = m_block_metadata
+        self.chain_manager.get_block_metadata.return_value = m_block_metadata
 
         self.qrlnode.get_block_to_mine(alice.address)
         self.chain_manager.get_last_block.assert_called_once()
-        self.chain_manager.state.get_block_metadata.assert_called_once()
+        self.chain_manager.get_block_metadata.assert_called_once()
         self.qrlnode._pow.miner.get_block_to_mine.assert_called_once_with(alice.address, self.chain_manager.tx_pool,
                                                                           m_block, 0)
 
@@ -287,7 +287,7 @@ class TestQRLNode(TestCase):
         def replacement_get_block_datapoint(headerhash_current):
             return m_blockdps.get(headerhash_current)
 
-        self.chain_manager.state.get_block_datapoint = replacement_get_block_datapoint
+        self.chain_manager._state.get_block_datapoint = replacement_get_block_datapoint
 
         # Get last 5 blocks should return [BlockDatapoint 1, BlockDatapoint 2... BlockDatapoint 5]
         result = self.qrlnode.get_block_timeseries(5)
@@ -391,7 +391,7 @@ class TestQRLNodeProperties(TestCase):
         self.m_chain_manager.get_block_by_number.return_value = None
         self.m_peer_manager = Mock(name='mock P2PPeerManager')
 
-        self.qrlnode = QRLNode(db_state=None, mining_address=b'')
+        self.qrlnode = QRLNode(state=None, mining_address=b'')
         self.qrlnode.set_chain_manager(self.m_chain_manager)
         self.qrlnode.peer_manager = self.m_peer_manager
 
@@ -447,17 +447,17 @@ class TestQRLNodeProperties(TestCase):
         self.m_chain_manager.get_last_block.return_value = Mock(name='mock Block')
 
         # If this particular function returns None, this property should just return the config value
-        self.m_chain_manager.state.get_block_metadata.return_value = None
+        self.m_chain_manager.get_block_metadata.return_value = None
         self.assertEqual(self.qrlnode.block_time_mean, config.dev.mining_setpoint_blocktime)
 
         # Else, it should consult state.get_measurement()
-        self.m_chain_manager.state.get_block_metadata.return_value = Mock(name='mock BlockMetadata')
+        self.m_chain_manager.get_block_metadata.return_value = Mock(name='mock BlockMetadata')
         self.qrlnode.block_time_mean()
-        self.m_chain_manager.state.get_measurement.assert_called_once()
+        self.m_chain_manager._state.get_measurement.assert_called_once()
 
     def test_coin_supply(self):
         m_state = Mock(name='mock State')
-        self.qrlnode.db_state = m_state
+        self.qrlnode._state = m_state
         self.qrlnode.coin_supply()
         m_state.total_coin_supply.assert_called_once()
 

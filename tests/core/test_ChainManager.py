@@ -84,15 +84,15 @@ class TestChainManagerReal(TestCase):
         # If we call load() a second time, it should check to see if we are forked and initiate recovery.
         # First we pretend we are not forked.
         self.state.get_fork_state = Mock(return_value=None)
-        self.chain_manager.fork_recovery = Mock(name='mock fork_recovery()')
+        self.chain_manager._fork_recovery = Mock(name='mock _fork_recovery()')
         self.chain_manager.load(self.genesis_block)
-        self.chain_manager.fork_recovery.assert_not_called()
+        self.chain_manager._fork_recovery.assert_not_called()
 
-        # If we pretend we are forked, it should call fork_recovery().
+        # If we pretend we are forked, it should call _fork_recovery().
         m_fork_state = Mock(autospec=qrlstateinfo_pb2.ForkState, initiator_headerhash=self.genesis_block.headerhash)
         self.state.get_fork_state.return_value = m_fork_state
         self.chain_manager.load(self.genesis_block)
-        self.chain_manager.fork_recovery.assert_called_with(self.genesis_block, m_fork_state)
+        self.chain_manager._fork_recovery.assert_called_with(self.genesis_block, m_fork_state)
 
     @patch('qrl.core.misc.ntp.getTime')
     def test_simple_add_block(self, time_mock):
@@ -114,7 +114,7 @@ class TestChainManagerReal(TestCase):
         # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
         #     block_1.set_nonces(block_1.mining_nonce + 1)
         #     print(block_1.mining_nonce)
-        self.assertTrue(block_1.validate(self.state, {}))
+        self.assertTrue(block_1.validate(self.chain_manager, {}))
         result = self.chain_manager.add_block(block_1)
 
         self.assertTrue(result)
@@ -152,7 +152,7 @@ class TestChainManagerReal(TestCase):
         # while not PoWValidator().validate_mining_nonce(self.state, block_1.blockheader, False):
         #     block_1.set_nonces(block_1.mining_nonce + 1)
         #     print(block_1.mining_nonce)
-        self.assertTrue(block_1.validate(self.state, {}))
+        self.assertTrue(block_1.validate(self.chain_manager, {}))
         result = self.chain_manager.add_block(block_1)
 
         self.assertTrue(result)
@@ -200,14 +200,14 @@ class TestChainManagerReal(TestCase):
             # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
             #     block_1.set_nonces(block_1.mining_nonce + 1)
             #     print(block_1.mining_nonce)
-            self.assertTrue(block_1.validate(self.state, {}))
+            self.assertTrue(block_1.validate(self.chain_manager, {}))
             result = self.chain_manager.add_block(block_1)
 
         self.assertTrue(result)
         self.assertEqual(self.chain_manager.last_block, block_1)
 
         # Yes, Bob is Alice's slave.
-        alice_state = self.chain_manager.get_address(alice.address)
+        alice_state = self.chain_manager.get_address_state(alice.address)
         self.assertEqual(len(alice_state.slave_pks_access_type), 1)
         self.assertTrue(str(bob.pk) in alice_state.slave_pks_access_type)
 
@@ -226,7 +226,7 @@ class TestChainManagerReal(TestCase):
             # while not PoWValidator().validate_mining_nonce(self.state, fork_block.blockheader, False):
             #     fork_block.set_nonces(fork_block.mining_nonce + 1)
             #     print(fork_block.mining_nonce)
-            self.assertTrue(fork_block.validate(self.state, {}))
+            self.assertTrue(fork_block.validate(self.chain_manager, {}))
             result = self.chain_manager.add_block(fork_block)
 
         self.assertTrue(result)
@@ -250,7 +250,7 @@ class TestChainManagerReal(TestCase):
             # while not PoWValidator().validate_mining_nonce(state, block_2.blockheader, False):
             #     block_2.set_nonces(block_2.mining_nonce + 1, 0)
             #     print(block_2.mining_nonce)
-            self.assertTrue(block_2.validate(self.state, {}))
+            self.assertTrue(block_2.validate(self.chain_manager, {}))
             result = self.chain_manager.add_block(block_2)
 
         self.assertTrue(result)
@@ -258,7 +258,7 @@ class TestChainManagerReal(TestCase):
         self.assertEqual(self.chain_manager.last_block.serialize(), block_2.serialize())
 
         # Now we are on the forked chain, Bob is no longer Alice's slave.
-        alice_state = self.chain_manager.get_address(alice.address)
+        alice_state = self.chain_manager.get_address_state(alice.address)
         self.assertFalse(str(bob.pk) in alice_state.slave_pks_access_type)
 
     @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
@@ -276,7 +276,7 @@ class TestChainManagerReal(TestCase):
 
     @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def test_fork_recovery(self):
-        # When the node finds that it has been on the slower chain all this time, it runs fork_recovery() to rollback
+        # When the node finds that it has been on the slower chain all this time, it runs _fork_recovery() to _rollback
         # to an earlier state and switch to the longer chain.
 
         block_1 = create_block(1, self.genesis_block, alice.address)
@@ -304,7 +304,7 @@ class TestChainManagerReal(TestCase):
         self.chain_manager.add_block(block_3_alt)
         self.assertEqual(self.chain_manager.last_block, block_3)
 
-        # When it is obvious that the fork is longer (has a higher cum. diff), the chain manager invokes fork_recovery()
+        # When it is obvious that the fork is longer (has a higher cum. diff), the chain manager invokes _fork_recovery()
         # and switches over to the fork
         self.chain_manager.add_block(block_4_alt)
         self.assertEqual(self.chain_manager.last_block, block_4_alt)
@@ -322,13 +322,13 @@ class TestChainManager(TestCase):
         self.chain_manager._difficulty_tracker = Mock()
 
     def test_fork_recovery_failed(self):
-        # When switching to the longer chain fails, fork_recovery() must rollback and restore the shorter chain.
+        # When switching to the longer chain fails, _fork_recovery() must _rollback and restore the shorter chain.
         # Mock out irrelevant functions
         self.chain_manager._update_block_number_mapping = Mock()
 
         # Switching to the new chain should fail!
         self.chain_manager.add_chain = Mock(return_value=False)
-        self.chain_manager.rollback = Mock()
+        self.chain_manager._rollback = Mock()
 
         block_1 = create_m_block(1, self.genesis_block, alice.address)
         block_2 = create_m_block(2, block_1, alice.address)
@@ -344,20 +344,20 @@ class TestChainManager(TestCase):
             new_mainchain_hash_path=[b.headerhash for b in [block_1_alt, block_2_alt, block_3_alt]]
         )
 
-        # fork_recovery() will rollback() to the genesis block and go on the longer chain.
-        # At this point, rollback() should return the old hash path as a backup
+        # _fork_recovery() will _rollback() to the genesis block and go on the longer chain.
+        # At this point, _rollback() should return the old hash path as a backup
         # in case switching to the longer chain fails.
-        self.chain_manager.rollback.return_value = [block_2.headerhash, block_1.headerhash]
+        self.chain_manager._rollback.return_value = [block_2.headerhash, block_1.headerhash]
 
-        self.chain_manager.fork_recovery(block_3_alt, fork_state)
+        self.chain_manager._fork_recovery(block_3_alt, fork_state)
 
-        # fork_recovery() should have rollback()ed when trying to switch to the longer chain
-        self.chain_manager.rollback.assert_any_call(self.genesis_block.headerhash, fork_state)
-        # fork_recovery() should have rollback()ed to the genesis block when trying to restore the shorter chain
-        self.chain_manager.rollback.assert_called_with(self.genesis_block.headerhash)
+        # _fork_recovery() should have _rollback()ed when trying to switch to the longer chain
+        self.chain_manager._rollback.assert_any_call(self.genesis_block.headerhash, fork_state)
+        # _fork_recovery() should have _rollback()ed to the genesis block when trying to restore the shorter chain
+        self.chain_manager._rollback.assert_called_with(self.genesis_block.headerhash)
 
     def test_fork_recovery_rollbacked_already(self):
-        # Switching to the new chain works, but test that if the rollback() has already happened, fork_recovery() does
+        # Switching to the new chain works, but test that if the _rollback() has already happened, _fork_recovery() does
         # not hiccup
 
         # Mock out irrelevant functions
@@ -365,7 +365,7 @@ class TestChainManager(TestCase):
 
         # Switching to the new chain should succeed!
         self.chain_manager.add_chain = Mock(return_value=True)
-        self.chain_manager.rollback = Mock()
+        self.chain_manager._rollback = Mock()
 
         block_1 = create_m_block(1, self.genesis_block, alice.address)
         block_2 = create_m_block(2, block_1, alice.address)
@@ -382,13 +382,13 @@ class TestChainManager(TestCase):
         )
 
         # State.get_block() should say that we are already on block_1_alt
-        self.chain_manager.state.get_block.return_value = block_1_alt
+        self.chain_manager._state.get_block.return_value = block_1_alt
 
-        # fork_recovery() will not call rollback(), because it has already happened.
-        self.chain_manager.fork_recovery(block_3_alt, fork_state)
+        # _fork_recovery() will not call _rollback(), because it has already happened.
+        self.chain_manager._fork_recovery(block_3_alt, fork_state)
 
-        # fork_recovery() should have rollback()ed when trying to switch to the longer chain
-        self.chain_manager.rollback.assert_not_called()
+        # _fork_recovery() should have _rollback()ed when trying to switch to the longer chain
+        self.chain_manager._rollback.assert_not_called()
 
     @patch('qrl.core.config')
     @patch('qrl.core.ChainManager.ChainManager.height', new_callable=PropertyMock)
@@ -415,20 +415,20 @@ class TestChainManager(TestCase):
         block_1 = create_m_block(1, block_0, alice.address)
         block_2 = create_m_block(2, block_1, alice.address)
 
-        # If get_fork_point() ever reaches block_number 0, that means the genesis block is different!
+        # If _get_fork_point() ever reaches block_number 0, that means the genesis block is different!
         # Mock self.state leads us back to block_0
         self.state.get_block.side_effect = [block_2, block_1, block_0]
 
         with self.assertRaises(Exception):
-            self.chain_manager.get_fork_point(block_2)
+            self.chain_manager._get_fork_point(block_2)
 
-        # If get_fork_point() cannot find a particular block while walking back to the fork point, something has gone
+        # If _get_fork_point() cannot find a particular block while walking back to the fork point, something has gone
         # very wrong
         # Mock self.state leads us back through a broken chain
         self.state.get_block.side_effect = [block_2, None, block_0]
 
         with self.assertRaises(Exception):
-            self.chain_manager.get_fork_point(block_2)
+            self.chain_manager._get_fork_point(block_2)
 
     def test_apply_block_fails_if_state_changes_fail(self):
         # ChainManager._apply_block() should fail if Block.apply_state_changes() fails.
@@ -463,7 +463,7 @@ class TestChainManager(TestCase):
             new_mainchain_hash_path=[b.headerhash for b in [block_1_alt, block_2_alt, block_3_alt]]
         )
         # We want to add_chain(block_*_alt chain), but we're still on block_1 (we should have rolled back to genesis)
-        self.chain_manager.last_block = block_1
+        self.chain_manager._last_block = block_1
         ans = self.chain_manager.add_chain([block_1_alt.headerhash, block_2_alt.headerhash], fork_state)
         self.assertFalse(ans)
 
@@ -489,5 +489,5 @@ class TestChainManager(TestCase):
 
     def test_get_transaction(self):
         # get_transaction() is simply a wrapper for State.get_tx_metadata
-        self.chain_manager.get_transaction(b'txhash')
+        self.chain_manager.get_tx_metadata(b'txhash')
         self.state.get_tx_metadata.assert_called_once()
