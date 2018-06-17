@@ -4,6 +4,7 @@
 import argparse
 import faulthandler
 import logging
+import threading
 from os.path import expanduser
 
 from mock import MagicMock
@@ -20,7 +21,7 @@ from qrl.services.services import start_services
 from qrl.core import config
 from qrl.core.State import State
 
-LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s| %(levelname)s : %(message)s'
+LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s|%(thread_id)s| %(levelname)s : %(message)s'
 
 
 class ContextFilter(logging.Filter):
@@ -30,8 +31,9 @@ class ContextFilter(logging.Filter):
         self.version = version
 
     def filter(self, record):
-        record.node_state = self.node_state.state.name
+        record.node_state = "{:<8}".format(self.node_state.state.name)
         record.version = self.version
+        record.thread_id = "{:<11}".format(threading.current_thread().name)
         return True
 
 

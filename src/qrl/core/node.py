@@ -254,6 +254,7 @@ class POW(ConsensusMechanism):
     def mine_next(self, parent_block):
         if ntp.getTime() < self.suspend_mining_timestamp:
             return
+
         if config.user.mining_enabled:
             parent_metadata = self.chain_manager.state.get_block_metadata(parent_block.headerhash)
             self.miner.prepare_next_unmined_block_template(mining_address=self.mining_address,
