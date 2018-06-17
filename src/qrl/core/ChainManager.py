@@ -130,7 +130,7 @@ class ChainManager:
         into fork recovery.
         :param block:
         :param batch:
-        :return:
+        :return: [Added successfully, fork_flag]
         """
         if self.last_block.headerhash == block.prev_headerhash:
             if not self._apply_block(block, batch):
@@ -139,6 +139,10 @@ class ChainManager:
         self.state.put_block(block, batch)
 
         last_block_metadata = self.state.get_block_metadata(self.last_block.headerhash)
+        if last_block_metadata is None:
+            logger.warning("Could not find log metadata for %s", bin2hstr(self.last_block.headerhash))
+            return False, False
+
         last_block_difficulty = int(UInt256ToString(last_block_metadata.cumulative_difficulty))
 
         new_block_metadata = self.add_block_metadata(block.headerhash, block.timestamp, block.prev_headerhash, batch)
@@ -197,6 +201,13 @@ class ChainManager:
         while self.last_block.headerhash != forked_header_hash:
             block = self.state.get_block(self.last_block.headerhash)
             mainchain_block = self.get_block_by_number(block.block_number)
+
+            if block is None:
+                logger.warning("self.state.get_block(self.last_block.headerhash) returned None")
+
+            if mainchain_block is None:
+                logger.warning("self.get_block_by_number(block.block_number) returned None")
+
             if block.headerhash != mainchain_block.headerhash:
                 break
             hash_path.append(self.last_block.headerhash)
