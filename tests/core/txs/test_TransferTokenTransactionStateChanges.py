@@ -3,6 +3,7 @@ from unittest import TestCase
 from mock import patch, Mock
 
 from qrl.core.AddressState import AddressState
+from qrl.core.ChainManager import ChainManager
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss
 
@@ -22,7 +23,8 @@ class TestTransferTokenTransactionStateChanges(TestCase):
             "fee": 1,
             "xmss_pk": self.alice.pk
         }
-        self.unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+
+        self.unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
 
     def generate_addresses_state(self, tx):
         addresses_state = {
@@ -129,7 +131,7 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         addresses_state[self.bob.address].tokens[self.params["token_txhash"]] = 100
         addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
 
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
@@ -163,7 +165,7 @@ class TestTransferTokenTransactionStateChanges(TestCase):
                                               transaction_hashes=[tx.txhash],
                                               balance=0)
 
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
@@ -185,7 +187,7 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         tx.sign(self.alice)
         addresses_state = {}
 
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state, {})
         m_revert_state_PK.assert_called_once()
@@ -201,7 +203,7 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         addresses_state = self.generate_addresses_state(tx)
         addresses_state[self.alice.address].balance = 99
         addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         # Unfortunately importing mock.call results in some sort of ValueError so I can't check the arguments.

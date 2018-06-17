@@ -117,12 +117,12 @@ class TestState(TestCase):
         with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                self.assertTrue(state.address_used(alice_xmss.address))
-                self.assertEqual(state.return_all_addresses(), [])
-                batch = state.get_batch()
+                self.assertTrue(state.get_address_is_used(alice_xmss.address))
+                self.assertEqual(state._return_all_addresses(), [])
+                batch = state.batch
                 self.assertIsNotNone(batch)
                 state.write_batch(batch)
-                self.assertEqual(state.total_coin_supply(), 0)
+                self.assertEqual(state.total_coin_supply, 0)
 
     def test_nonce(self):
         with set_qrl_dir('no_data'):
@@ -241,22 +241,22 @@ class TestState(TestCase):
         with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                self.assertTrue(state.address_used(alice_xmss.address))
+                self.assertTrue(state.get_address_is_used(alice_xmss.address))
 
     def test_return_all_addresses(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                self.assertEqual(state.return_all_addresses(), [])
+                self.assertEqual(state._return_all_addresses(), [])
 
     def test_get_batch(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                self.assertIsNotNone(state.get_batch())
+                self.assertIsNotNone(state.batch)
 
     def test_write_batch(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                batch = state.get_batch()
+                batch = state.batch
                 block = Block.create(block_number=10,
                                      prev_headerhash=b'aa',
                                      prev_timestamp=10,
@@ -271,14 +271,14 @@ class TestState(TestCase):
     def test_update_total_coin_supply(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                self.assertEqual(state.total_coin_supply(), 0)
-                state.update_total_coin_supply(100)
-                self.assertEqual(state.total_coin_supply(), 100)
+                self.assertEqual(state.total_coin_supply, 0)
+                state._update_total_coin_supply(100)
+                self.assertEqual(state.total_coin_supply, 100)
 
     def test_total_coin_supply(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                self.assertEqual(state.total_coin_supply(), 0)
+                self.assertEqual(state.total_coin_supply, 0)
 
     def test_get_measurement(self):
         def block(headerhash):
@@ -344,7 +344,7 @@ class TestState(TestCase):
                 state.put_block(block, None)
                 block1 = state.get_block(block.headerhash)
                 self.assertEqual(block.serialize(), block1.serialize())
-                state.delete(block.headerhash, None)
+                state._delete(block.headerhash, None)
                 self.assertIsNone(state.get_block(block.headerhash))
 
     def test_get_block_size_limit(self):
@@ -540,7 +540,7 @@ class TestState(TestCase):
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
                 block._data.transactions.extend([tx1.pbdata])
-                state.update_last_tx(block, None)
+                state._update_last_tx(block, None)
                 last_txns = state.get_last_txs()
 
                 # Test Case: When there is only 1 last txns
@@ -558,7 +558,7 @@ class TestState(TestCase):
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
                 block._data.transactions.extend([tx2.pbdata, tx3.pbdata])
-                state.update_last_tx(block, None)
+                state._update_last_tx(block, None)
                 last_txns = state.get_last_txs()
 
                 # Test Case: When there are 3 last txns
@@ -582,7 +582,7 @@ class TestState(TestCase):
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
                 block._data.transactions.extend([tx1.pbdata])
-                state.update_last_tx(block, None)
+                state._update_last_tx(block, None)
                 last_txns = state.get_last_txs()
 
                 # Test Case: When there is only 1 last txns
@@ -603,12 +603,12 @@ class TestState(TestCase):
                                                  fee=0,
                                                  xmss_pk=alice_xmss.pk)
                 block._data.transactions.extend([tx1.pbdata])
-                state.update_last_tx(block, None)
+                state._update_last_tx(block, None)
                 last_txns = state.get_last_txs()
 
                 self.assertEqual(last_txns[0].to_json(), tx1.to_json())
 
-                state.remove_last_tx(block, None)
+                state._remove_last_tx(block, None)
                 last_txns = state.get_last_txs()
                 self.assertEqual(last_txns, [])
 
@@ -712,10 +712,10 @@ class TestState(TestCase):
             with State() as state:
                 self.assertEqual(state.get_txn_count(b'q1'), 0)
 
-                state.increase_txn_count(0, b'q1')
+                state._increase_txn_count(0, b'q1')
                 self.assertEqual(state.get_txn_count(b'q1'), 1)
 
-                state.increase_txn_count(5, b'q1')
+                state._increase_txn_count(5, b'q1')
                 self.assertEqual(state.get_txn_count(b'q1'), 6)
 
     def test_decrease_txn_count(self):
@@ -724,9 +724,9 @@ class TestState(TestCase):
                 self.assertEqual(state.get_txn_count(b'q1'), 0)
 
                 with self.assertRaises(ValueError):
-                    state.decrease_txn_count(0, b'q1')
+                    state._decrease_txn_count(0, b'q1')
 
-                state.decrease_txn_count(5, b'q1')
+                state._decrease_txn_count(5, b'q1')
                 self.assertEqual(state.get_txn_count(b'q1'), 4)
 
     def test_get_txn_count(self):
@@ -734,5 +734,5 @@ class TestState(TestCase):
             with State() as state:
                 self.assertEqual(state.get_txn_count(b'q1'), 0)
 
-                state.increase_txn_count(10, b'q1')
+                state._increase_txn_count(10, b'q1')
                 self.assertEqual(state.get_txn_count(b'q1'), 11)
