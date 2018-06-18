@@ -9,7 +9,6 @@ from qrl.core.Block import Block
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.ChainManager import ChainManager
-from qrl.core.State import State
 from qrl.core.misc import logger
 from qrl.core.node import SyncState
 from qrl.core.p2p.p2pfactory import P2PFactory
@@ -28,7 +27,6 @@ class TestMiningAPI(TestCase):
         super(TestMiningAPI, self).__init__(*args, **kwargs)
 
     def test_GetBlockMiningCompatible(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23

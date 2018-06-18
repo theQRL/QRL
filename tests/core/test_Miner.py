@@ -6,7 +6,6 @@ from pyqryptonight.pyqryptonight import StringToUInt256
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.Miner import Miner
-from qrl.core.State import State
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc.helper import parse_qaddress
 from qrl.core.node import POW

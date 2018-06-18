@@ -12,7 +12,6 @@ from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.ESyncState import ESyncState
-from qrl.core.State import State
 from qrl.core.misc import ntp
 from qrl.core.misc.logger import logger
 from qrl.core.node import POW, SyncState

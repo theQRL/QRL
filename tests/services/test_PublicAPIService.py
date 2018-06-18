@@ -35,7 +35,6 @@ class TestPublicAPI(TestCase):
         super(TestPublicAPI, self).__init__(*args, **kwargs)
 
     def test_getNodeState(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
@@ -59,7 +58,6 @@ class TestPublicAPI(TestCase):
         # self.assertEqual("testnet", node_state.info.network_id)  # FIXME
 
     def test_getKnownPeers(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
@@ -373,7 +371,6 @@ class TestPublicAPI(TestCase):
         self.assertEqual(202, response.transactions[2].tx.transfer.amounts[0])
 
     def test_GetAddressFromPK(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
@@ -396,7 +393,6 @@ class TestPublicAPI(TestCase):
                          bin2hstr(response.address))
 
     def test_GetTokenTxn_Error(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
