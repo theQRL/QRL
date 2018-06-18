@@ -1,14 +1,13 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import os
 from unittest import TestCase
 
-import os
-from mock import Mock, patch
+from mock import patch
 
 from qrl.core import config
 from qrl.core.misc import logger
-from qrl.core.State import State
 from qrl.core.qrlnode import QRLNode
 from qrl.generated.qrlbase_pb2 import GetNodeInfoReq
 from qrl.services.BaseService import BaseService
@@ -23,8 +22,7 @@ class TestBaseAPI(TestCase):
         super(TestBaseAPI, self).__init__(*args, **kwargs)
 
     def test_getNodeInfo(self):
-        db_state = Mock(spec=State)
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
 
         service = BaseService(qrlnode)
         response = service.GetNodeInfo(request=GetNodeInfoReq, context=None)

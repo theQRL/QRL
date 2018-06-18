@@ -3,6 +3,7 @@ from unittest import TestCase
 from mock import patch, Mock
 
 from qrl.core.AddressState import AddressState
+from qrl.core.ChainManager import ChainManager
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from tests.misc.helper import get_alice_xmss, get_slave_xmss
 
@@ -20,7 +21,7 @@ class TestSlaveTransactionStateChanges(TestCase):
             "fee": 1,
             "xmss_pk": self.alice.pk
         }
-        self.unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+        self.unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
 
     def generate_addresses_state(self, tx):
         addresses_state = {
@@ -60,7 +61,7 @@ class TestSlaveTransactionStateChanges(TestCase):
         addresses_state = self.generate_addresses_state(tx)
         addresses_state[self.alice.address].balance = 99
         addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
@@ -74,7 +75,7 @@ class TestSlaveTransactionStateChanges(TestCase):
         tx = SlaveTransaction.create(**self.params)
         tx.sign(self.alice)
         addresses_state = {}
-        tx.revert_state_changes(addresses_state, self.unused_state_mock)
+        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
 
         self.assertEqual({}, addresses_state)
         m_revert_state_PK.assert_called_once()

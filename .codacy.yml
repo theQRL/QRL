@@ -8,3 +8,5 @@ exclude_paths:
   - 'versioneer.py'
   - 'setup.py'
   - 'src/qrl/_version.py'
+  - 'src/qrl/measure.py'
+  - 'start_qrl.py'

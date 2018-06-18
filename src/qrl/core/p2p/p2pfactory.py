@@ -167,7 +167,7 @@ class P2PFactory(ServerFactory):
         return self._chain_manager.height
 
     def get_last_block(self):
-        return self._chain_manager.get_last_block()
+        return self._chain_manager.last_block
 
     def get_headerhashes(self, start_blocknumber):
         return self._chain_manager.get_headerhashes(start_blocknumber)
@@ -175,11 +175,11 @@ class P2PFactory(ServerFactory):
     def get_cumulative_difficulty(self):
         return self._chain_manager.get_cumulative_difficulty()
 
-    def get_block(self, block_number):
+    def get_block_by_number(self, block_number):
         return self._chain_manager.get_block_by_number(block_number)
 
     def is_block_present(self, header_hash: bytes) -> bool:
-        if not self._chain_manager.state.get_block(header_hash):
+        if not self._chain_manager.get_block(header_hash):
             if header_hash not in self.pow.future_blocks:
                 return False
 
@@ -210,7 +210,7 @@ class P2PFactory(ServerFactory):
             logger.warning('Found headerhash %s', block.headerhash)
             return
 
-        if not block.validate(self._chain_manager.state, self.pow.future_blocks):
+        if not block.validate(self._chain_manager, self.pow.future_blocks):
             logger.warning('Syncing Failed: Block Validation Failed')
             return
 
@@ -252,7 +252,7 @@ class P2PFactory(ServerFactory):
         curr_index = self._last_requested_block_number - node_header_hash.block_number
 
         block_headerhash = node_header_hash.headerhashes[curr_index]
-        block = self._chain_manager.state.get_block(block_headerhash)
+        block = self._chain_manager.get_block(block_headerhash)
 
         if retry >= 5:
             logger.debug('Retry Limit Hit')
@@ -264,7 +264,7 @@ class P2PFactory(ServerFactory):
             self._last_requested_block_number += 1
             curr_index = self._last_requested_block_number - node_header_hash.block_number
             block_headerhash = node_header_hash.headerhashes[curr_index]
-            block = self._chain_manager.state.get_block(block_headerhash)
+            block = self._chain_manager.get_block(block_headerhash)
 
         if block and self.is_syncing_finished():
             return
@@ -284,7 +284,7 @@ class P2PFactory(ServerFactory):
         fork_block_number = last_block.block_number + 1
         fork_found = False
         for i in range(last_block_number, node_header_hash.block_number - 1, -1):
-            block = self.get_block(i)
+            block = self._chain_manager.get_block_by_number(i)
             if block:
                 if block.headerhash == node_header_hash.headerhashes[i - node_header_hash.block_number]:
                     break
@@ -373,7 +373,7 @@ class P2PFactory(ServerFactory):
             return False
 
         if not self._txn_processor_running:
-            txn_processor = TxnProcessor(state=self._chain_manager.state,
+            txn_processor = TxnProcessor(chain_manager=self._chain_manager,
                                          transaction_pool_obj=self._chain_manager.tx_pool,
                                          broadcast_tx=self.broadcast_tx)
 

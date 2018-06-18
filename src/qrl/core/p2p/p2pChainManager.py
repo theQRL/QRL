@@ -30,7 +30,7 @@ class P2PChainManager(P2PBaseObserver):
 
         logger.info(' Request for %s by %s', block_number, source.peer)
         if 0 < block_number <= source.factory.chain_height:
-            block = source.factory.get_block(block_number)
+            block = source.factory.get_block_by_number(block_number)
             msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.PB,
                                               pbData=qrllegacy_pb2.PBData(block=block.pbdata))
             source.send(msg)
@@ -90,7 +90,7 @@ class P2PChainManager(P2PBaseObserver):
         :return:
         """
         if message.bhData.block_number == 0:
-            block = source.factory.get_last_block()
+            block = source.factory.last_block
             cumulative_difficulty = source.factory.get_cumulative_difficulty()
             if block.block_number == 0:
                 return
