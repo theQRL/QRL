@@ -161,7 +161,7 @@ class TestP2PProtocol(TestCase):
         messages = self.channel._parse_buffer([0])
         messages_list = list(messages)
         self.assertEqual(0, len(messages_list))
-        logger.warning.assert_called_with("Problem parsing message. Dropping connection")
+        logger.warning.assert_called_with("Problem parsing message. Banning+Dropping connection")
 
     def test_wrap_message_works(self):
         veData = qrllegacy_pb2.VEData(version="version", genesis_prev_hash=b'genesis_hash')
