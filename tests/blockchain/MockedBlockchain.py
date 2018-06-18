@@ -105,7 +105,7 @@ class MockedBlockchain(object):
 
                 chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_target))
 
-                qrlnode = QRLNode(state, mining_address=b'')
+                qrlnode = QRLNode(mining_address=b'')
                 qrlnode.set_chain_manager(chain_manager)
 
                 mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock)

@@ -23,8 +23,7 @@ class TestBaseAPI(TestCase):
         super(TestBaseAPI, self).__init__(*args, **kwargs)
 
     def test_getNodeInfo(self):
-        db_state = Mock(spec=State)
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
 
         service = BaseService(qrlnode)
         response = service.GetNodeInfo(request=GetNodeInfoReq, context=None)

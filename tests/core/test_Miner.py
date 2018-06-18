@@ -1,16 +1,17 @@
-from mock import Mock, patch, create_autospec
 from unittest import TestCase
 
-from qrl.core.Miner import Miner
-from qrl.core.node import POW
-from qrl.core.State import State
-from qrl.core.Block import Block
-from qrl.core.p2p.p2pfactory import P2PFactory
-from qrl.core.txs.CoinBase import CoinBase
-from qrl.core.TransactionPool import TransactionPool
-from qrl.core.misc.helper import parse_qaddress
+from mock import Mock, patch, create_autospec, MagicMock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
+from qrl.core.Block import Block
+from qrl.core.ChainManager import ChainManager
+from qrl.core.Miner import Miner
+from qrl.core.State import State
+from qrl.core.TransactionPool import TransactionPool
+from qrl.core.misc.helper import parse_qaddress
+from qrl.core.node import POW
+from qrl.core.p2p.p2pfactory import P2PFactory
+from qrl.core.txs.CoinBase import CoinBase
 from tests.misc.helper import get_alice_xmss, get_bob_xmss
 
 alice = get_alice_xmss()
@@ -25,7 +26,7 @@ class TestMiner(TestCase):
         self.m_mining_qaddress = alice.qaddress
         self.m_mining_address = parse_qaddress(self.m_mining_qaddress)
 
-        self.state = Mock(spec=State)
+        self.chain_manager = Mock(spec=ChainManager)
         self.parent_block = Block()
         self.parent_difficulty = StringToUInt256('0')  # tuple (0,0,0,0,0...) length 32
 
@@ -33,7 +34,10 @@ class TestMiner(TestCase):
         m_add_unprocessed_txn_fn = create_autospec(P2PFactory.add_unprocessed_txn)
         mining_thread_count = 1
 
-        self.miner = Miner(self.m_pre_block_logic, self.m_mining_address, self.state, mining_thread_count,
+        self.miner = Miner(self.m_pre_block_logic,
+                           self.m_mining_address,
+                           self.chain_manager,
+                           mining_thread_count,
                            m_add_unprocessed_txn_fn)
 
         self.txpool = Mock(spec=TransactionPool)
@@ -47,13 +51,15 @@ class TestMiner(TestCase):
         """
         m_getTime.return_value = self.time
 
-        self.state.get_measurement.return_value = 60
+        self.chain_manager.get_measurement.return_value = 60
         self.txpool.transactions = []
 
         self.assertIsNone(self.miner._current_difficulty)
         self.assertIsNone(self.miner._current_target)
         self.assertIsNone(self.miner._measurement)
-        self.miner.prepare_next_unmined_block_template(self.m_mining_address, self.txpool, self.parent_block,
+        self.miner.prepare_next_unmined_block_template(self.m_mining_address,
+                                                       self.txpool,
+                                                       self.parent_block,
                                                        self.parent_difficulty)
 
         self.assertEqual(self.miner._current_difficulty, StringToUInt256('2'))
@@ -67,13 +73,15 @@ class TestMiner(TestCase):
         """
         m_getTime.return_value = self.time
 
-        self.state.get_measurement.side_effect = ValueError
+        self.chain_manager.get_measurement.side_effect = ValueError
         self.txpool.transactions = []
 
         self.assertIsNone(self.miner._current_difficulty)
         self.assertIsNone(self.miner._current_target)
         self.assertIsNone(self.miner._measurement)
-        self.miner.prepare_next_unmined_block_template(self.m_mining_address, self.txpool, self.parent_block,
+        self.miner.prepare_next_unmined_block_template(self.m_mining_address,
+                                                       self.txpool,
+                                                       self.parent_block,
                                                        self.parent_difficulty)
 
         self.assertIsNone(self.miner._current_difficulty)
@@ -200,12 +208,10 @@ class TestMiner(TestCase):
         self.assertIsNotNone(blob)
         self.assertEqual(difficulty, 1)
 
-    @patch('qrl.core.ChainManager.PoWValidator.validate_mining_nonce', autospec=True)
-    def test_submit_mined_block(self, m_validate_mining_nonce, m_getTime, m_logger):
+    def test_submit_mined_block(self, m_getTime, m_logger):
         """
         This runs when a miner submits a blob with a valid nonce. It returns True only if
         BlockHeader says the nonce position is okay, and the PoWValidator says the nonce is valid.
-        :param m_validate_mining_nonce:
         :param m_getTime:
         :param m_logger:
         :return:
@@ -219,12 +225,12 @@ class TestMiner(TestCase):
         self.assertFalse(result)
 
         m_mining_block.verify_blob.return_value = True
-        m_validate_mining_nonce.return_value = False
+        self.chain_manager.validate_mining_nonce = MagicMock(return_value=False)
         result = self.miner.submit_mined_block(blob)
         self.assertFalse(result)
 
         m_mining_block.verify_blob.return_value = True
-        m_validate_mining_nonce.return_value = True
+        self.chain_manager.validate_mining_nonce = MagicMock(return_value=True)
         self.m_pre_block_logic.return_value = True
         result = self.miner.submit_mined_block(blob)
         self.assertTrue(result)

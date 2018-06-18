@@ -1,5 +1,5 @@
 from unittest import TestCase, expectedFailure
-from mock import Mock, patch, PropertyMock
+from mock import Mock, patch, PropertyMock, mock
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
@@ -32,7 +32,7 @@ class TestQRLNodeReal(TestCase):
         with set_qrl_dir('no_data'):
             self.db_state = State()
             self.chainmanager = ChainManager(self.db_state)
-            self.qrlnode = QRLNode(state=self.db_state, mining_address=b'')
+            self.qrlnode = QRLNode(mining_address=b'')
             self.qrlnode.set_chain_manager(self.chainmanager)
 
     @patch('qrl.core.qrlnode.QRLNode.block_height', new_callable=PropertyMock, return_value=19)
@@ -63,7 +63,7 @@ class TestQRLNode(TestCase):
         self.db_state = Mock(autospec=State, name='mocked State')
         # self.db_state = State()
 
-        self.qrlnode = QRLNode(state=self.db_state, mining_address=b'')
+        self.qrlnode = QRLNode(mining_address=b'')
 
         # As the QRLNode is instantiated and torn down for each test, the minuscule or negative diff between present
         # time and start_time can cause problems.
@@ -78,6 +78,8 @@ class TestQRLNode(TestCase):
         self.chain_manager.tx_pool = Mock(autospec=TransactionPool)
         mock_last_block = Mock(autospec=Block, name='mock last Block', block_number=2, headerhash=b'deadbeef')
         self.chain_manager._last_block = mock_last_block
+        self.chain_manager.get_unconfirmed_transaction = Mock()
+
         self.qrlnode.set_chain_manager(self.chain_manager)
 
     def test_monitor_chain_state_no_peer_with_higher_difficulty_found(self):
@@ -208,14 +210,17 @@ class TestQRLNode(TestCase):
     def test_get_block_to_mine(self):
         m_block = Mock(autospec=Block, name='mock Block')
         m_block_metadata = Mock(autospec=BlockMetadata, name='mock BlockMetadata', block_difficulty=0)
-        self.chain_manager._last_block = m_block
-        self.chain_manager._state.get_block_metadata.return_value = m_block_metadata
 
-        self.qrlnode.get_block_to_mine(alice.address)
-        self.chain_manager._last_block.assert_called_once()
-        self.chain_manager._state.get_block_metadata.assert_called_once()
-        self.qrlnode._pow.miner.get_block_to_mine.assert_called_once_with(alice.address, self.chain_manager.tx_pool,
-                                                                          m_block, 0)
+        with mock._patch_object(ChainManager, 'last_block') as m_last_block:
+            m_last_block.__get__ = Mock(return_value=m_block)
+            self.chain_manager._state.get_block_metadata.return_value = m_block_metadata
+
+            self.qrlnode.get_block_to_mine(alice.address)
+
+            m_last_block.__get__.assert_called_once()
+            self.chain_manager._state.get_block_metadata.assert_called_once()
+            self.qrlnode._pow.miner.get_block_to_mine.assert_called_once_with(alice.address, self.chain_manager.tx_pool,
+                                                                              m_block, 0)
 
     def test_submit_mined_block(self):
         self.qrlnode.submit_mined_block(b'blob')
@@ -391,9 +396,10 @@ class TestQRLNodeProperties(TestCase):
         self.m_chain_manager = ChainManager(state=state)
         self.m_chain_manager._last_block = None
         self.m_chain_manager._state.get_block_by_number.return_value = None
+
         self.m_peer_manager = Mock(name='mock P2PPeerManager')
 
-        self.qrlnode = QRLNode(state=state, mining_address=b'')
+        self.qrlnode = QRLNode(mining_address=b'')
         self.qrlnode.set_chain_manager(self.m_chain_manager)
         self.qrlnode.peer_manager = self.m_peer_manager
 
@@ -458,8 +464,10 @@ class TestQRLNodeProperties(TestCase):
         self.m_chain_manager._state.get_measurement.assert_called_once()
 
     def test_coin_supply(self):
-        self.qrlnode.coin_supply
-        self.qrlnode._state.total_coin_supply.assert_called_once()
+        with mock._patch_object(ChainManager, 'total_coin_supply') as m_total_coin_supply:
+            m_total_coin_supply.__get__ = Mock()
+            self.qrlnode.coin_supply
+            m_total_coin_supply.__get__.assert_called_once()
 
     def test_coin_supply_max(self):
         # This property should be whatever config says it is.

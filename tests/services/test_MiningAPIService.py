@@ -38,7 +38,7 @@ class TestMiningAPI(TestCase):
         chain_manager.height = 0
         chain_manager.get_last_block = MagicMock(return_value=Block())
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow

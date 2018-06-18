@@ -29,9 +29,8 @@ from qrl.generated import qrl_pb2
 
 
 class QRLNode:
-    def __init__(self, state: State, mining_address: bytes):
+    def __init__(self, mining_address: bytes):
         self.start_time = ntp.getTime()
-        self._state = state
         self._sync_state = SyncState()
 
         self.peer_manager = P2PPeerManager()
@@ -131,7 +130,7 @@ class QRLNode:
     @property
     def coin_supply(self):
         # FIXME: Keep a moving var
-        return self._state.total_coin_supply
+        return self._chain_manager.total_coin_supply
 
     @property
     def coin_supply_max(self):
