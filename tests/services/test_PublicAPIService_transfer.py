@@ -75,7 +75,7 @@ class TestPublicAPI(TestCase):
 
                 tmp_hash = sha256(tmp_hash_pre)
                 hash_found = bin2hstr(Transaction.from_pbdata(response.extended_transaction_unsigned.tx).
-                                      get_hashable_bytes())
+                                      get_data_hash())
                 self.assertEqual(hash_found,
                                  bin2hstr(tmp_hash))
 

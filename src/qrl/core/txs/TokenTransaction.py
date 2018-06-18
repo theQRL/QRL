@@ -4,7 +4,6 @@ from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
-from qrl.crypto.misc import sha256
 
 
 class TokenTransaction(Transaction):
@@ -35,19 +34,19 @@ class TokenTransaction(Transaction):
     def initial_balances(self):
         return self._data.token.initial_balances
 
-    def get_hashable_bytes(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False) +
-                     self.symbol +
-                     self.name +
-                     self.owner +
-                     self._data.token.decimals.to_bytes(8, byteorder='big', signed=False))
+    def get_data_bytes(self):
+        data_bytes = (self.master_addr +
+                      self.fee.to_bytes(8, byteorder='big', signed=False) +
+                      self.symbol +
+                      self.name +
+                      self.owner +
+                      self._data.token.decimals.to_bytes(8, byteorder='big', signed=False))
 
         for initial_balance in self._data.token.initial_balances:
-            tmptxhash += initial_balance.address
-            tmptxhash += initial_balance.amount.to_bytes(8, byteorder='big', signed=False)
+            data_bytes += initial_balance.address
+            data_bytes += initial_balance.amount.to_bytes(8, byteorder='big', signed=False)
 
-        return sha256(tmptxhash)
+        return data_bytes
 
     @staticmethod
     def create(symbol: bytes,
@@ -151,7 +150,8 @@ class TokenTransaction(Transaction):
             return False
 
         if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected', bin2hstr(self.txhash))
+            logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected',
+                        bin2hstr(self.txhash))
             return False
 
         return True

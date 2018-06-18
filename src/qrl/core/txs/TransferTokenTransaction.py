@@ -4,7 +4,6 @@ from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
-from qrl.crypto.misc import sha256
 
 
 class TransferTokenTransaction(Transaction):
@@ -35,17 +34,17 @@ class TransferTokenTransaction(Transaction):
     def amounts(self):
         return self._data.transfer_token.amounts
 
-    def get_hashable_bytes(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False) +
-                     self.token_txhash)
+    def get_data_bytes(self):
+        data_bytes = (self.master_addr +
+                      self.fee.to_bytes(8, byteorder='big', signed=False) +
+                      self.token_txhash)
 
         for index in range(0, len(self.addrs_to)):
-            tmptxhash = (tmptxhash +
-                         self.addrs_to[index] +
-                         self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            data_bytes = (data_bytes +
+                          self.addrs_to[index] +
+                          self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
-        return sha256(tmptxhash)
+        return data_bytes
 
     @staticmethod
     def create(token_txhash: bytes,
