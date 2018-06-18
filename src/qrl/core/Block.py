@@ -8,7 +8,6 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.misc import logger, ntp
-from qrl.core.PoWValidator import PoWValidator
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.BlockHeader import BlockHeader

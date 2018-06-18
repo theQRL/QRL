@@ -28,7 +28,6 @@ class TestTokenTransactionStateChanges(TestCase):
 
         self.unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
 
-
     def generate_addresses_state(self, tx):
         addresses_state = {
             self.alice.address: Mock(autospec=AddressState, name='alice AddressState',

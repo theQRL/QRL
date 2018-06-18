@@ -124,17 +124,17 @@ class TestState(TestCase):
                 state.write_batch(batch)
                 self.assertEqual(state.total_coin_supply, 0)
 
-    def test_nonce(self):
+    def test_get_address_nonce(self):
         with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                self.assertEqual(state.nonce(alice_xmss.address), 0)
+                self.assertEqual(state.get_address_nonce(alice_xmss.address), 0)
 
-    def balance(self):
+    def test_get_address_balance(self):
         with set_qrl_dir('no_data'):
             with State() as state:
                 alice_xmss = get_alice_xmss()
-                self.assertNotEqual(state.balance(alice_xmss.address), 0)
+                self.assertEqual(state.get_address_balance(alice_xmss.address), 0)
 
     def test_get_address2(self):
         with set_qrl_dir('no_data'):

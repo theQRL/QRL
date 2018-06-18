@@ -12,7 +12,6 @@ from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.DifficultyTracker import DifficultyTracker
-from qrl.core.PoWValidator import PoWValidator
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction

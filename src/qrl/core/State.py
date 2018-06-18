@@ -378,6 +378,9 @@ class State:
     def get_address_balance(self, addr: bytes) -> int:
         return self.get_address_state(addr).balance
 
+    def get_address_nonce(self, addr: bytes) -> int:
+        return self.get_address_state(addr).nonce
+
     def get_address_is_used(self, address: bytes) -> bool:
         # FIXME: Probably obsolete
         try:
