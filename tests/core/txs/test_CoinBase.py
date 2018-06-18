@@ -52,7 +52,7 @@ class TestCoinBase(TestCase):
         self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
                          bin2hstr(tx.addr_to))
 
-        self.assertEqual('3f8f91103e83651a18b45fd73d084ec4e5ed8a61d57a0184f80b5a3596d4e3db', bin2hstr(tx.txhash))
+        self.assertEqual('222460cc57ab8683b46f1831fe6cf1832c7e3134baf74d33bfaf91741e19cba2', bin2hstr(tx.txhash))
         self.assertEqual(tx.amount, 90)
 
     def test_validate_custom(self, m_logger):

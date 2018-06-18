@@ -198,7 +198,7 @@ class TestP2PPeerManager(TestCase):
 
         message = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE,
                                               veData=qrllegacy_pb2.VEData(version=config.dev.version,
-                                                                          genesis_prev_hash=config.dev.genesis_prev_headerhash,
+                                                                          genesis_prev_hash=config.user.genesis_prev_headerhash,
                                                                           rate_limit=config.user.peer_rate_limit))
         self.peer_manager.handle_version(channel, message)
         channel.peer_manager.ban_channel.assert_not_called()
@@ -213,7 +213,7 @@ class TestP2PPeerManager(TestCase):
 
         message = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE,
                                               veData=qrllegacy_pb2.VEData(version='',
-                                                                          genesis_prev_hash=config.dev.genesis_prev_headerhash,
+                                                                          genesis_prev_hash=config.user.genesis_prev_headerhash,
                                                                           rate_limit=config.user.peer_rate_limit))
         self.peer_manager.handle_version(channel, message)
         self.assertEqual(channel.send.call_args[0][0].veData.version, config.dev.version)
