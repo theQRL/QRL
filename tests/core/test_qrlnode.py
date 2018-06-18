@@ -164,6 +164,12 @@ class TestQRLNode(TestCase):
         result = self.qrlnode.get_address_state(alice.address)
         self.assertEqual(m_addr_state, result)
 
+        # Fetching AddressState for Coinbase Address
+        m_addr_state = Mock(autospec=AddressState)
+        self.db_state.get_address_state.return_value = m_addr_state
+        result = self.qrlnode.get_address_state(config.dev.coinbase_address)
+        self.assertEqual(m_addr_state, result)
+
         with self.assertRaises(ValueError):
             self.qrlnode.get_address_state(b'fdsa')
 
