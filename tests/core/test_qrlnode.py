@@ -465,8 +465,8 @@ class TestQRLNodeProperties(TestCase):
 
     def test_coin_supply(self):
         with mock._patch_object(ChainManager, 'total_coin_supply') as m_total_coin_supply:
-            m_total_coin_supply.__get__ = Mock()
-            self.qrlnode.coin_supply
+            m_total_coin_supply.__get__ = Mock(return_value=100)
+            self.assertEqual(100, self.qrlnode.coin_supply)
             m_total_coin_supply.__get__.assert_called_once()
 
     def test_coin_supply_max(self):
