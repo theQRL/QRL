@@ -58,7 +58,7 @@ class MockedBlockchain(object):
                                  transactions=transactions,
                                  miner_address=mining_address)
 
-        while not self.qrlnode._chain_manager.validate_mining(blockheader=block_new.blockheader, enable_logging=False):
+        while not self.qrlnode._chain_manager.validate_mining_nonce(blockheader=block_new.blockheader):
             block_new.set_nonces(block_new.mining_nonce + 1, 0)
 
         return block_new

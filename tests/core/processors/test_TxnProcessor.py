@@ -6,6 +6,7 @@ from mock import Mock, patch
 
 from qrl.core.misc import logger
 from qrl.core.processors.TxnProcessor import TxnProcessor
+from qrl.core.ChainManager import ChainManager
 from qrl.core.State import State
 from qrl.core.AddressState import AddressState
 from qrl.core.txs.TransferTransaction import TransferTransaction
@@ -24,8 +25,11 @@ def make_tx(txhash=b'hashbrownies', fee=1, autospec=TransferTransaction, PK=b'pu
 @patch('qrl.core.txs.Transaction.Transaction.get_slave')
 class TestTxnProcessor(TestCase):
     def setUp(self):
-        self.m_state = Mock(name='A Mock State', autospec=State)
-        self.m_state.get_address_state.return_value = Mock(name='A Mock AddressState', autospec=AddressState)
+        m_state = Mock(name='A Mock State', autospec=State)
+        m_state.get_address_state.return_value = Mock(name='A Mock AddressState', autospec=AddressState)
+
+        self.chain_manager = Mock(autospec=ChainManager)
+        self.chain_manager._state = m_state
 
         tx_attrs = {
             'validate.return_value': True,  # Custom validation for different Transaction Types
@@ -44,7 +48,7 @@ class TestTxnProcessor(TestCase):
                                                              (self.tx4, replacement_getTime())]
 
         self.m_broadcast_tx = Mock(autospec=P2PFactory.broadcast_tx)
-        self.txnprocessor = TxnProcessor(chain_manager=None,
+        self.txnprocessor = TxnProcessor(chain_manager=self.chain_manager,
                                          transaction_pool_obj=self.m_txpool,
                                          broadcast_tx=self.m_broadcast_tx)
 
