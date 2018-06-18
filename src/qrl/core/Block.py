@@ -172,12 +172,12 @@ class Block(object):
 
         self._data.header.MergeFrom(self.blockheader.pbdata)
 
-    def validate(self, state, future_blocks: OrderedDict) -> bool:
-        if self.is_duplicate(state):
+    def validate(self, chain_manager, future_blocks: OrderedDict) -> bool:
+        if chain_manager.get_block_is_duplicate(self):
             logger.warning('Duplicate Block #%s %s', self.block_number, bin2hstr(self.headerhash))
             return False
 
-        parent_block = state.get_block(self.prev_headerhash)
+        parent_block = chain_manager.get_block(self.prev_headerhash)
 
         # If parent block not found in state, then check if its in the future block list
         if not parent_block:
@@ -188,11 +188,11 @@ class Block(object):
                 logger.warning('Parent block headerhash %s', bin2hstr(self.prev_headerhash))
                 return False
 
-        if not self.validate_parent_child_relation(parent_block):
+        if not self._validate_parent_child_relation(parent_block):
             logger.warning('Failed to validate blocks parent child relation')
             return False
 
-        if not PoWValidator().validate_mining_nonce(state, self.blockheader):
+        if not chain_manager.validate_mining_nonce(self.blockheader):
             logger.warning('Failed PoW Validation')
             return False
 
@@ -270,17 +270,11 @@ class Block(object):
 
         return True
 
-    def is_duplicate(self, state) -> bool:
-        if state.get_block(self.headerhash):
-            return True
-
-        return False
-
     def is_future_block(self) -> bool:
         if self.timestamp > ntp.getTime() + config.dev.block_max_drift:
             return True
 
         return False
 
-    def validate_parent_child_relation(self, parent_block) -> bool:
+    def _validate_parent_child_relation(self, parent_block) -> bool:
         return self.blockheader.validate_parent_child_relation(parent_block)
