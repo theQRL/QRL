@@ -200,7 +200,7 @@ class TestMiner(TestCase):
         self.assertIsNotNone(blob)
         self.assertEqual(difficulty, 1)
 
-    @patch('qrl.core.Miner.PoWValidator.validate_mining_nonce', autospec=True)
+    @patch('qrl.core.ChainManager.PoWValidator.validate_mining_nonce', autospec=True)
     def test_submit_mined_block(self, m_validate_mining_nonce, m_getTime, m_logger):
         """
         This runs when a miner submits a blob with a valid nonce. It returns True only if

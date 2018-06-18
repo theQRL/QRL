@@ -38,7 +38,7 @@ class TestP2PChainManager(TestCase):
         :return:
         """
         self.channel.factory.chain_height = 10
-        self.channel.factory.get_block.return_value = Mock(autospec=Block, pbdata=qrl_pb2.Block())
+        self.channel.factory.get_block_by_number.return_value = Mock(autospec=Block, pbdata=qrl_pb2.Block())
         msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.FB, fbData=qrllegacy_pb2.FBData(index=1))
         self.manager.handle_fetch_block(self.channel, msg)
 

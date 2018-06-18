@@ -96,7 +96,7 @@ class CoinBase(Transaction):
             addresses_state[self.master_addr].transaction_hashes.append(self.txhash)
             addresses_state[addr_from].increase_nonce()
 
-    def revert_state_changes(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, chain_manager):
         if self.addr_to in addresses_state:
             addresses_state[self.addr_to].balance -= self.amount
             addresses_state[self.addr_to].transaction_hashes.remove(self.txhash)
