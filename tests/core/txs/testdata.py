@@ -15,9 +15,9 @@ test_json_CoinBase = """{
     "addrTo": "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
     "amount": "90"
   },
-  "masterAddr": "MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAw",
+  "masterAddr": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
   "nonce": "2",
-  "transactionHash": "P4+RED6DZRoYtF/XPQhOxOXtimHVegGE+AtaNZbU49s="
+  "transactionHash": "IiRgzFerhoO0bxgx/mzxgyx+MTS6900zv6+RdB4Zy6I="
 }"""
 test_json_Token = """{
   "fee": "1",

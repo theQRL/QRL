@@ -107,11 +107,11 @@ class TestChainManagerReal(TestCase):
                                prev_timestamp=self.genesis_block.timestamp,
                                transactions=[],
                                miner_address=alice.address)
-        block_1.set_nonces(99, 0)
+        block_1.set_nonces(201, 0)
 
         # Uncomment only to determine the correct mining_nonce of above blocks
         # from qrl.core.PoWValidator import PoWValidator
-        # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
+        # while not PoWValidator().validate_mining_nonce(self.state, block_1.blockheader, False):
         #     block_1.set_nonces(block_1.mining_nonce + 1)
         #     print(block_1.mining_nonce)
         self.assertTrue(block_1.validate(self.state, {}))
@@ -145,7 +145,7 @@ class TestChainManagerReal(TestCase):
                                prev_timestamp=self.genesis_block.timestamp,
                                transactions=[transfer_transaction],
                                miner_address=alice.address)
-        block_1.set_nonces(78, 0)
+        block_1.set_nonces(129, 0)
 
         # Uncomment only to determine the correct mining_nonce of above blocks
         # from qrl.core.PoWValidator import PoWValidator
@@ -194,10 +194,10 @@ class TestChainManagerReal(TestCase):
                                    prev_timestamp=self.genesis_block.timestamp,
                                    transactions=[slave_tx],
                                    miner_address=alice.address)
-            block_1.set_nonces(0, 0)
+            block_1.set_nonces(2, 0)
             # Uncomment only to determine the correct mining_nonce of above blocks
             # from qrl.core.PoWValidator import PoWValidator
-            # while not PoWValidator().validate_mining_nonce(state, block_1.blockheader, False):
+            # while not PoWValidator().validate_mining_nonce(self.state, block_1.blockheader, False):
             #     block_1.set_nonces(block_1.mining_nonce + 1)
             #     print(block_1.mining_nonce)
             self.assertTrue(block_1.validate(self.state, {}))
@@ -220,7 +220,7 @@ class TestChainManagerReal(TestCase):
                                       transactions=[],
                                       miner_address=bob.address)
 
-            fork_block.set_nonces(3, 0)
+            fork_block.set_nonces(4, 0)
             # Uncomment only to determine the correct mining_nonce of above blocks
             # from qrl.core.PoWValidator import PoWValidator
             # while not PoWValidator().validate_mining_nonce(self.state, fork_block.blockheader, False):
