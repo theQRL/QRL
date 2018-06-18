@@ -400,7 +400,7 @@ class QRLNode:
         info.uptime = self.uptime
         info.block_height = self.block_height
         info.block_last_hash = self._chain_manager.get_last_block().headerhash  # FIXME
-        info.network_id = config.dev.genesis_prev_headerhash  # FIXME
+        info.network_id = config.user.genesis_prev_headerhash  # FIXME
         return info
 
     def get_block_timeseries(self, block_count) -> Iterator[qrl_pb2.BlockDataPoint]:

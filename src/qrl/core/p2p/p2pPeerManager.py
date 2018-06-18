@@ -162,7 +162,7 @@ class P2PPeerManager(P2PBaseObserver):
             msg = qrllegacy_pb2.LegacyMessage(
                 func_name=qrllegacy_pb2.LegacyMessage.VE,
                 veData=qrllegacy_pb2.VEData(version=config.dev.version,
-                                            genesis_prev_hash=config.dev.genesis_prev_headerhash,
+                                            genesis_prev_hash=config.user.genesis_prev_headerhash,
                                             rate_limit=config.user.peer_rate_limit))
 
             source.send(msg)
@@ -175,9 +175,9 @@ class P2PPeerManager(P2PBaseObserver):
 
         source.rate_limit = min(config.user.peer_rate_limit, message.veData.rate_limit)
 
-        if message.veData.genesis_prev_hash != config.dev.genesis_prev_headerhash:
+        if message.veData.genesis_prev_hash != config.user.genesis_prev_headerhash:
             logger.warning('%s genesis_prev_headerhash mismatch', source.peer)
-            logger.warning('Expected: %s', config.dev.genesis_prev_headerhash)
+            logger.warning('Expected: %s', config.user.genesis_prev_headerhash)
             logger.warning('Found: %s', message.veData.genesis_prev_hash)
             source.loseConnection()
 
