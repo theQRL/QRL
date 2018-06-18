@@ -21,6 +21,8 @@ class UserConfig(object):
 
         UserConfig.__instance = self
 
+        self.genesis_prev_headerhash = b'Thirst of Quantas'
+
         # Default configuration
         self.mining_enabled = False
         self.mining_address = ''
@@ -145,6 +147,8 @@ class UserConfig(object):
             with open(file_path) as f:
                 dataMap = yaml.safe_load(f)
                 if dataMap is not None:
+                    if 'genesis_prev_headerhash' in dataMap:
+                        dataMap['genesis_prev_headerhash'] = dataMap['genesis_prev_headerhash'].encode()
                     self.__dict__.update(**dataMap)
 
 
@@ -167,7 +171,6 @@ class DevConfig(object):
         DevConfig.__instance = self
 
         self.version = version
-        self.genesis_prev_headerhash = b'Thirst of Quantas'
 
         ################################################################
         # Warning: Don't change following configuration.               #
