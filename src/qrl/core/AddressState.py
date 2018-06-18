@@ -187,6 +187,7 @@ class AddressState(object):
 
     @staticmethod
     def address_is_valid(address: bytes) -> bool:
+        # Warning: Never pass this validation True for Coinbase Address
         if not QRLHelper.addressIsValid(address):
             return False
 
