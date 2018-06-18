@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from random import shuffle
-from unittest import TestCase, expectedFailure
+from unittest import TestCase
 from mock import Mock, PropertyMock, patch
 
 from tests.misc.helper import get_alice_xmss, get_slave_xmss, get_random_xmss
@@ -165,10 +165,8 @@ class TestAddressState(TestCase):
         # will walk backwards through the transaction_hashes
         self.addr_state.unset_ots_key(config.dev.max_ots_tracking_index + 4, m_state)
 
-        # unset_ots_key should have found "3rd hash" and used its ots_key
         self.assertEqual(self.addr_state.ots_counter, config.dev.max_ots_tracking_index + 3)
 
-    @expectedFailure
     @patch('qrl.core.AddressState.AddressState.transaction_hashes', new_callable=PropertyMock)
     def test_unset_ots_key_counter_unsorted_transaction_hashes(self, m_transaction_hashes):
         # unset_ots_key() ends up with the wrong OTS counter index if transaction_hashes is not properly sorted.
@@ -181,7 +179,7 @@ class TestAddressState(TestCase):
             (Mock(name="3rd hash", ots_key=config.dev.max_ots_tracking_index + 2), "unused"),
             (Mock(name="2nd hash", ots_key=952), "unused"),
             (Mock(name="1st hash", ots_key=config.dev.max_ots_tracking_index + 3), "unused")
-        ]
+        ][-1::-1]  # reversing the order, as it will be called in reverse order by unset_ots_key
         self.addr_state.set_ots_key(config.dev.max_ots_tracking_index + 4)  # 8196
 
         self.addr_state.unset_ots_key(config.dev.max_ots_tracking_index + 4, m_state)
