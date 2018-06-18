@@ -147,6 +147,8 @@ class UserConfig(object):
             with open(file_path) as f:
                 dataMap = yaml.safe_load(f)
                 if dataMap is not None:
+                    if 'genesis_prev_headerhash' in dataMap:
+                        dataMap['genesis_prev_headerhash'] = dataMap['genesis_prev_headerhash'].encode()
                     self.__dict__.update(**dataMap)
 
 
