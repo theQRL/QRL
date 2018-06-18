@@ -822,6 +822,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         click.echo("Unhandled error: {}".format(str(e)))
         quit(1)
 
+
 @qrl.command()
 @click.option('--owner', default='', prompt=True, help='source QRL address')
 @click.pass_context

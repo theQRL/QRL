@@ -5,7 +5,7 @@ import json
 import os
 import shutil
 import tempfile
-from unittest import TestCase, mock, skip
+from unittest import TestCase, mock
 
 from click.testing import CliRunner
 
