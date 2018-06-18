@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import copy
+import threading
 from typing import Optional
 
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
@@ -41,22 +42,25 @@ class Miner(Qryptominer):
         self._dummy_xmss = None
         self.setForcedSleep(config.user.mining_pause)
 
+        self.lock = threading.RLock()
+
     def prepare_next_unmined_block_template(self, mining_address, tx_pool, parent_block: Block, parent_difficulty):
         try:
             self.cancel()
-            self._mining_block = self.create_block(last_block=parent_block,
-                                                   mining_nonce=0,
-                                                   tx_pool=tx_pool,
-                                                   miner_address=mining_address)
+            with self.lock:
+                self._mining_block = self.create_block(last_block=parent_block,
+                                                       mining_nonce=0,
+                                                       tx_pool=tx_pool,
+                                                       miner_address=mining_address)
 
-            parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
-            self._measurement = self.state.get_measurement(self._mining_block.timestamp,
-                                                           self._mining_block.prev_headerhash,
-                                                           parent_metadata)
+                parent_metadata = self.state.get_block_metadata(parent_block.headerhash)
+                self._measurement = self.state.get_measurement(self._mining_block.timestamp,
+                                                               self._mining_block.prev_headerhash,
+                                                               parent_metadata)
 
-            self._current_difficulty, self._current_target = DifficultyTracker.get(
-                measurement=self._measurement,
-                parent_difficulty=parent_difficulty)
+                self._current_difficulty, self._current_target = DifficultyTracker.get(
+                    measurement=self._measurement,
+                    parent_difficulty=parent_difficulty)
 
         except Exception as e:
             logger.warning("Exception in start_mining")
@@ -68,38 +72,52 @@ class Miner(Qryptominer):
         try:
             self.cancel()
 
-            mining_blob = self._mining_block.mining_blob
-            nonce_offset = self._mining_block.mining_nonce_offset
+            with self.lock:
+                mining_blob = self._mining_block.mining_blob
+                nonce_offset = self._mining_block.mining_nonce_offset
 
-            logger.debug('!!! Mine #{} | {} ({}) | {} -> {} | {} '.format(
-                self._mining_block.block_number,
-                self._measurement, self._mining_block.timestamp - parent_block.timestamp,
-                UInt256ToString(parent_difficulty), UInt256ToString(self._current_difficulty),
-                bin2hstr(bytearray(self._current_target))
-            ))
+                logger.debug('!!! Mine #{} | {} ({}) | {} -> {} | {} '.format(
+                    self._mining_block.block_number,
+                    self._measurement, self._mining_block.timestamp - parent_block.timestamp,
+                    UInt256ToString(parent_difficulty), UInt256ToString(self._current_difficulty),
+                    bin2hstr(bytearray(self._current_target))
+                ))
+                logger.debug('!!! Mine #{} | blob: {}'.format(
+                    self._mining_block.block_number,
+                    bin2hstr(bytearray(mining_blob))
+                ))
 
-            self.start(input=mining_blob,
-                       nonceOffset=nonce_offset,
-                       target=self._current_target,
-                       thread_count=self._mining_thread_count)
+                work_seq_id = self.start(input=mining_blob,
+                                         nonceOffset=nonce_offset,
+                                         target=self._current_target,
+                                         thread_count=self._mining_thread_count)
+
+                logger.debug("MINING START [{}]".format(work_seq_id))
+
         except Exception as e:
             logger.warning("Exception in start_mining")
             logger.exception(e)
 
     def handleEvent(self, event):
-        # NOTE: This function usually runs in the context of a C++ thread
-        try:
-            if event.type == SOLUTION:
-                nonce = event.nonce
-                self._mining_block.set_nonces(nonce, 0)
-                logger.debug('Solution Found %s', nonce)
-                logger.info('Block #%s nonce: %s', self._mining_block.block_number, nonce)
-                logger.info('Hash Rate: %s H/s', self.hashRate())
-                cloned_block = copy.deepcopy(self._mining_block)
-                self.pre_block_logic(cloned_block)
-        except Exception as e:
-            logger.warning("Exception in solutionEvent")
-            logger.exception(e)
+        with self.lock:
+            logger.debug("MINING EVENT [{}] {}".format(event.seq, self.currentSequenceId()))
+            # NOTE: This function usually runs in the context of a C++ thread
+            try:
+                if event.type == SOLUTION:
+                    nonce = event.nonce
+                    self._mining_block.set_nonces(nonce, 0)
+                    logger.debug('Solution Found %s', nonce)
+
+                    logger.debug("Blob           %s", self._mining_block)
+
+                    logger.info('Block #%s nonce: %s', self._mining_block.block_number, nonce)
+                    logger.info('Hash Rate: %s H/s', self.hashRate())
+                    cloned_block = copy.deepcopy(self._mining_block)
+
+                    self.pre_block_logic(cloned_block)
+            except Exception as e:
+                logger.warning("Exception in solutionEvent")
+                logger.exception(e)
 
     def create_block(self,
                      last_block,

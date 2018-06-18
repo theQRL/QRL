@@ -21,6 +21,8 @@ class UserConfig(object):
 
         UserConfig.__instance = self
 
+        self.genesis_prev_headerhash = b'Thirst of Quantas'
+
         # Default configuration
         self.mining_enabled = False
         self.mining_address = ''
@@ -167,7 +169,6 @@ class DevConfig(object):
         DevConfig.__instance = self
 
         self.version = version
-        self.genesis_prev_headerhash = b'Thirst of Quantas'
 
         ################################################################
         # Warning: Don't change following configuration.               #
