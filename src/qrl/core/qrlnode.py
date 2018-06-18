@@ -131,7 +131,7 @@ class QRLNode:
     @property
     def coin_supply(self):
         # FIXME: Keep a moving var
-        return self._state.total_coin_supply()
+        return self._state.total_coin_supply
 
     @property
     def coin_supply_max(self):
@@ -406,7 +406,7 @@ class QRLNode:
     def get_block_timeseries(self, block_count) -> Iterator[qrl_pb2.BlockDataPoint]:
         result = []
 
-        if self.block_height == 0:
+        if self.block_height <= 0:
             return result
 
         block = self._chain_manager.last_block

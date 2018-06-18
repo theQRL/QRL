@@ -35,6 +35,8 @@ class ChainManager:
     @property
     def height(self):
         with self.lock:
+            if not self._last_block:
+                return -1
             return self._last_block.block_number
 
     @property
@@ -102,13 +104,13 @@ class ChainManager:
 
     def get_block_size_limit(self, block: Block):
         with self.lock:
-            return self.get_block_size_limit(block)
+            return self._state.get_block_size_limit(block)
 
     def get_block_is_duplicate(self, block: Block) -> bool:
         with self.lock:
             return self._state.get_block(block.headerhash) is not None
 
-    def validate_mining_nonce(self, blockheader: BlockHeader, enable_logging = True):
+    def validate_mining_nonce(self, blockheader: BlockHeader, enable_logging=True):
         with self.lock:
             parent_metadata = self.get_block_metadata(blockheader.prev_headerhash)
             parent_block = self._state.get_block(blockheader.prev_headerhash)

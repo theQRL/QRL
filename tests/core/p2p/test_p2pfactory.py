@@ -10,6 +10,7 @@ from pyqryptonight.pyqryptonight import StringToUInt256
 from twisted.internet import reactor
 
 from qrl.core.Block import Block
+from qrl.core.State import State
 from qrl.core.ChainManager import ChainManager
 from qrl.core.Message import Message
 from qrl.core.MessageRequest import MessageRequest
@@ -54,7 +55,7 @@ class TestP2PFactory(TestCase):
         self.channel_2 = Mock(autospec=P2PProtocol, name='mock Channel 2', peer=IPMetadata('2.2.2.2', port))
         self.channel_3 = Mock(autospec=P2PProtocol, name='mock Channel 3', peer=IPMetadata('3.3.3.3', port))
 
-        self.factory = P2PFactory(chain_manager=Mock(autospec=ChainManager), sync_state=None, qrl_node=self.m_qrlnode)
+        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)), sync_state=None, qrl_node=self.m_qrlnode)
         self.factory.pow = Mock(autospec=POW)
 
         self.factory.add_connection(self.channel_1)
@@ -446,7 +447,7 @@ class TestP2PFactoryCompareAndSync(TestCase):
 
         port = '9000'
         self.m_qrlnode = Mock(autospec=QRLNode, name='Fake QRLNode')
-        self.factory = P2PFactory(chain_manager=Mock(autospec=ChainManager), sync_state=None,
+        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)), sync_state=None,
                                   qrl_node=self.m_qrlnode)
 
         self.factory.peer_fetch_block = Mock(autospec=P2PFactory.peer_fetch_block)
@@ -472,12 +473,12 @@ class TestP2PFactoryCompareAndSync(TestCase):
         """
 
         # If it finds out we're on the last block of the NodeHeaderHash list, then it doesn't ask the peer for more blocks.
-        self.factory._chain_manager.last_block.return_value = self.blocks[-1]
+        self.factory._chain_manager._last_block = self.blocks[-1]
         self.factory.compare_and_sync(self.channel_1, self.node_header_hash)
         self.factory.peer_fetch_block.assert_not_called()
 
         # If we are in the middle of the NodeHeaderHash list, it asks for the next block.
-        self.factory._chain_manager.last_block.return_value = self.blocks[0]
+        self.factory._chain_manager._last_block = self.blocks[0]
         self.factory.compare_and_sync(self.channel_1, self.node_header_hash)
         self.factory.peer_fetch_block.assert_called_once()
 
@@ -492,7 +493,7 @@ class TestP2PFactoryCompareAndSync(TestCase):
             headerhashes=[bhstr2bin('123456'), bhstr2bin('000000'), bhstr2bin('deadbeef')]
         )
         # Set our state as being on the 2nd block of the NodeHeaderHash
-        self.factory._chain_manager.last_block.return_value = self.blocks[1]
+        self.factory._chain_manager._last_block = self.blocks[1]
 
         self.factory.compare_and_sync(self.channel_1, self.node_header_hash)
 
@@ -524,7 +525,7 @@ class TestP2PFactoryPeerFetchBlock(TestCase):
         self.channel_2 = Mock(autospec=P2PProtocol, name='mock Channel 2', peer_ip='2.2.2.2', peer_port=port)
         self.channel_3 = Mock(autospec=P2PProtocol, name='mock Channel 3', peer_ip='3.3.3.3', peer_port=port)
 
-        self.factory = P2PFactory(chain_manager=Mock(autospec=ChainManager), sync_state=None,
+        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)), sync_state=None,
                                   qrl_node=self.m_qrlnode)
         self.factory.pow = Mock(autospec=POW)
 
