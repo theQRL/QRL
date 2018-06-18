@@ -102,11 +102,11 @@ class SlaveTransaction(Transaction):
 
         self._apply_state_changes_for_PK(addresses_state)
 
-    def revert_state_changes(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, chain_manager):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance += self.fee
             for index in range(0, len(self.slave_pks)):
                 addresses_state[self.addr_from].remove_slave_pks_access_type(self.slave_pks[index])
             addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
 
-        self._revert_state_changes_for_PK(addresses_state, state)
+        self._revert_state_changes_for_PK(addresses_state, chain_manager)

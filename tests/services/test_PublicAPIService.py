@@ -35,7 +35,6 @@ class TestPublicAPI(TestCase):
         super(TestPublicAPI, self).__init__(*args, **kwargs)
 
     def test_getNodeState(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
@@ -43,9 +42,9 @@ class TestPublicAPI(TestCase):
 
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
-        chain_manager.get_last_block = MagicMock(return_value=Block())
+        chain_manager.last_block = Block()
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -59,7 +58,6 @@ class TestPublicAPI(TestCase):
         # self.assertEqual("testnet", node_state.info.network_id)  # FIXME
 
     def test_getKnownPeers(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
@@ -67,9 +65,9 @@ class TestPublicAPI(TestCase):
 
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
-        chain_manager.get_last_block = MagicMock(return_value=Block())
+        chain_manager.last_block = Block()
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -87,21 +85,19 @@ class TestPublicAPI(TestCase):
 
     def test_getStats(self):
         db_state = Mock(spec=State)
-        db_state.total_coin_supply = MagicMock(return_value=1000)
+        db_state.total_coin_supply = 1000
         db_state.get_measurement = MagicMock(return_value=60)
+        db_state.get_block_by_number = MagicMock(return_value=None)
 
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
         p2p_factory.pow = Mock()
 
-        chain_manager = Mock(spec=ChainManager)
-        chain_manager.height = 0
-        chain_manager.get_last_block = MagicMock(return_value=GenesisBlock())
-        chain_manager.get_block_by_number = MagicMock(return_value=None)
-        chain_manager.state = db_state
+        chain_manager = ChainManager(db_state)
+        chain_manager._last_block = GenesisBlock()
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -155,7 +151,7 @@ class TestPublicAPI(TestCase):
         p2p_factory = Mock(spec=P2PFactory)
         chain_manager = ChainManager(db_state)
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
@@ -192,7 +188,7 @@ class TestPublicAPI(TestCase):
 
         chain_manager = ChainManager(db_state)
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -276,8 +272,8 @@ class TestPublicAPI(TestCase):
         # Find a block
         db_state.get_block_by_number = MagicMock(
             return_value=Block.create(block_number=1,
-                                      prev_block_headerhash=sha256(b'reveal'),
-                                      prev_block_timestamp=10,
+                                      prev_headerhash=sha256(b'reveal'),
+                                      prev_timestamp=10,
                                       transactions=[],
                                       miner_address=alice_xmss.address))
 
@@ -303,8 +299,8 @@ class TestPublicAPI(TestCase):
                                                       xmss_pk=alice_xmss.pk))
 
             blocks.append(Block.create(block_number=i,
-                                       prev_block_headerhash=sha256(b'reveal'),
-                                       prev_block_timestamp=10,
+                                       prev_headerhash=sha256(b'reveal'),
+                                       prev_timestamp=10,
                                        transactions=txs,
                                        miner_address=alice_xmss.address))
 
@@ -319,19 +315,20 @@ class TestPublicAPI(TestCase):
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)
         db_state.get_last_txs = MagicMock(return_value=txs)
+        db_state.get_block_by_number = Mock()
+        db_state.get_block_by_number.side_effect = blocks
 
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.pow = Mock(spec=POW)
 
-        chain_manager = Mock(spec=ChainManager)
-        chain_manager.get_block_by_number = Mock()
-        chain_manager.get_block_by_number.side_effect = blocks
+        chain_manager = ChainManager(db_state)
         chain_manager.tx_pool = Mock()
         chain_manager.tx_pool.transactions = heapq.nlargest(len(txpool), txpool)
         chain_manager.tx_pool.transaction_pool = txpool
-        chain_manager.height = len(blocks)
+        chain_manager._last_block = Mock()
+        chain_manager._last_block.block_number = len(blocks)
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode.get_block_from_index = MagicMock(return_value=None)
 
@@ -374,7 +371,6 @@ class TestPublicAPI(TestCase):
         self.assertEqual(202, response.transactions[2].tx.transfer.amounts[0])
 
     def test_GetAddressFromPK(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
@@ -383,7 +379,7 @@ class TestPublicAPI(TestCase):
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow
@@ -397,7 +393,6 @@ class TestPublicAPI(TestCase):
                          bin2hstr(response.address))
 
     def test_GetTokenTxn_Error(self):
-        db_state = Mock(spec=State)
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
@@ -406,7 +401,7 @@ class TestPublicAPI(TestCase):
         chain_manager = Mock(spec=ChainManager)
         chain_manager.height = 0
 
-        qrlnode = QRLNode(db_state, mining_address=b'')
+        qrlnode = QRLNode(mining_address=b'')
         qrlnode.set_chain_manager(chain_manager)
         qrlnode._p2pfactory = p2p_factory
         qrlnode._pow = p2p_factory.pow

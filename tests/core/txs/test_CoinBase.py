@@ -7,6 +7,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.BlockHeader import BlockHeader
+from qrl.core.ChainManager import ChainManager
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.crypto.misc import sha256
 from tests.core.txs.testdata import test_json_CoinBase
@@ -25,7 +26,7 @@ class TestCoinBase(TestCase):
         self.mock_blockheader.stake_selector = self.alice.address
         self.mock_blockheader.block_reward = 50
         self.mock_blockheader.fee_reward = 40
-        self.mock_blockheader.prev_blockheaderhash = sha256(b'prev_headerhash')
+        self.mock_blockheader.prev_headerhash = sha256(b'prev_headerhash')
         self.mock_blockheader.block_number = 1
         self.mock_blockheader.headerhash = sha256(b'headerhash')
 
@@ -52,7 +53,7 @@ class TestCoinBase(TestCase):
         self.assertEqual('010300a1da274e68c88b0ccf448e0b1916fa789b01eb2ed4e9ad565ce264c9390782a9c61ac02f',
                          bin2hstr(tx.addr_to))
 
-        self.assertEqual('c7f3e1e092e70f49a943a162de8b110899b60ab1dafd0c72625fba6fc1adcd01', bin2hstr(tx.txhash))
+        self.assertEqual('222460cc57ab8683b46f1831fe6cf1832c7e3134baf74d33bfaf91741e19cba2', bin2hstr(tx.txhash))
         self.assertEqual(tx.amount, 90)
 
     def test_validate_custom(self, m_logger):
@@ -126,9 +127,9 @@ class TestCoinBase(TestCase):
             self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[tx.txhash],
                                      balance=self.amount),
         }
-        unused_state_mock = Mock(autospec=AddressState, name='unused State Mock')
+        unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
 
-        tx.revert_state_changes(addresses_state, unused_state_mock)
+        tx.revert_state_changes(addresses_state, unused_chain_manager_mock)
 
         self.assertEqual(1000000, addresses_state[config.dev.coinbase_address].balance)
         self.assertEqual([], addresses_state[config.dev.coinbase_address].transaction_hashes)
@@ -138,7 +139,7 @@ class TestCoinBase(TestCase):
         # A blank addresses_state doesn't get modified at all (but in practice, every node should have an AddressState
         # for the CoinBase addr
         addresses_state_empty = {}
-        tx.revert_state_changes(addresses_state_empty, unused_state_mock)
+        tx.revert_state_changes(addresses_state_empty, unused_chain_manager_mock)
         self.assertEqual({}, addresses_state_empty)
 
     def test_affected_address(self, m_logger):

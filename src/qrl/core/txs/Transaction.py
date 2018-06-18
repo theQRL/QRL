@@ -174,20 +174,20 @@ class Transaction(object, metaclass=ABCMeta):
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
     @abstractmethod
-    def revert_state_changes(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, chain_manager):
         """
         This method reverts the changes on the state caused by txn.
         :return:
         """
         raise NotImplementedError
 
-    def _revert_state_changes_for_PK(self, addresses_state, state):
+    def _revert_state_changes_for_PK(self, addresses_state, chain_manager):
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         if addr_from_pk in addresses_state:
             if self.addr_from != addr_from_pk:
                 addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
             addresses_state[addr_from_pk].decrease_nonce()
-            addresses_state[addr_from_pk].unset_ots_key(self.ots_key, state)
+            addresses_state[addr_from_pk].unset_ots_key(self.ots_key, chain_manager)
 
     def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)

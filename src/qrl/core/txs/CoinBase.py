@@ -1,3 +1,5 @@
+from pyqrllib.pyqrllib import bin2hstr
+
 from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.misc import logger
@@ -66,10 +68,10 @@ class CoinBase(Transaction):
     def validate_extended(self, block_number: int):
         if self.master_addr != config.dev.coinbase_address:
             logger.warning('Master address doesnt match with coinbase_address')
-            logger.warning('%s %s', self.master_addr, config.dev.coinbase_address)
+            logger.warning('%s %s', bin2hstr(self.master_addr), config.dev.coinbase_address)
             return False
 
-        if not (AddressState.address_is_valid(self.master_addr) and AddressState.address_is_valid(self.addr_to)):
+        if not AddressState.address_is_valid(self.addr_to):
             logger.warning('Invalid address addr_from: %s addr_to: %s', self.master_addr, self.addr_to)
             return False
 
@@ -91,7 +93,7 @@ class CoinBase(Transaction):
             addresses_state[self.master_addr].transaction_hashes.append(self.txhash)
             addresses_state[addr_from].increase_nonce()
 
-    def revert_state_changes(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, chain_manager):
         if self.addr_to in addresses_state:
             addresses_state[self.addr_to].balance -= self.amount
             addresses_state[self.addr_to].transaction_hashes.remove(self.txhash)

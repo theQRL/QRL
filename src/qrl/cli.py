@@ -14,7 +14,6 @@ from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 from qrl.core import config
 from qrl.core.Wallet import Wallet, WalletDecryptionError
 from qrl.core.misc.helper import parse_hexblob, parse_qaddress
-from qrl.core.txs.LatticePublicKey import LatticePublicKey
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
@@ -822,90 +821,6 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
     except Exception as e:
         click.echo("Unhandled error: {}".format(str(e)))
         quit(1)
-
-
-@qrl.command()
-@click.option('--src', type=str, default='', prompt=True, help='source QRL address')
-@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
-@click.option('--kyber-pk', default='', prompt=True, help='kyber public key')
-@click.option('--dilithium-pk', default='', prompt=True, help='dilithium public key')
-@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
-@click.option('--ots_key_index', default=1, prompt=True, help='OTS key Index (1..XMSS num signatures)')
-@click.pass_context
-def tx_latticepk(ctx, src, master, kyber_pk, dilithium_pk, fee, ots_key_index):
-    """
-    Create Lattice Public Keys Transaction
-    """
-    try:
-        _, src_xmss = _select_wallet(ctx, src)
-        if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
-            quit(1)
-
-        if len(kyber_pk) != 2176:
-            click.echo("Kyber_PK should be 2176 characters")
-            quit(1)
-
-        if len(dilithium_pk) != 2944:
-            click.echo("Dilithium_PK should be 2944 characters")
-            quit(1)
-
-        address_src_pk = src_xmss.pk
-
-        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
-        src_xmss.set_ots_index(ots_key_index)
-
-        kyber_pk = kyber_pk.encode()
-        dilithium_pk = dilithium_pk.encode()
-        master_addr = None
-        if master:
-            master_addr = parse_qaddress(master)
-        # FIXME: This could be problematic. Check
-        fee_shor = _quanta_to_shor(fee)
-    except Exception as e:
-        click.echo("Error validating arguments: {}".format(e))
-        quit(1)
-
-    try:
-        tx = LatticePublicKey.create(fee=fee_shor,
-                                     kyber_pk=kyber_pk,
-                                     dilithium_pk=dilithium_pk,
-                                     xmss_pk=address_src_pk,
-                                     master_addr=master_addr)
-        tx.sign(src_xmss)
-
-        stub = ctx.obj.get_stub_public_api()
-        push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
-        push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
-
-        print(push_transaction_resp.error_code)
-    except Exception as e:
-        print("Error {}".format(str(e)))
-
-
-@qrl.command()
-@click.option('--owner', default='', prompt=True, help='source QRL address')
-@click.pass_context
-def token_list(ctx, owner):
-    """
-    Fetch the list of tokens owned by an address.
-    """
-    try:
-        owner_address = parse_qaddress(owner)
-    except Exception as e:
-        click.echo("Error validating arguments: {}".format(e))
-        quit(1)
-
-    try:
-        stub = ctx.obj.get_stub_public_api()
-        address_state_req = qrl_pb2.GetAddressStateReq(address=owner_address)
-        address_state_resp = stub.GetAddressState(address_state_req, timeout=CONNECTION_TIMEOUT)
-
-        for token_hash in address_state_resp.state.tokens:
-            click.echo('Hash: %s' % (token_hash,))
-            click.echo('Balance: %s' % (address_state_resp.state.tokens[token_hash],))
-    except Exception as e:
-        print("Error {}".format(str(e)))
 
 
 @qrl.command()

@@ -9,7 +9,6 @@ from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.DifficultyTracker import DifficultyTracker
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.PoWValidator import PoWValidator
 from qrl.core.State import State
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.qrlnode import QRLNode
@@ -53,20 +52,18 @@ class MockedBlockchain(object):
         self.ntp_mock.return_value = self.ntp_mock.return_value + time_offset
 
         block_new = Block.create(block_number=block_idx,
-                                 prev_block_headerhash=block_prev.headerhash,
-                                 prev_block_timestamp=block_prev.timestamp,
+                                 prev_headerhash=block_prev.headerhash,
+                                 prev_timestamp=block_prev.timestamp,
                                  transactions=transactions,
                                  miner_address=mining_address)
 
-        while not PoWValidator().validate_mining_nonce(state=self.qrlnode._chain_manager.state,
-                                                       blockheader=block_new.blockheader,
-                                                       enable_logging=False):
+        while not self.qrlnode._chain_manager.validate_mining_nonce(blockheader=block_new.blockheader):
             block_new.set_nonces(block_new.mining_nonce + 1, 0)
 
         return block_new
 
     def validate(self, block):
-        if not block.validate(self.qrlnode._chain_manager.state, {}):
+        if not block.validate(self.qrlnode._chain_manager, {}):
             raise Exception('Block Validation Failed')
 
         return True
@@ -108,7 +105,7 @@ class MockedBlockchain(object):
 
                 chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_target))
 
-                qrlnode = QRLNode(state, mining_address=b'')
+                qrlnode = QRLNode(mining_address=b'')
                 qrlnode.set_chain_manager(chain_manager)
 
                 mock_blockchain = MockedBlockchain(qrlnode, time_mock, ntp_mock)

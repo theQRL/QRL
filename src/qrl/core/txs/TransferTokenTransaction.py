@@ -162,7 +162,7 @@ class TransferTokenTransaction(Transaction):
 
         self._apply_state_changes_for_PK(addresses_state)
 
-    def revert_state_changes(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, chain_manager):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].update_token_balance(self.token_txhash, self.total_amount)
             addresses_state[self.addr_from].balance += self.fee
@@ -176,7 +176,7 @@ class TransferTokenTransaction(Transaction):
                     addresses_state[addr_to].transaction_hashes.remove(self.txhash)
                 addresses_state[addr_to].update_token_balance(self.token_txhash, amount * -1)
 
-        self._revert_state_changes_for_PK(addresses_state, state)
+        self._revert_state_changes_for_PK(addresses_state, chain_manager)
 
     def set_affected_address(self, addresses_set: set):
         super().set_affected_address(addresses_set)

@@ -47,7 +47,7 @@ class POW(ConsensusMechanism):
 
         self.miner = Miner(self.pre_block_logic,
                            self.mining_address,
-                           self.chain_manager.state,
+                           self.chain_manager,
                            mining_thread_count,
                            self.p2p_factory.add_unprocessed_txn)
 
@@ -218,7 +218,7 @@ class POW(ConsensusMechanism):
     def pre_block_logic(self, block: Block):
         logger.debug('Checking miner lock')
         with self._miner_lock:
-            if not block.validate(self.chain_manager.state, self.future_blocks):
+            if not block.validate(self.chain_manager, self.future_blocks):
                 logger.warning('Block Validation failed for #%s %s', block.block_number, bin2hstr(block.headerhash))
                 return
 
@@ -254,8 +254,9 @@ class POW(ConsensusMechanism):
     def mine_next(self, parent_block):
         if ntp.getTime() < self.suspend_mining_timestamp:
             return
+
         if config.user.mining_enabled:
-            parent_metadata = self.chain_manager.state.get_block_metadata(parent_block.headerhash)
+            parent_metadata = self.chain_manager.get_block_metadata(parent_block.headerhash)
             self.miner.prepare_next_unmined_block_template(mining_address=self.mining_address,
                                                            tx_pool=self.chain_manager.tx_pool,
                                                            parent_block=parent_block,

@@ -8,7 +8,6 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.misc import logger, ntp
-from qrl.core.PoWValidator import PoWValidator
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.BlockHeader import BlockHeader
@@ -23,6 +22,12 @@ class Block(object):
             self._data = qrl_pb2.Block()
 
         self.blockheader = BlockHeader(self._data.header)
+
+    def __eq__(self, other):
+        equality = (self.block_number == other.block_number) and (self.headerhash == other.headerhash) and (
+                self.prev_headerhash == other.prev_headerhash) and (self.timestamp == other.timestamp) and (
+                           self.mining_nonce == other.mining_nonce)
+        return equality
 
     @property
     def size(self):
@@ -51,7 +56,7 @@ class Block(object):
 
     @property
     def prev_headerhash(self):
-        return self.blockheader.prev_blockheaderhash
+        return self.blockheader.prev_headerhash
 
     @property
     def transactions(self):
@@ -78,11 +83,11 @@ class Block(object):
         return self.blockheader.timestamp
 
     @property
-    def mining_blob(self)->bytes:
+    def mining_blob(self) -> bytes:
         return self.blockheader.mining_blob
 
     @property
-    def mining_nonce_offset(self)->bytes:
+    def mining_nonce_offset(self) -> bytes:
         return self.blockheader.nonce_offset
 
     @staticmethod
@@ -114,8 +119,8 @@ class Block(object):
 
     @staticmethod
     def create(block_number: int,
-               prev_block_headerhash: bytes,
-               prev_block_timestamp: int,
+               prev_headerhash: bytes,
+               prev_timestamp: int,
                transactions: list,
                miner_address: bytes):
 
@@ -138,11 +143,11 @@ class Block(object):
             hashedtransactions.append(tx.txhash)
             block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
 
-        txs_hash = merkle_tx_hash(hashedtransactions)           # FIXME: Find a better name, type changes
+        txs_hash = merkle_tx_hash(hashedtransactions)  # FIXME: Find a better name, type changes
 
         tmp_blockheader = BlockHeader.create(blocknumber=block_number,
-                                             prev_block_headerhash=prev_block_headerhash,
-                                             prev_block_timestamp=prev_block_timestamp,
+                                             prev_headerhash=prev_headerhash,
+                                             prev_timestamp=prev_timestamp,
                                              hashedtransactions=txs_hash,
                                              fee_reward=fee_reward)
 
@@ -166,12 +171,12 @@ class Block(object):
 
         self._data.header.MergeFrom(self.blockheader.pbdata)
 
-    def validate(self, state, future_blocks: OrderedDict) -> bool:
-        if self.is_duplicate(state):
+    def validate(self, chain_manager, future_blocks: OrderedDict) -> bool:
+        if chain_manager.get_block_is_duplicate(self):
             logger.warning('Duplicate Block #%s %s', self.block_number, bin2hstr(self.headerhash))
             return False
 
-        parent_block = state.get_block(self.prev_headerhash)
+        parent_block = chain_manager.get_block(self.prev_headerhash)
 
         # If parent block not found in state, then check if its in the future block list
         if not parent_block:
@@ -182,11 +187,11 @@ class Block(object):
                 logger.warning('Parent block headerhash %s', bin2hstr(self.prev_headerhash))
                 return False
 
-        if not self.validate_parent_child_relation(parent_block):
+        if not self._validate_parent_child_relation(parent_block):
             logger.warning('Failed to validate blocks parent child relation')
             return False
 
-        if not PoWValidator().validate_mining_nonce(state, self.blockheader):
+        if not chain_manager.validate_mining_nonce(self.blockheader):
             logger.warning('Failed PoW Validation')
             return False
 
@@ -264,17 +269,11 @@ class Block(object):
 
         return True
 
-    def is_duplicate(self, state) -> bool:
-        if state.get_block(self.headerhash):
-            return True
-
-        return False
-
     def is_future_block(self) -> bool:
         if self.timestamp > ntp.getTime() + config.dev.block_max_drift:
             return True
 
         return False
 
-    def validate_parent_child_relation(self, parent_block) -> bool:
+    def _validate_parent_child_relation(self, parent_block) -> bool:
         return self.blockheader.validate_parent_child_relation(parent_block)

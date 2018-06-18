@@ -188,7 +188,7 @@ class TokenTransaction(Transaction):
             addresses_state[addr_from_pk].increase_nonce()
             addresses_state[addr_from_pk].set_ots_key(self.ots_key)
 
-    def revert_state_changes(self, addresses_state, state):
+    def revert_state_changes(self, addresses_state, chain_manager):
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
         owner_processed = False
         addr_from_processed = False
@@ -219,7 +219,7 @@ class TokenTransaction(Transaction):
                 if not addr_from_pk_processed:
                     addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
             addresses_state[addr_from_pk].decrease_nonce()
-            addresses_state[addr_from_pk].unset_ots_key(self.ots_key, state)
+            addresses_state[addr_from_pk].unset_ots_key(self.ots_key, chain_manager)
 
     def set_affected_address(self, addresses_set: set):
         super().set_affected_address(addresses_set)

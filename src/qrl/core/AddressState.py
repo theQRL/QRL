@@ -115,10 +115,9 @@ class AddressState(object):
         self._data.latticePK_list.extend([lattice_pk])
 
     def remove_lattice_pk(self, lattice_txn):
-        for lattice_pk_idx in range(len(self._data.latticePK_list)):
-            lattice_pk = self._data.latticePK_list[lattice_pk_idx]
+        for i, lattice_pk in enumerate(self._data.latticePK_list):
             if lattice_pk.txhash == lattice_txn.txhash:
-                del self._data.latticePK_list[lattice_pk_idx]
+                del self._data.latticePK_list[i]
                 break
 
     def increase_nonce(self):
@@ -171,7 +170,7 @@ class AddressState(object):
         else:
             self._data.ots_counter = ots_key_index
 
-    def unset_ots_key(self, ots_key_index, state):
+    def unset_ots_key(self, ots_key_index, chain_manager):
         if ots_key_index < config.dev.max_ots_tracking_index:
             offset = ots_key_index >> 3
             relative = ots_key_index % 8
@@ -181,7 +180,7 @@ class AddressState(object):
             self._data.ots_counter = 0  # defaults to 0 in case, no other ots_key found for ots_counter
             # Expected transaction hash has been removed before unsetting ots key for that same transaction
             for tx_hash in self.transaction_hashes[-1::-1]:
-                tx, _ = state.get_tx_metadata(tx_hash)
+                tx, _ = chain_manager.get_tx_metadata(tx_hash)
                 if tx.ots_key >= config.dev.max_ots_tracking_index:
                     self._data.ots_counter = tx.ots_key
                     break
