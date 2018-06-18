@@ -84,9 +84,8 @@ class TestP2PFactory(TestCase):
 
         m_config.user.max_peers_limit = 3
 
-        self.factory.add_connection(channel_4)
+        self.assertFalse(self.factory.add_connection(channel_4))
 
-        channel_4.loseConnection.assert_called_once()
         self.assertEqual(self.factory.num_connections, 3)
 
     def test_add_connection_wont_connect_to_itself(self, m_reactor, m_logger):
@@ -100,9 +99,8 @@ class TestP2PFactory(TestCase):
                          peer=IPMetadata('4.4.4.4', 9000))
         self.factory._qrl_node.peer_manager.known_peer_addresses = ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000',
                                                                     '4.4.4.4:9000']
-        self.factory.add_connection(channel_4)
+        self.assertFalse(self.factory.add_connection(channel_4))
 
-        channel_4.loseConnection.assert_called_once()
         self.assertEqual(self.factory.num_connections, 3)
         self.factory._qrl_node.peer_manager.extend_known_peers.assert_called_once_with(
             ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000'])
