@@ -244,9 +244,9 @@ class P2PProtocol(Protocol):
                 yield message
 
             except Exception as e:  # no qa
-                logger.warning("Problem parsing message. Dropping connection")
+                logger.warning("Problem parsing message. Banning+Dropping connection")
                 logger.exception(e)
-                self.loseConnection()
+                self.peer_manager.ban_channel(self)
 
             finally:
                 skip = 4 + chunk_size
