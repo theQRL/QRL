@@ -82,6 +82,8 @@ class P2PProtocol(Protocol):
 
             self.send_peer_list()
             self.send_version_request()
+        else:
+            self.loseConnection()
 
     def connectionLost(self, reason=connectionDone):
         logger.debug('%s disconnected. remainder connected: %d', self.peer, self.factory.num_connections)
