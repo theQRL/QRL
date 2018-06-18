@@ -49,7 +49,6 @@ class TestCLI_Wallet_Gen(TestCase):
         os.chdir(self.prev_dir)
         shutil.rmtree(self.temp_dir)
 
-    @skip("long")
     def test_wallet_gen_default_height(self):
         self.runner.invoke(qrl_cli, ["wallet_gen"])
         wallet = open_wallet()
@@ -754,5 +753,5 @@ class TestCLI(TestCase):
         # Malformed Qaddress should fail!
         result = self.runner.invoke(qrl_cli, ["token_list", "--owner={}".format(qaddr_1[:-1])])
 
-        self.assertEqual(result.exit_code, 1)
+        self.assertEqual(1, result.exit_code)
         self.assertIn('hex string is expected to have an even number of characters', result.output.strip())

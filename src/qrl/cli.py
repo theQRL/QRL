@@ -822,6 +822,30 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         click.echo("Unhandled error: {}".format(str(e)))
         quit(1)
 
+@qrl.command()
+@click.option('--owner', default='', prompt=True, help='source QRL address')
+@click.pass_context
+def token_list(ctx, owner):
+    """
+    Fetch the list of tokens owned by an address.
+    """
+    try:
+        owner_address = parse_qaddress(owner)
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
+        quit(1)
+
+    try:
+        stub = ctx.obj.get_stub_public_api()
+        address_state_req = qrl_pb2.GetAddressStateReq(address=owner_address)
+        address_state_resp = stub.GetAddressState(address_state_req, timeout=CONNECTION_TIMEOUT)
+
+        for token_hash in address_state_resp.state.tokens:
+            click.echo('Hash: %s' % (token_hash,))
+            click.echo('Balance: %s' % (address_state_resp.state.tokens[token_hash],))
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
 
 @qrl.command()
 @click.pass_context
