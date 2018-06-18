@@ -57,7 +57,7 @@ dist_xmss = XMSS.from_extended_seed(seed)
 transactions = get_migration_transactions(signing_xmss=dist_xmss)
 
 block = Block.create(block_number=0,
-                     prev_headerhash=config.dev.genesis_prev_headerhash,
+                     prev_headerhash=config.user.genesis_prev_headerhash,
                      prev_timestamp=config.dev.genesis_timestamp,
                      transactions=transactions,
                      miner_address=dist_xmss.address)
