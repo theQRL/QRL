@@ -33,6 +33,7 @@ class UserConfig(object):
         self.accept_ephemeral = True
 
         # PEER Configuration
+        self.max_redundant_connections = 5  # Number of connections allowed from nodes having same IP
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
         self.peer_list = ['104.251.219.215',
                           '104.251.219.145',

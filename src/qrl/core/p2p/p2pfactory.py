@@ -469,6 +469,16 @@ class P2PFactory(ServerFactory):
         if self._qrl_node.peer_manager.is_banned(conn_protocol.peer):
             return False
 
+        redundancy_count = 0
+        for conn in self._peer_connections:
+            if conn.peer.ip == conn_protocol.peer.ip:
+                redundancy_count += 1
+
+        if config.user.max_redundant_connections >= 0:
+            if redundancy_count >= config.user.max_redundant_connections:
+                logger.info('Redundant Limit. Disconnecting client %s', conn_protocol.peer)
+                return False
+
         if self.reached_conn_limit:
             # FIXME: Should we stop listening to avoid unnecessary load due to many connections?
             logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.peer)
