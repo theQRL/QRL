@@ -28,5 +28,4 @@ message GetFullStateReq {
 message GetFullStateResp {
     AddressState coinbase_state = 1;
     repeated AddressState addresses_state = 2;
-    uint64 db_key_count = 3;
 }

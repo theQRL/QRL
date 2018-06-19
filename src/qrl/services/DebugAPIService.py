@@ -18,6 +18,5 @@ class DebugAPIService(DebugAPIServicer):
     def GetFullState(self, request: qrldebug_pb2.GetFullStateReq, context) -> qrldebug_pb2.GetFullStateResp:
         return qrldebug_pb2.GetFullStateResp(
             coinbase_state=self.qrlnode.get_address_state(config.dev.coinbase_address).pbdata,
-            addresses_state=self.qrlnode.get_all_address_state(),
-            db_key_count=self.qrlnode.get_db_key_count()
+            addresses_state=self.qrlnode.get_all_address_state()
         )
