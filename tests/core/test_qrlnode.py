@@ -164,6 +164,12 @@ class TestQRLNode(TestCase):
         result = self.qrlnode.get_address_state(alice.address)
         self.assertEqual(m_addr_state, result)
 
+        # Fetching AddressState for Coinbase Address
+        m_addr_state = Mock(autospec=AddressState)
+        self.db_state.get_address_state.return_value = m_addr_state
+        result = self.qrlnode.get_address_state(config.dev.coinbase_address)
+        self.assertEqual(m_addr_state, result)
+
         with self.assertRaises(ValueError):
             self.qrlnode.get_address_state(b'fdsa')
 
@@ -231,14 +237,13 @@ class TestQRLNode(TestCase):
         ans = self.qrlnode.get_node_info()
         self.assertIsInstance(ans, qrl_pb2.NodeInfo)
 
-    @expectedFailure
     def test_get_latest_transactions(self):
         """
         This returns the last n txs, just like get_latest_blocks().
         Useful for the Block Explorer, presumably.
-        FAIL: this returns the first n transactions.
         """
-        self.db_state.get_last_txs.return_value = [Mock(name='mock TX {}'.format(i), i=i) for i in range(0, 20)]
+        # get_last_txs returns the latest transactions
+        self.db_state.get_last_txs.return_value = [Mock(name='mock TX {}'.format(i), i=i) for i in range(19, -1, -1)]
 
         # Given [0, 1, 2... 19], with offset 0 count 1 should return [19]
         result = self.qrlnode.get_latest_transactions(0, 1)
@@ -248,9 +253,9 @@ class TestQRLNode(TestCase):
         # Given [0, 1, 2... 19], with offset 2 count 3 should return [15, 16, 17]
         result = self.qrlnode.get_latest_transactions(2, 3)
         self.assertEqual(len(result), 3)
-        self.assertEqual(result[0].i, 15)
+        self.assertEqual(result[0].i, 17)
         self.assertEqual(result[1].i, 16)
-        self.assertEqual(result[2].i, 17)
+        self.assertEqual(result[2].i, 15)
 
     @expectedFailure
     def test_get_latest_transactions_unconfirmed(self):
@@ -259,7 +264,7 @@ class TestQRLNode(TestCase):
         Useful for the Block Explorer, presumably.
         FAIL: this returns the first n unconfirmed transactions.
         """
-        self.chain_manager.tx_pool.transactions = [Mock(name='mock TX {}'.format(i), i=i) for i in range(0, 20)]
+        self.chain_manager.tx_pool.transactions = [(0, Mock(name='mock TX {}'.format(i), i=i)) for i in range(0, 20)]
 
         # Given [0, 1, 2... 19], with offset 0 count 1 should return [19]
         result = self.qrlnode.get_latest_transactions_unconfirmed(0, 1)

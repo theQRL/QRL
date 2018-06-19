@@ -83,11 +83,28 @@ class TestP2PFactory(TestCase):
                          peer=IPMetadata('4.4.4.4', 9000))
 
         m_config.user.max_peers_limit = 3
+        m_config.user.max_redundant_connections = 5
 
-        self.factory.add_connection(channel_4)
+        self.assertFalse(self.factory.add_connection(channel_4))
 
-        channel_4.loseConnection.assert_called_once()
         self.assertEqual(self.factory.num_connections, 3)
+
+    @patch('qrl.core.p2p.p2pfactory.config', autospec=True)
+    def test_add_connection_redundant_connection_limit(self, m_config, m_reactor, m_logger):
+        """
+        When we've reached the max_redundant_connections, then the peer should be disconnected.
+        """
+        channel_4 = Mock(autospec=P2PProtocol,
+                         name='mock Channel 1',
+                         peer=IPMetadata('1.1.1.1', 9000))
+
+        m_config.user.max_peers_limit = 5
+        m_config.user.max_redundant_connections = 2
+
+        self.assertTrue(self.factory.add_connection(channel_4))
+        self.assertFalse(self.factory.add_connection(channel_4))
+
+        self.assertEqual(self.factory.num_connections, 4)
 
     def test_add_connection_wont_connect_to_itself(self, m_reactor, m_logger):
         """
@@ -100,9 +117,8 @@ class TestP2PFactory(TestCase):
                          peer=IPMetadata('4.4.4.4', 9000))
         self.factory._qrl_node.peer_manager.known_peer_addresses = ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000',
                                                                     '4.4.4.4:9000']
-        self.factory.add_connection(channel_4)
+        self.assertFalse(self.factory.add_connection(channel_4))
 
-        channel_4.loseConnection.assert_called_once()
         self.assertEqual(self.factory.num_connections, 3)
         self.factory._qrl_node.peer_manager.extend_known_peers.assert_called_once_with(
             ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000'])

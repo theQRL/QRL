@@ -113,6 +113,36 @@ class TestState(TestCase):
                 address_state = state.get_address_state(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
 
+    def test_get_all_address_state(self):
+        with set_qrl_dir('no_data'):
+            with State() as state:
+                addresses_state = state.get_all_address_state()
+                self.assertEqual(len(addresses_state), 0)
+
+                alice_xmss = get_alice_xmss()
+                alice_address = alice_xmss.address
+                address_state = state.get_address_state(alice_address)
+                addresses_state = {
+                    alice_address: address_state
+                }
+                self.assertTrue(isinstance(address_state.address, bytes))
+                state.put_addresses_state(addresses_state)
+
+                addresses_state = state.get_all_address_state()
+                self.assertEqual(len(addresses_state), 1)
+
+                bob_xmss = get_bob_xmss()
+                bob_address = bob_xmss.address
+                address_state = state.get_address_state(bob_address)
+                addresses_state = {
+                    bob_address: address_state
+                }
+                self.assertTrue(isinstance(address_state.address, bytes))
+                state.put_addresses_state(addresses_state)
+
+                addresses_state = state.get_all_address_state()
+                self.assertEqual(len(addresses_state), 2)
+
     def test_basic_state_funcs(self):
         with set_qrl_dir('no_data'):
             with State() as state:

@@ -33,6 +33,7 @@ class UserConfig(object):
         self.accept_ephemeral = True
 
         # PEER Configuration
+        self.max_redundant_connections = 5  # Number of connections allowed from nodes having same IP
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
         self.peer_list = ['104.251.219.215',
                           '104.251.219.145',
@@ -90,6 +91,15 @@ class UserConfig(object):
         self.mining_api_port = 9007
         self.mining_api_threads = 1
         self.mining_api_max_concurrent_rpc = 100
+
+        # ======================================
+        #        DEBUG API CONFIGURATION
+        # ======================================
+        self.debug_api_enabled = False
+        self.debug_api_host = "127.0.0.1"
+        self.debug_api_port = 52134
+        self.debug_api_threads = 1
+        self.debug_api_max_concurrent_rpc = 100
 
         # ======================================
         #        GRPC PROXY CONFIGURATION

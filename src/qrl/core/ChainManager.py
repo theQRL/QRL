@@ -78,6 +78,10 @@ class ChainManager:
         with self.lock:
             return self._state.get_address_state(address)
 
+    def get_all_address_state(self):
+        with self.lock:
+            return self._state.get_all_address_state()
+
     def get_tx_metadata(self, transaction_hash) -> list:
         with self.lock:
             return self._state.get_tx_metadata(transaction_hash)

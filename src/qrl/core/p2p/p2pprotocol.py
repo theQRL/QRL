@@ -82,6 +82,8 @@ class P2PProtocol(Protocol):
 
             self.send_peer_list()
             self.send_version_request()
+        else:
+            self.loseConnection()
 
     def connectionLost(self, reason=connectionDone):
         logger.debug('%s disconnected. remainder connected: %d', self.peer, self.factory.num_connections)
@@ -244,9 +246,9 @@ class P2PProtocol(Protocol):
                 yield message
 
             except Exception as e:  # no qa
-                logger.warning("Problem parsing message. Dropping connection")
+                logger.warning("Problem parsing message. Banning+Dropping connection")
                 logger.exception(e)
-                self.loseConnection()
+                self.peer_manager.ban_channel(self)
 
             finally:
                 skip = 4 + chunk_size

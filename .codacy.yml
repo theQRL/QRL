@@ -2,7 +2,7 @@
 exclude_paths:
   - 'src/qrl/generated/*.py'
   - 'src/qrl/protos/**'
-  - 'src/tests/data/**'
+  - 'tests/data/**'
   - 'tools/**'
   - 'docs/**'
   - 'versioneer.py'

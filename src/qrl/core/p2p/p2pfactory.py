@@ -467,19 +467,26 @@ class P2PFactory(ServerFactory):
     def add_connection(self, conn_protocol) -> bool:
         # TODO: Most of this can go peer manager
         if self._qrl_node.peer_manager.is_banned(conn_protocol.peer):
-            conn_protocol.loseConnection()
             return False
+
+        redundancy_count = 0
+        for conn in self._peer_connections:
+            if conn.peer.ip == conn_protocol.peer.ip:
+                redundancy_count += 1
+
+        if config.user.max_redundant_connections >= 0:
+            if redundancy_count >= config.user.max_redundant_connections:
+                logger.info('Redundant Limit. Disconnecting client %s', conn_protocol.peer)
+                return False
 
         if self.reached_conn_limit:
             # FIXME: Should we stop listening to avoid unnecessary load due to many connections?
             logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.peer)
-            conn_protocol.loseConnection()
             return False
 
         if conn_protocol.peer.ip == conn_protocol.host.ip and conn_protocol.peer.port == config.user.p2p_public_port:
             peer_list = [p for p in self._qrl_node.peer_manager.known_peer_addresses if p != conn_protocol.peer.full_address]
             self._qrl_node.peer_manager.extend_known_peers(peer_list)
-            conn_protocol.loseConnection()
             return False
 
         self._peer_connections.append(conn_protocol)

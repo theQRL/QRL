@@ -1,0 +1,31 @@
+// Distributed under the MIT software license, see the accompanying
+// file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+syntax = "proto3";
+
+package qrl;
+
+import "qrl.proto";
+
+////////////////////////////
+////////////////////////////
+////////////////////////////
+//////     API       ///////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+
+// This service describes the Debug API used for debugging
+service DebugAPI
+{
+    rpc GetFullState (GetFullStateReq) returns (GetFullStateResp);
+}
+
+message GetFullStateReq {
+
+}
+
+message GetFullStateResp {
+    AddressState coinbase_state = 1;
+    repeated AddressState addresses_state = 2;
+}

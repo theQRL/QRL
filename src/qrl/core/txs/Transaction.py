@@ -134,20 +134,27 @@ class Transaction(object, metaclass=ABCMeta):
 
     def update_txhash(self):
         self._data.transaction_hash = sha256(
-            self.get_hashable_bytes() +
+            self.get_data_hash() +
             self.signature +
             self.PK
         )
 
-    def get_hashable_bytes(self) -> bytes:
+    def get_data_bytes(self) -> bytes:
         """
-        This method returns the hashes of the transaction data.
+        This method returns the essential bytes that represent the transaction and will be later signed
         :return:
         """
         raise NotImplementedError
 
-    def sign(self, xmss):
-        self._data.signature = xmss.sign(self.get_hashable_bytes())
+    def get_data_hash(self) -> bytes:
+        """
+        This method returns the hashes of the transaction data.
+        :return:
+        """
+        return sha256(self.get_data_bytes())
+
+    def sign(self, object_with_sign_method):
+        self._data.signature = object_with_sign_method.sign(self.get_data_hash())
         self.update_txhash()
 
     @abstractmethod
@@ -250,10 +257,11 @@ class Transaction(object, metaclass=ABCMeta):
 
         self._coinbase_filter()
 
-        if verify_signature and not XmssFast.verify(self.get_hashable_bytes(),
+        if verify_signature and not XmssFast.verify(self.get_data_hash(),
                                                     self.signature,
                                                     self.PK):
             raise ValueError("Invalid xmss signature")
+
         return True
 
     def validate_slave(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
