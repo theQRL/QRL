@@ -1,17 +1,17 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import threading
 from collections import OrderedDict
-from twisted.internet import reactor
+
 from pyqrllib.pyqrllib import bin2hstr
+from twisted.internet import reactor
 
 from qrl.core import config
-from qrl.core.Miner import Miner
-from qrl.core.ChainManager import ChainManager
-from qrl.core.misc import ntp, logger
 from qrl.core.Block import Block
+from qrl.core.ChainManager import ChainManager
 from qrl.core.ESyncState import ESyncState
+from qrl.core.Miner import Miner
+from qrl.core.misc import ntp, logger
 
 
 class SyncState:
@@ -50,8 +50,6 @@ class POW(ConsensusMechanism):
                            self.chain_manager,
                            mining_thread_count,
                            self.p2p_factory.add_unprocessed_txn)
-
-        self._miner_lock = threading.Lock()
 
         ########
 
@@ -216,8 +214,10 @@ class POW(ConsensusMechanism):
             del self.future_blocks[key]
 
     def pre_block_logic(self, block: Block):
-        logger.debug('Checking miner lock')
-        with self._miner_lock:
+        logger.debug('LOCK - TRY - pre_block_logic')
+        with self.miner.lock:
+            logger.debug('LOCK - LOCKED - pre_block_logic')
+
             if not block.validate(self.chain_manager, self.future_blocks):
                 logger.warning('Block Validation failed for #%s %s', block.block_number, bin2hstr(block.headerhash))
                 return
@@ -233,13 +233,17 @@ class POW(ConsensusMechanism):
 
             logger.debug('trigger_miner %s', self.chain_manager.trigger_miner)
             if self.chain_manager.trigger_miner:
-                self.mine_next(self.chain_manager.last_block)
+                logger.debug('try last block')
+                last_block = self.chain_manager.last_block
+                logger.debug('got last block')
+                self.mine_next(last_block)
 
             if not result:
                 logger.debug('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
                 return
 
             reactor.callLater(0, self.broadcast_block, block)
+        logger.debug('LOCK - RELEASE - pre_block_logic')
 
     def broadcast_block(self, block):
         if self.sync_state.state == ESyncState.synced:
@@ -256,7 +260,9 @@ class POW(ConsensusMechanism):
             return
 
         if config.user.mining_enabled:
+            logger.debug('try get_block_metadata')
             parent_metadata = self.chain_manager.get_block_metadata(parent_block.headerhash)
+            logger.debug('try prepare_next_unmined_block_template')
             self.miner.prepare_next_unmined_block_template(mining_address=self.mining_address,
                                                            tx_pool=self.chain_manager.tx_pool,
                                                            parent_block=parent_block,
