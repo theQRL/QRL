@@ -308,7 +308,7 @@ class QRLNode:
 
         return self._chain_manager.get_address_is_used(address)
 
-    def get_address_state(self, address: bytes) -> qrl_pb2.AddressState:
+    def get_address_state(self, address: bytes) -> AddressState:
         if address != config.dev.coinbase_address and not AddressState.address_is_valid(address):
             raise ValueError("Invalid Address")
 

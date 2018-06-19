@@ -113,10 +113,10 @@ class TestState(TestCase):
                 address_state = state.get_address_state(alice_address)
                 self.assertTrue(isinstance(address_state.address, bytes))
 
-    def test_get_addresses_state(self):
+    def test_get_all_address_state(self):
         with set_qrl_dir('no_data'):
             with State() as state:
-                addresses_state = state.get_addresses_state()
+                addresses_state = state.get_all_address_state()
                 self.assertEqual(len(addresses_state), 0)
 
                 alice_xmss = get_alice_xmss()
@@ -128,7 +128,7 @@ class TestState(TestCase):
                 self.assertTrue(isinstance(address_state.address, bytes))
                 state.put_addresses_state(addresses_state)
 
-                addresses_state = state.get_addresses_state()
+                addresses_state = state.get_all_address_state()
                 self.assertEqual(len(addresses_state), 1)
 
                 bob_xmss = get_bob_xmss()
@@ -140,7 +140,7 @@ class TestState(TestCase):
                 self.assertTrue(isinstance(address_state.address, bytes))
                 state.put_addresses_state(addresses_state)
 
-                addresses_state = state.get_addresses_state()
+                addresses_state = state.get_all_address_state()
                 self.assertEqual(len(addresses_state), 2)
 
     def test_get_db_key_count(self):

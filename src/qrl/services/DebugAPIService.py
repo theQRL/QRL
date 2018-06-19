@@ -16,10 +16,8 @@ class DebugAPIService(DebugAPIServicer):
 
     @GrpcExceptionWrapper(qrldebug_pb2.GetFullStateResp)
     def GetFullState(self, request: qrldebug_pb2.GetFullStateReq, context) -> qrldebug_pb2.GetFullStateResp:
-        full_state_resp = qrldebug_pb2.GetFullStateResp()
-
-        full_state_resp.coinbase_state = self.qrlnode.get_address_state(config.dev.coinbase_address)
-        full_state_resp.addresses_state.extend(self.qrlnode.get_all_address_state())
-        full_state_resp.db_key_count = self.qrlnode.get_db_key_count()
-
-        return full_state_resp
+        return qrldebug_pb2.GetFullStateResp(
+            coinbase_state=self.qrlnode.get_address_state(config.dev.coinbase_address).pbdata,
+            addresses_state=self.qrlnode.get_all_address_state(),
+            db_key_count=self.qrlnode.get_db_key_count()
+        )
