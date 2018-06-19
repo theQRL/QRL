@@ -375,6 +375,22 @@ class State:
         except KeyError:
             return AddressState.get_default(address)
 
+    def get_addresses_state(self) -> list:
+        addresses_state = []
+
+        try:
+            for address in self._db.get_db_keys(False):
+                if AddressState.address_is_valid(address) or address == config.dev.coinbase_address:
+                    addresses_state.append(self.get_address_state(address))
+            return addresses_state
+        except Exception as e:
+            logger.error("Exception in get_addresses_state %s", e)
+
+        return []
+
+    def get_db_key_count(self) -> int:
+        return len(list(self._db.get_db_keys(False)))
+
     def get_address_balance(self, addr: bytes) -> int:
         return self.get_address_state(addr).balance
 

@@ -31,6 +31,9 @@ class DB:
 
         return self.db.RangeIter(key_obj_start, key_obj_end)
 
+    def get_db_keys(self, include_value: bool):
+        return self.db.RangeIter(include_value=include_value)
+
     def delete(self, key_obj: bytes, batch=None):
         if batch:
             batch.Delete(key_obj)

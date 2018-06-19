@@ -92,6 +92,15 @@ class UserConfig(object):
         self.mining_api_max_concurrent_rpc = 100
 
         # ======================================
+        #        DEBUG API CONFIGURATION
+        # ======================================
+        self.debug_api_enabled = False
+        self.debug_api_host = "127.0.0.1"
+        self.debug_api_port = 52134
+        self.debug_api_threads = 1
+        self.debug_api_max_concurrent_rpc = 100
+
+        # ======================================
         #        GRPC PROXY CONFIGURATION
         # ======================================
         self.grpc_proxy_host = "127.0.0.1"

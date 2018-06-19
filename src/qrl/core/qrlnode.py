@@ -316,6 +316,12 @@ class QRLNode:
 
         return address_state
 
+    def get_all_address_state(self) -> list:
+        return self._chain_manager.get_all_address_state()
+
+    def get_db_key_count(self) -> list:
+        return self._chain_manager.get_db_key_count()
+
     def get_transaction(self, query_hash: bytes):
         """
         This method returns an object that matches the query hash
