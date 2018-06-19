@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrldebug.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\x0eqrldebug.proto\x12\x03qrl\x1a\tqrl.proto\"\x11\n\x0fGetFullStateReq\"\x7f\n\x10GetFullStateResp\x12)\n\x0e\x63oinbase_state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\x12*\n\x0f\x61\x64\x64resses_state\x18\x02 \x03(\x0b\x32\x11.qrl.AddressState\x12\x14\n\x0c\x64\x62_key_count\x18\x03 \x01(\x04\x32G\n\x08\x44\x65\x62ugAPI\x12;\n\x0cGetFullState\x12\x14.qrl.GetFullStateReq\x1a\x15.qrl.GetFullStateRespb\x06proto3')
+  serialized_pb=_b('\n\x0eqrldebug.proto\x12\x03qrl\x1a\tqrl.proto\"\x11\n\x0fGetFullStateReq\"i\n\x10GetFullStateResp\x12)\n\x0e\x63oinbase_state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\x12*\n\x0f\x61\x64\x64resses_state\x18\x02 \x03(\x0b\x32\x11.qrl.AddressState2G\n\x08\x44\x65\x62ugAPI\x12;\n\x0cGetFullState\x12\x14.qrl.GetFullStateReq\x1a\x15.qrl.GetFullStateRespb\x06proto3')
   ,
   dependencies=[qrl__pb2.DESCRIPTOR,])
 
@@ -72,13 +72,6 @@ _GETFULLSTATERESP = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='db_key_count', full_name='qrl.GetFullStateResp.db_key_count', index=2,
-      number=3, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -92,7 +85,7 @@ _GETFULLSTATERESP = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=53,
-  serialized_end=180,
+  serialized_end=158,
 )
 
 _GETFULLSTATERESP.fields_by_name['coinbase_state'].message_type = qrl__pb2._ADDRESSSTATE
@@ -123,8 +116,8 @@ _DEBUGAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=182,
-  serialized_end=253,
+  serialized_start=160,
+  serialized_end=231,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetFullState',

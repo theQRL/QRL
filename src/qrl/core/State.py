@@ -388,9 +388,6 @@ class State:
 
         return []
 
-    def get_db_key_count(self) -> int:
-        return len(list(self._db.get_db_keys(False)))
-
     def get_address_balance(self, addr: bytes) -> int:
         return self.get_address_state(addr).balance
 

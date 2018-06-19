@@ -82,10 +82,6 @@ class ChainManager:
         with self.lock:
             return self._state.get_all_address_state()
 
-    def get_db_key_count(self):
-        with self.lock:
-            return self._state.get_db_key_count()
-
     def get_tx_metadata(self, transaction_hash) -> list:
         with self.lock:
             return self._state.get_tx_metadata(transaction_hash)
