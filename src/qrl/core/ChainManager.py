@@ -243,7 +243,6 @@ class ChainManager:
             if fork_state:
                 block = self._state.get_block(fork_state.initiator_headerhash)
                 self._fork_recovery(block, fork_state)
-                logger.info("Fork Recovery Finished")
 
     def _apply_block(self, block: Block, batch) -> bool:
         address_set = self._state.prepare_address_list(block)  # Prepare list for current block
@@ -428,6 +427,8 @@ class ChainManager:
             self._rollback(forked_header_hash)
             self.add_chain(old_hash_path[-1::-1], fork_state)  # Restores the old chain state
             return False
+
+        logger.info("Fork Recovery Finished")
 
         self.trigger_miner = True
         return True
