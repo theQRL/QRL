@@ -44,6 +44,7 @@ class Miner(Qryptominer):
 
     def prepare_next_unmined_block_template(self, mining_address, tx_pool, parent_block: Block, parent_difficulty):
         try:
+            logger.debug('Miner-Try - prepare_next_unmined_block_template')
             with self.lock:
                 logger.debug('Miner-Locked - prepare_next_unmined_block_template')
 
