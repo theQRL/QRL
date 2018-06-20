@@ -67,10 +67,6 @@ class Block(object):
         return self.blockheader.mining_nonce
 
     @property
-    def PK(self):
-        return self.blockheader.PK
-
-    @property
     def block_reward(self):
         return self.blockheader.block_reward
 
@@ -195,10 +191,6 @@ class Block(object):
             logger.warning('Failed PoW Validation')
             return False
 
-        fee_reward = 0
-        for index in range(1, len(self.transactions)):
-            fee_reward += self.transactions[index].fee
-
         if len(self.transactions) == 0:
             return False
 
@@ -213,18 +205,23 @@ class Block(object):
             logger.warning('Exception %s', e)
             return False
 
+        # Build transaction merkle tree, calculate fee reward, and then see if BlockHeader also agrees.
         hashedtransactions = []
 
         for tx in self.transactions:
             tx = Transaction.from_pbdata(tx)
             hashedtransactions.append(tx.txhash)
 
+        fee_reward = 0
+        for index in range(1, len(self.transactions)):
+            fee_reward += self.transactions[index].fee
+
         if not self.blockheader.validate(fee_reward, coinbase_amount, merkle_tx_hash(hashedtransactions)):
             return False
 
         return True
 
-    def apply_state_changes(self, address_txn) -> bool:
+    def apply_state_changes(self, address_txn: dict) -> bool:
         coinbase_tx = Transaction.from_pbdata(self.transactions[0])
 
         if not coinbase_tx.validate_extended(self.block_number):
