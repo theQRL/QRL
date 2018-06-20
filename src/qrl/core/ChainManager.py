@@ -243,6 +243,7 @@ class ChainManager:
             if fork_state:
                 block = self._state.get_block(fork_state.initiator_headerhash)
                 self._fork_recovery(block, fork_state)
+                logger.info("Fork Recovery Finished")
 
     def _apply_block(self, block: Block, batch) -> bool:
         address_set = self._state.prepare_address_list(block)  # Prepare list for current block
@@ -337,7 +338,7 @@ class ChainManager:
         hash_path = []
         while self._last_block.headerhash != forked_header_hash:
             block = self._state.get_block(self._last_block.headerhash)
-            mainchain_block = self.get_block_by_number(block.block_number)
+            mainchain_block = self._state.get_block_by_number(block.block_number)
 
             if block is None:
                 logger.warning("self.state.get_block(self.last_block.headerhash) returned None")
