@@ -337,7 +337,7 @@ class ChainManager:
         hash_path = []
         while self._last_block.headerhash != forked_header_hash:
             block = self._state.get_block(self._last_block.headerhash)
-            mainchain_block = self.get_block_by_number(block.block_number)
+            mainchain_block = self._state.get_block_by_number(block.block_number)
 
             if block is None:
                 logger.warning("self.state.get_block(self.last_block.headerhash) returned None")
@@ -427,6 +427,8 @@ class ChainManager:
             self._rollback(forked_header_hash)
             self.add_chain(old_hash_path[-1::-1], fork_state)  # Restores the old chain state
             return False
+
+        logger.info("Fork Recovery Finished")
 
         self.trigger_miner = True
         return True
