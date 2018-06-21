@@ -44,8 +44,14 @@ class Miner(Qryptominer):
 
     def prepare_next_unmined_block_template(self, mining_address, tx_pool, parent_block: Block, parent_difficulty):
         try:
-            self.cancel()
+            logger.debug('Miner-Try - prepare_next_unmined_block_template')
             with self.lock:
+                logger.debug('Miner-Locked - prepare_next_unmined_block_template')
+
+                logger.debug('Miner-TryCancel - prepare_next_unmined_block_template')
+                self.cancel()
+                logger.debug('Miner-Cancel - prepare_next_unmined_block_template')
+
                 self._mining_block = self.create_block(last_block=parent_block,
                                                        mining_nonce=0,
                                                        tx_pool=tx_pool,
@@ -68,9 +74,11 @@ class Miner(Qryptominer):
                      parent_block: Block,
                      parent_difficulty):
         try:
-            self.cancel()
-
+            logger.debug('start_mining - TRY LOCK')
             with self.lock:
+                logger.debug('start_mining - LOCKED')
+                self.cancel()
+
                 mining_blob = self._mining_block.mining_blob
                 nonce_offset = self._mining_block.mining_nonce_offset
 
@@ -96,26 +104,34 @@ class Miner(Qryptominer):
             logger.warning("Exception in start_mining")
             logger.exception(e)
 
+        logger.debug('start_mining - UNLOCKED')
+
     def handleEvent(self, event):
-        with self.lock:
-            logger.debug("MINING EVENT [{}] {}".format(event.seq, self.currentSequenceId()))
-            # NOTE: This function usually runs in the context of a C++ thread
+        # NOTE: This function usually runs in the context of a C++ thread
+        if event.type == SOLUTION:
+            logger.debug('handleEvent - TRY LOCK')
+            if not self.lock.acquire(blocking=False):
+                logger.debug('handleEvent - SKIP')
+                return False
+
             try:
-                if event.type == SOLUTION:
-                    nonce = event.nonce
-                    self._mining_block.set_nonces(nonce, 0)
-                    logger.debug('Solution Found %s', nonce)
+                logger.debug('handleEvent - LOCKED')
 
-                    logger.debug("Blob           %s", self._mining_block)
-
-                    logger.info('Block #%s nonce: %s', self._mining_block.block_number, nonce)
-                    logger.info('Hash Rate: %s H/s', self.hashRate())
-                    cloned_block = copy.deepcopy(self._mining_block)
-
-                    self.pre_block_logic(cloned_block)
+                logger.debug('Solution Found %s', event.nonce)
+                logger.info('Hash Rate: %s H/s', self.hashRate())
+                cloned_block = copy.deepcopy(self._mining_block)
+                cloned_block.set_nonces(event.nonce, 0)
+                logger.debug("Blob           %s", cloned_block)
+                logger.info('Block #%s nonce: %s', cloned_block.block_number, event.nonce)
+                self.pre_block_logic(cloned_block)
             except Exception as e:
                 logger.warning("Exception in solutionEvent")
                 logger.exception(e)
+            finally:
+                logger.debug('handleEvent - UNLOCK')
+                self.lock.release()
+
+        return True
 
     def create_block(self,
                      last_block,

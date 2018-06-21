@@ -82,7 +82,7 @@ class POW(ConsensusMechanism):
     def _handler_state_synced(self):
         self.last_pow_cycle = ntp.getTime()
         last_block = self.chain_manager.last_block
-        self.mine_next(last_block)
+        self._mine_next(last_block)
 
     def _handler_state_forked(self):
         pass
@@ -186,14 +186,14 @@ class POW(ConsensusMechanism):
     ##############################################
 
     def monitor_miner(self):
-        reactor.callLater(60, self.monitor_miner)
+        reactor.callLater(15, self.monitor_miner)
 
         if not config.user.mining_enabled:
             return
         if not self.miner.isRunning() or self.miner_toggler:
             logger.debug('Mine next called by monitor_miner')
             self.miner_toggler = False
-            self.mine_next(self.chain_manager.last_block)
+            self._mine_next(self.chain_manager.last_block)
         elif self.miner.solutionAvailable():
             self.miner_toggler = True
         else:
@@ -236,7 +236,7 @@ class POW(ConsensusMechanism):
                 logger.debug('try last block')
                 last_block = self.chain_manager.last_block
                 logger.debug('got last block')
-                self.mine_next(last_block)
+                self._mine_next(last_block)
 
             if not result:
                 logger.debug('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
@@ -255,7 +255,7 @@ class POW(ConsensusMechanism):
             return True
         return False
 
-    def mine_next(self, parent_block):
+    def _mine_next(self, parent_block):
         if ntp.getTime() < self.suspend_mining_timestamp:
             return
 
