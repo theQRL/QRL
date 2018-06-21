@@ -183,9 +183,9 @@ class BlockHeader(object):
             logger.warning('threshold timestamp %s', allowed_timestamp)
             return False
 
-        if self.timestamp < config.dev.genesis_timestamp:
+        if self.timestamp < config.user.genesis_timestamp:
             logger.warning('Timestamp lower than genesis timestamp')
-            logger.warning('Genesis Timestamp %s', config.dev.genesis_timestamp)
+            logger.warning('Genesis Timestamp %s', config.user.genesis_timestamp)
             logger.warning('Block Timestamp %s', self.timestamp)
             return False
 

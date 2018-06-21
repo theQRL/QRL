@@ -9,6 +9,7 @@ from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
 from twisted.internet import reactor
 
+from qrl.core import config
 from qrl.core.Block import Block
 from qrl.core.State import State
 from qrl.core.ChainManager import ChainManager
@@ -38,6 +39,10 @@ def make_message(**kwargs):
     return qrllegacy_pb2.LegacyMessage(**kwargs)
 
 
+def make_address(ip, port=config.user.p2p_public_port):
+    return '{}:{}'.format(ip, port)
+
+
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 @patch('qrl.core.p2p.p2pfactory.logger', autospec=logger, name="Mock Logger")
 @patch('qrl.core.p2p.p2pfactory.reactor', autospec=reactor, name="My Mock Reactor")
@@ -46,14 +51,19 @@ class TestP2PFactory(TestCase):
         super(TestP2PFactory, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        port = 9000
         self.m_qrlnode = Mock(autospec=QRLNode, name='Fake QRLNode')
         self.m_qrlnode.peer_manager = Mock(autospec=P2PPeerManager, name='Fake PeerManager')
         self.m_qrlnode.peer_manager.is_banned.return_value = False
 
-        self.channel_1 = Mock(autospec=P2PProtocol, name='mock Channel 1', peer=IPMetadata('1.1.1.1', port))
-        self.channel_2 = Mock(autospec=P2PProtocol, name='mock Channel 2', peer=IPMetadata('2.2.2.2', port))
-        self.channel_3 = Mock(autospec=P2PProtocol, name='mock Channel 3', peer=IPMetadata('3.3.3.3', port))
+        self.channel_1 = Mock(autospec=P2PProtocol,
+                              name='mock Channel 1',
+                              peer=IPMetadata('1.1.1.1', config.user.p2p_public_port))
+        self.channel_2 = Mock(autospec=P2PProtocol,
+                              name='mock Channel 2',
+                              peer=IPMetadata('2.2.2.2', config.user.p2p_public_port))
+        self.channel_3 = Mock(autospec=P2PProtocol,
+                              name='mock Channel 3',
+                              peer=IPMetadata('3.3.3.3', config.user.p2p_public_port))
 
         self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)), sync_state=None, qrl_node=self.m_qrlnode)
         self.factory.pow = Mock(autospec=POW)
@@ -113,15 +123,17 @@ class TestP2PFactory(TestCase):
         If add_connection() detects this, then it will rebuild the peer_list, excluding this IP address.
         """
         channel_4 = Mock(autospec=P2PProtocol, name='mock Channel 4',
-                         host=IPMetadata('4.4.4.4', 9000),
-                         peer=IPMetadata('4.4.4.4', 9000))
-        self.factory._qrl_node.peer_manager.known_peer_addresses = ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000',
-                                                                    '4.4.4.4:9000']
+                         host=IPMetadata('4.4.4.4', config.user.p2p_public_port),
+                         peer=IPMetadata('4.4.4.4', config.user.p2p_public_port))
+        self.factory._qrl_node.peer_manager.known_peer_addresses = [make_address('1.1.1.1'),
+                                                                    make_address('2.2.2.2'),
+                                                                    make_address('3.3.3.3'),
+                                                                    make_address('4.4.4.4')]
         self.assertFalse(self.factory.add_connection(channel_4))
 
         self.assertEqual(self.factory.num_connections, 3)
         self.factory._qrl_node.peer_manager.extend_known_peers.assert_called_once_with(
-            ['1.1.1.1:9000', '2.2.2.2:9000', '3.3.3.3:9000'])
+            [make_address('1.1.1.1'), make_address('2.2.2.2'), make_address('3.3.3.3')])
 
     def test_is_block_present(self, m_reactor, m_logger):
         """
@@ -150,7 +162,7 @@ class TestP2PFactory(TestCase):
         :param m_logger:
         :return:
         """
-        self.factory.connect_peer('1.1.1.1:9000')
+        self.factory.connect_peer(make_address('1.1.1.1'))
         m_reactor.connectTCP.assert_not_called()
 
         m_reactor.connectTCP.reset_mock()
@@ -192,7 +204,7 @@ class TestP2PFactory(TestCase):
         with patch('qrl.core.p2p.p2pfactory.config', autospec=True) as m_config:
             m_config.user.peer_list = ['1.1.1.1', '2.2.2.2', '3.3.3.3', '4.4.4.4']
             self.factory.monitor_connections()
-            self.factory.connect_peer.assert_called_once_with('4.4.4.4:9000')
+            self.factory.connect_peer.assert_called_once_with(make_address('4.4.4.4'))
 
     def test_monitor_connections_no_peers_connected(self, m_reactor, m_logger):
         self.factory.remove_connection(self.channel_1)
@@ -375,17 +387,17 @@ class TestP2PFactory(TestCase):
         2. Fills best_connection_ids with peers that have the max_cumulative_difficulty
         3. selected_peer_connections is simply a list of P2PProtocols that correspond to the IPs in best_connection_ids
         """
-        self.factory.update_peer_blockheight('1.1.1.1:9000', 5, b'555555', StringToUInt256('5'))
+        self.factory.update_peer_blockheight(make_address('1.1.1.1'), 5, b'555555', StringToUInt256('5'))
         result = self.factory.get_random_peer()
         self.assertEqual(result, self.channel_1)
 
         # Even though block_number is the same, it will pick channel_2 because the difficulty is higher.
-        self.factory.update_peer_blockheight('2.2.2.2:9000', 5, b'555555', StringToUInt256('6'))
+        self.factory.update_peer_blockheight(make_address('2.2.2.2'), 5, b'555555', StringToUInt256('6'))
         result = self.factory.get_random_peer()
         self.assertEqual(result, self.channel_2)
 
         # Now it should either return channel_2 or channel_3
-        self.factory.update_peer_blockheight('3.3.3.3:9000', 5, b'555555', StringToUInt256('6'))
+        self.factory.update_peer_blockheight(make_address('3.3.3.3'), 5, b'555555', StringToUInt256('6'))
         result = self.factory.get_random_peer()
         self.assertIn(result, [self.channel_2, self.channel_3])
 
