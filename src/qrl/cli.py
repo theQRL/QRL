@@ -784,7 +784,9 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         else:
             address_src_pk = pk.encode()
 
-        master_addr = parse_qaddress(master)
+        master_addr = None
+        if master_addr:
+            master_addr = parse_qaddress(master)
         fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
