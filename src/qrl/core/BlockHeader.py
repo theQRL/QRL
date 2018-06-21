@@ -208,10 +208,6 @@ class BlockHeader(object):
             logger.warning('Block_reward + fee_reward doesnt sums up to coinbase_amount')
             return False
 
-        if self.timestamp == 0 and self.block_number > 0:
-            logger.warning('Invalid block timestamp ')
-            return False
-
         if self.tx_merkle_root != tx_merkle_root:
             logger.warning('Invalid TX Merkle Root')
             return False

@@ -114,6 +114,10 @@ class Block(object):
         return block
 
     @staticmethod
+    def _copy_tx_pbdata_into_block(block, tx):
+        block._data.transactions.extend([tx.pbdata])
+
+    @staticmethod
     def create(block_number: int,
                prev_headerhash: bytes,
                prev_timestamp: int,
@@ -133,11 +137,11 @@ class Block(object):
         total_reward_amount = BlockHeader.block_reward_calc(block_number) + fee_reward
         coinbase_tx = CoinBase.create(total_reward_amount, miner_address, block_number)
         hashedtransactions.append(coinbase_tx.txhash)
-        block._data.transactions.extend([coinbase_tx.pbdata])  # copy memory rather than sym link
+        Block._copy_tx_pbdata_into_block(block, coinbase_tx)  # copy memory rather than sym link
 
         for tx in transactions:
             hashedtransactions.append(tx.txhash)
-            block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
+            Block._copy_tx_pbdata_into_block(block, tx)  # copy memory rather than sym link
 
         txs_hash = merkle_tx_hash(hashedtransactions)  # FIXME: Find a better name, type changes
 
