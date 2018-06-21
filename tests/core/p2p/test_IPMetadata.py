@@ -4,6 +4,7 @@
 from ipaddress import AddressValueError
 from unittest import TestCase
 
+from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.p2p.IPMetadata import IPMetadata
 
@@ -27,7 +28,7 @@ class TestHelper(TestCase):
     def test_basic_3(self):
         addr = IPMetadata.from_full_address('192.168.0.1')
         self.assertEquals('192.168.0.1', addr.ip)
-        self.assertEquals(9000, addr.port)
+        self.assertEquals(config.user.p2p_local_port, addr.port)
 
     def test_invalid_1(self):
         with self.assertRaisesRegexp(AddressValueError, 'Address cannot be empty'):

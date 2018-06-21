@@ -22,7 +22,7 @@ class UserConfig(object):
         UserConfig.__instance = self
 
         self.genesis_prev_headerhash = b'Thirst of Quantas'
-        self.genesis_timestamp = 1529603197
+        self.genesis_timestamp = 1528402558
 
         # Default configuration
         self.mining_enabled = False
@@ -41,8 +41,8 @@ class UserConfig(object):
                           '104.251.219.40',
                           '104.237.3.185',
                           '35.177.60.137']
-        self.p2p_local_port = 9000  # Locally binded port at which node will listen for connection
-        self.p2p_public_port = 9000  # Public port forwarding connections to server
+        self.p2p_local_port = 19000  # Locally binded port at which node will listen for connection
+        self.p2p_public_port = 19000  # Public port forwarding connections to server
 
         self.peer_rate_limit = 500  # Max Number of messages per minute per peer
 
@@ -71,7 +71,7 @@ class UserConfig(object):
         # ======================================
         self.admin_api_enabled = False
         self.admin_api_host = "127.0.0.1"
-        self.admin_api_port = 9008
+        self.admin_api_port = 19008
         self.admin_api_threads = 1
         self.admin_api_max_concurrent_rpc = 100
 
@@ -80,7 +80,7 @@ class UserConfig(object):
         # ======================================
         self.public_api_enabled = True
         self.public_api_host = "0.0.0.0"
-        self.public_api_port = 9009
+        self.public_api_port = 19009
         self.public_api_threads = 1
         self.public_api_max_concurrent_rpc = 100
 
@@ -89,7 +89,7 @@ class UserConfig(object):
         # ======================================
         self.mining_api_enabled = False
         self.mining_api_host = "127.0.0.1"
-        self.mining_api_port = 9007
+        self.mining_api_port = 19007
         self.mining_api_threads = 1
         self.mining_api_max_concurrent_rpc = 100
 
