@@ -22,6 +22,7 @@ class UserConfig(object):
         UserConfig.__instance = self
 
         self.genesis_prev_headerhash = b'Thirst of Quantas'
+        self.genesis_timestamp = 1529603197
 
         # Default configuration
         self.mining_enabled = False
@@ -239,8 +240,6 @@ class DevConfig(object):
 
         self.trust_min_msgcount = 10
         self.trust_min_conntime = 10
-
-        self.genesis_timestamp = 1528402558
 
         self.supplied_coins = 65000000 * (10 ** 9)
 
