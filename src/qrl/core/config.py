@@ -14,9 +14,9 @@ from math import ceil, log
 class UserConfig(object):
     __instance = None
 
-    def __init__(self):
+    def __init__(self, ignore_check=False):
         # TODO: Move to metaclass in Python 3
-        if UserConfig.__instance is not None:
+        if not ignore_check and UserConfig.__instance is not None:
             raise Exception("UserConfig can only be instantiated once")
 
         UserConfig.__instance = self
@@ -56,7 +56,7 @@ class UserConfig(object):
         self.chain_state_broadcast_period = 30
         # must be less than ping_timeout
 
-        self.transaction_minimum_fee = 0 * DevConfig().shor_per_quanta
+        self.transaction_minimum_fee = 0 * DevConfig(ignore_check).shor_per_quanta
         self.transaction_pool_size = 25000
         self.pending_transaction_pool_size = 75000
         # 1% of the pending_transaction_pool will be reserved for moving stale txn
@@ -172,10 +172,10 @@ def create_path(path):
 class DevConfig(object):
     __instance = None
 
-    def __init__(self):
+    def __init__(self, ignore_check=False):
         super(DevConfig, self).__init__()
         # TODO: Move to metaclass in Python 3
-        if DevConfig.__instance is not None:
+        if not ignore_check and DevConfig.__instance is not None:
             raise Exception("UserConfig can only be instantiated once")
 
         DevConfig.__instance = self

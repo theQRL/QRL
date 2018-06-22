@@ -99,6 +99,7 @@ def clean_genesis():
         config.user.qrl_dir = dst_dir
         _ = GenesisBlock()  # noqa
         config.user.qrl_dir = prev_val
+        config.user = config.UserConfig(True)
         yield
     finally:
         shutil.rmtree(dst_dir)
