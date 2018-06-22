@@ -21,8 +21,8 @@ class UserConfig(object):
 
         UserConfig.__instance = self
 
-        self.genesis_prev_headerhash = b'Thirst of Quantas'
-        self.genesis_timestamp = 1528402558
+        self.genesis_prev_headerhash = b'Emmy Noether'
+        self.genesis_timestamp = 1529656982
 
         # Default configuration
         self.mining_enabled = False
@@ -36,11 +36,10 @@ class UserConfig(object):
         # PEER Configuration
         self.max_redundant_connections = 5  # Number of connections allowed from nodes having same IP
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
-        self.peer_list = ['104.251.219.215',
-                          '104.251.219.145',
-                          '104.251.219.40',
-                          '104.237.3.185',
-                          '35.177.60.137']
+        self.peer_list = ['52.56.107.165',
+                          '35.177.23.167',
+                          '18.130.56.212',
+                          '18.130.130.193']
         self.p2p_local_port = 19000  # Locally binded port at which node will listen for connection
         self.p2p_public_port = 19000  # Public port forwarding connections to server
 
