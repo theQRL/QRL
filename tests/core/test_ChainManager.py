@@ -62,6 +62,7 @@ class TestChainManagerReal(TestCase):
             self.state = State()
             self.state.get_measurement = Mock(return_value=10000000)
 
+            del GenesisBlock.instance  # Removing Singleton instance
             self.genesis_block = GenesisBlock()
 
             self.chain_manager = ChainManager(self.state)
@@ -315,6 +316,7 @@ class TestChainManager(TestCase):
         self.state = Mock(autospec=State)
         self.state.get_measurement.return_value = 10000000
 
+        del GenesisBlock.instance  # Removing Singleton instance
         self.genesis_block = GenesisBlock()
 
         self.chain_manager = ChainManager(self.state)

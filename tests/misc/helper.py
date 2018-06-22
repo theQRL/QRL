@@ -56,11 +56,13 @@ def set_qrl_dir(data_name):
     dst_dir = tempfile.mkdtemp()
     prev_val = config.user.qrl_dir
     try:
-
         test_path = os.path.dirname(os.path.abspath(__file__))
-        src_dir = os.path.join(test_path, "..", "data", data_name)
+        data_dir = os.path.join(test_path, "..", "data")
+        src_dir = os.path.join(data_dir, data_name)
         shutil.rmtree(dst_dir)
         shutil.copytree(src_dir, dst_dir)
+        shutil.copy(os.path.join(data_dir, 'core', 'genesis.yml'), dst_dir)
+        shutil.copy(os.path.join(data_dir, 'core', 'config.yml'), dst_dir)
         config.user.qrl_dir = dst_dir
         yield dst_dir
     finally:
