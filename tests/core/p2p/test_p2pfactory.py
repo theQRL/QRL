@@ -10,7 +10,6 @@ from pyqryptonight.pyqryptonight import StringToUInt256
 from twisted.internet import reactor
 
 from qrl.core import config
-from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.State import State
 from qrl.core.ChainManager import ChainManager

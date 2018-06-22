@@ -96,6 +96,19 @@ class TestTransferTokenTransaction(TestCase):
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
 
+    def test_validate_tx2(self, m_logger):
+        params = self.default_params()
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        # Should fail, as we have modified with invalid transaction_hash
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
     def test_state_validate_tx_custom(self, m_logger):
         """
         TransferTokenTransaction._validate_custom() checks for:

@@ -266,3 +266,21 @@ class TestTokenTransactionStateChanges(TestCase):
         addresses_state[slave.address].unset_ots_key.assert_called_once()
         addresses_state[self.alice.address].decrease_nonce.assert_not_called()
         addresses_state[self.alice.address].unset_ots_key.assert_not_called()
+
+    def test_validate_tx(self, m_logger):
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=1000),
+                            qrl_pb2.AddressAmount(address=self.bob.address, amount=1000)]
+        slave = get_slave_xmss()
+        self.params["initial_balances"] = initial_balances
+        self.params["xmss_pk"] = slave.pk
+        self.params["master_addr"] = self.alice.address
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(slave)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        # Should fail, as we have modified with invalid transaction_hash
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()

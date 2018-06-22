@@ -74,3 +74,15 @@ class TestMessageTransactionStateChanges(TestCase):
 
         self.assertEqual({}, addresses_state)
         m_revert_state_PK.assert_called_once()
+
+    def test_validate_tx(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        # Should fail, as we have modified with invalid transaction_hash
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()

@@ -80,6 +80,18 @@ class TestMessageTransaction(TestCase):
         with self.assertRaises(ValueError):
             MessageTransaction.create(**self.params)
 
+    def test_validate_tx3(self, m_logger):
+        tx = Transaction.from_json(test_json_MessageTransaction)
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        # Should fail, as we have modified with invalid transaction_hash
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
     def test_validate_message_length_zero(self, m_logger):
         self.params["message_hash"] = b''
         with self.assertRaises(ValueError):

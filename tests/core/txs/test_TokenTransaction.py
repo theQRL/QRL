@@ -151,6 +151,24 @@ class TestTokenTransaction(TestCase):
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
 
+    def test_validate_tx4(self, m_logger):
+        initial_balances = list()
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
+                                                      amount=1000 * 10 ** self._decimals))
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
+                                                      amount=1000 * 10 ** self._decimals))
+
+        tx = self.make_tx(initial_balances=initial_balances)
+
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
     def test_validate_custom(self, m_logger):
         # Token symbol too long
         with self.assertRaises(ValueError):
