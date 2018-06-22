@@ -31,13 +31,14 @@ class ExpiringSet(Set):
     def add(self, x):
         current_time = ntp.getTime()
         self._data[x] = current_time + self.expiration_time
+        self._store()
 
     def _refresh(self):
         # TODO: refactored from banned peers. Rework to use a priority queue instead
         current_time = ntp.getTime()
 
         len_before = len(self._data)
-        self._data = {k: v for k, v in self._data.items() if v < current_time}
+        self._data = {k: v for k, v in self._data.items() if v > current_time}
         len_after = len(self._data)
 
         # FIXME: Drop peers beyond configuration limit
