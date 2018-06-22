@@ -133,7 +133,10 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data.transaction_hash
 
     def update_txhash(self):
-        self._data.transaction_hash = sha256(
+        self._data.transaction_hash = self.generate_txhash()
+
+    def generate_txhash(self):
+        return sha256(
             self.get_data_hash() +
             self.signature +
             self.PK
@@ -256,6 +259,13 @@ class Transaction(object, metaclass=ABCMeta):
             raise ValueError("Custom validation failed")
 
         self._coinbase_filter()
+
+        expected_transaction_hash = self.generate_txhash()
+        if verify_signature and self.txhash != expected_transaction_hash:
+            logger.warning('Invalid Transaction hash')
+            logger.warning('Expected Transaction hash %s', bin2hstr(expected_transaction_hash))
+            logger.warning('Found Transaction hash %s', expected_transaction_hash)
+            raise ValueError("Invalid Transaction Hash")
 
         if verify_signature and not XmssFast.verify(self.get_data_hash(),
                                                     self.signature,

@@ -1,6 +1,9 @@
 from unittest import TestCase
 
+from qrl.core.misc import logger
 from qrl.core.TokenList import TokenList
+
+logger.initialize_default()
 
 
 class TestTokenList(TestCase):

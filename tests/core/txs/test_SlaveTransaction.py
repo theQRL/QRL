@@ -2,9 +2,12 @@ from unittest import TestCase
 
 from mock import patch, Mock, PropertyMock
 
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from tests.misc.helper import get_alice_xmss, get_slave_xmss, get_bob_xmss
+
+logger.initialize_default()
 
 
 @patch('qrl.core.txs.Transaction.logger')
@@ -101,3 +104,15 @@ class TestSlaveTransaction(TestCase):
         m_addr_from_pk_state.ots_key_reuse.return_value = True
         result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
         self.assertFalse(result)
+
+    def test_validate_tx(self, m_logger):
+        tx = SlaveTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        # Should fail, as we have modified with invalid transaction_hash
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()

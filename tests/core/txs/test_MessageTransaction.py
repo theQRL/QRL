@@ -5,10 +5,13 @@ from mock import patch, Mock, PropertyMock
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.AddressState import AddressState
+from qrl.core.misc import logger
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.Transaction import Transaction
 from tests.core.txs.testdata import test_json_MessageTransaction, test_signature_MessageTransaction
 from tests.misc.helper import get_alice_xmss, get_bob_xmss
+
+logger.initialize_default()
 
 
 @patch('qrl.core.txs.Transaction.logger')
@@ -76,6 +79,18 @@ class TestMessageTransaction(TestCase):
         # Validation should fail, as we have entered a message of more than 80 lengths
         with self.assertRaises(ValueError):
             MessageTransaction.create(**self.params)
+
+    def test_validate_tx3(self, m_logger):
+        tx = Transaction.from_json(test_json_MessageTransaction)
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        # Should fail, as we have modified with invalid transaction_hash
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
 
     def test_validate_message_length_zero(self, m_logger):
         self.params["message_hash"] = b''

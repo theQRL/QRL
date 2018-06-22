@@ -5,6 +5,10 @@ import base64
 import hashlib
 from Crypto import Random, Cipher
 
+from qrl.core.misc import logger
+
+logger.initialize_default()
+
 
 class AES(object):
 

@@ -7,9 +7,12 @@ from unittest import TestCase
 from pyqryptonight.pyqryptonight import Qryptominer, PoWHelper, SOLUTION
 
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.DifficultyTracker import DifficultyTracker
 from tests.misc.helper import read_data_file
+
+logger.initialize_default()
 
 
 class TestQryptominer(TestCase):

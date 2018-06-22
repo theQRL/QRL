@@ -3,6 +3,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from pyqrllib.pyqrllib import shake256
 
+from qrl.core.misc import logger
+
+logger.initialize_default()
+
 
 class RNG(object):
     """

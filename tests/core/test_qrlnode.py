@@ -2,6 +2,7 @@ from unittest import TestCase, expectedFailure
 from mock import Mock, patch, PropertyMock, mock
 
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
@@ -19,6 +20,9 @@ from pyqrllib.pyqrllib import hstr2bin
 
 from tests.core.test_State import gen_blocks
 from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_slave_xmss, replacement_getTime
+
+logger.initialize_default()
+
 
 alice = get_alice_xmss()
 slave = get_slave_xmss()
