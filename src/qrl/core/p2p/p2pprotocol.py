@@ -220,10 +220,13 @@ class P2PProtocol(Protocol):
         """
 
         chunk_size = 0
+
         while self._buffer:
             if len(self._buffer) < 5:
                 # Buffer is still incomplete as it doesn't have message size
                 return
+
+            ignore_skip = False
 
             try:
                 chunk_size_raw = self._buffer[:4]
@@ -237,7 +240,7 @@ class P2PProtocol(Protocol):
                     raise Exception("Invalid chunk size > message_buffer_size")
 
                 if len(self._buffer) < chunk_size:
-                    # Buffer is still incomplete as it doesn't have message
+                    ignore_skip = True  # Buffer is still incomplete as it doesn't have message so skip moving buffer
                     return
 
                 message_raw = self._buffer[4:4 + chunk_size]
@@ -251,9 +254,10 @@ class P2PProtocol(Protocol):
                 self.peer_manager.ban_channel(self)
 
             finally:
-                skip = 4 + chunk_size
-                self._buffer = self._buffer[skip:]
-                total_read[0] += skip
+                if not ignore_skip:
+                    skip = 4 + chunk_size
+                    self._buffer = self._buffer[skip:]
+                    total_read[0] += skip
 
     ###################################################
     ###################################################
