@@ -2,10 +2,13 @@ from unittest import TestCase
 
 from mock import patch, Mock
 
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.ChainManager import ChainManager
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from tests.misc.helper import get_alice_xmss
+
+logger.initialize_default()
 
 
 @patch('qrl.core.txs.Transaction.Transaction._revert_state_changes_for_PK')

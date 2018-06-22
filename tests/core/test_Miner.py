@@ -4,6 +4,7 @@ from mock import Mock, patch, create_autospec, MagicMock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core.Block import Block
+from qrl.core.misc import logger
 from qrl.core.ChainManager import ChainManager
 from qrl.core.Miner import Miner
 from qrl.core.TransactionPool import TransactionPool
@@ -12,6 +13,9 @@ from qrl.core.node import POW
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.txs.CoinBase import CoinBase
 from tests.misc.helper import get_alice_xmss, get_bob_xmss
+
+logger.initialize_default()
+
 
 alice = get_alice_xmss()
 bob = get_bob_xmss()

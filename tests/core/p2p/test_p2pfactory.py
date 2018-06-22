@@ -10,6 +10,7 @@ from pyqryptonight.pyqryptonight import StringToUInt256
 from twisted.internet import reactor
 
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.State import State
 from qrl.core.ChainManager import ChainManager
@@ -29,6 +30,8 @@ from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 from tests.misc.helper import replacement_getTime
+
+logger.initialize_default()
 
 
 def bhstr2bin(a_string: str) -> bytes:

@@ -4,11 +4,14 @@ import simplejson as json
 from mock import patch, PropertyMock, Mock
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from tests.core.txs.testdata import test_json_TransferToken, test_signature_TransferToken
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss
+
+logger.initialize_default()
 
 
 @patch('qrl.core.txs.Transaction.logger')

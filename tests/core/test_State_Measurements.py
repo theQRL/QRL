@@ -6,6 +6,7 @@ from unittest import TestCase
 from mock import Mock, mock
 
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.State import State
 from qrl.core.misc import logger
 from tests.misc.helper import set_qrl_dir

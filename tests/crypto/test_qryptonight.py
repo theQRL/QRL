@@ -2,7 +2,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 
+from qrl.core.misc import logger
 from pyqryptonight.pyqryptonight import Qryptonight, UInt256ToString
+
+logger.initialize_default()
 
 
 class TestQryptonight(TestCase):

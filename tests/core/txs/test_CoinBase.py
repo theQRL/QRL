@@ -5,6 +5,7 @@ from mock import patch, Mock, PropertyMock
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.BlockHeader import BlockHeader
 from qrl.core.ChainManager import ChainManager
@@ -12,6 +13,8 @@ from qrl.core.txs.CoinBase import CoinBase
 from qrl.crypto.misc import sha256
 from tests.core.txs.testdata import test_json_CoinBase
 from tests.misc.helper import get_alice_xmss
+
+logger.initialize_default()
 
 
 @patch('qrl.core.txs.Transaction.logger')

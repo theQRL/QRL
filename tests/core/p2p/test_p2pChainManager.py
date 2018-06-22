@@ -6,6 +6,7 @@ from unittest import TestCase
 from mock import Mock, patch
 from pyqryptonight.pyqryptonight import StringToUInt256
 
+from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.p2p.p2pChainManager import P2PChainManager
@@ -13,6 +14,8 @@ from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2, qrllegacy_pb2
+
+logger.initialize_default()
 
 
 def make_message(**kwargs):
