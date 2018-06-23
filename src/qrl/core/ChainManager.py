@@ -390,6 +390,7 @@ class ChainManager:
 
                 self._update_chainstate(block, batch)
 
+                logger.debug('Apply block #%d - [batch %d | %s]', block.block_number, i, hash_path[i])
                 self._state.write_batch(batch)
 
             self._state.delete_fork_state()
