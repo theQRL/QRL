@@ -332,7 +332,7 @@ class TestQRLNode(TestCase):
         result_converted_from_iterator = [r for r in result]
         self.assertEqual(result_converted_from_iterator, m_blockdps_as_list)
 
-    @patch('qrl.core.qrlnode.QRLNode.block_height', new_callable=PropertyMock, return_value=3)
+    @patch('qrl.core.qrlnode.ChainManager.height', new_callable=PropertyMock, return_value=3)
     def test_get_blockheader_and_metadata(self, m_height):
         blocks = []
         for i in range(0, 4):

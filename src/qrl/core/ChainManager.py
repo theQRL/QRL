@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import threading
-from typing import Optional
+from typing import Optional, Tuple
 
 from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import StringToUInt256, UInt256ToString
@@ -101,6 +101,28 @@ class ChainManager:
     def get_block_metadata(self, header_hash: bytes) -> Optional[BlockMetadata]:
         with self.lock:
             return self._state.get_block_metadata(header_hash)
+
+    def get_blockheader_and_metadata(self, block_number=0) -> Tuple:
+        with self.lock:
+            block_number = block_number or self.height  # if both are non-zero, then block_number takes priority
+
+            result = (None, None)
+            block = self.get_block_by_number(block_number)
+            if block:
+                blockheader = block.blockheader
+                blockmetadata = self.get_block_metadata(blockheader.headerhash)
+                result = (blockheader, blockmetadata)
+
+            return result
+
+    def get_block_to_mine(self, miner, wallet_address) -> list:
+        with self.lock:
+            last_block = self.last_block
+            last_block_metadata = self.get_block_metadata(last_block.headerhash)
+            return miner.get_block_to_mine(wallet_address,
+                                           self.tx_pool,
+                                           last_block,
+                                           last_block_metadata.block_difficulty)
 
     def get_measurement(self, block_timestamp, parent_headerhash, parent_metadata: BlockMetadata):
         with self.lock:
@@ -327,7 +349,7 @@ class ChainManager:
 
         return block.headerhash, hash_path
 
-    def _rollback(self, forked_header_hash: bytes, fork_state: qrlstateinfo_pb2.ForkState=None):
+    def _rollback(self, forked_header_hash: bytes, fork_state: qrlstateinfo_pb2.ForkState = None):
         """
         Rollback from last block to the block just before the forked_header_hash
         :param forked_header_hash:
