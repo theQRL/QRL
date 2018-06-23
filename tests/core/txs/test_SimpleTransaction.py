@@ -4,6 +4,7 @@ import simplejson as json
 from mock import patch, PropertyMock, Mock
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.ChainManager import ChainManager
 from qrl.core.TransactionInfo import TransactionInfo
@@ -11,6 +12,8 @@ from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from tests.core.txs.testdata import test_json_Simple, test_signature_Simple
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, replacement_getTime
+
+logger.initialize_default()
 
 
 @patch('qrl.core.txs.Transaction.logger')
@@ -95,6 +98,23 @@ class TestSimpleTransaction(TestCase):
 
         # We have not touched the tx: validation should pass.
         self.assertTrue(self.tx.validate_or_raise())
+
+    def test_validate_tx2(self, m_logger):
+        tx = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        # Should fail, as we have modified with invalid transaction_hash
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
 
     @patch('qrl.core.txs.Transaction.config')
     def test_validate_tx_invalid(self, m_config, m_logger):

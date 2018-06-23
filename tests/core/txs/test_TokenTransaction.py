@@ -4,12 +4,15 @@ import simplejson as json
 from mock import patch, PropertyMock, Mock
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.Transaction import Transaction
 from qrl.generated import qrl_pb2
 from tests.core.txs.testdata import test_json_Token, test_signature_Token
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss
+
+logger.initialize_default()
 
 
 @patch('qrl.core.txs.Transaction.logger')
@@ -147,6 +150,24 @@ class TestTokenTransaction(TestCase):
 
         # We have not touched the tx: validation should pass.
         self.assertTrue(tx.validate_or_raise())
+
+    def test_validate_tx4(self, m_logger):
+        initial_balances = list()
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,
+                                                      amount=1000 * 10 ** self._decimals))
+        initial_balances.append(qrl_pb2.AddressAmount(address=self.bob.address,
+                                                      amount=1000 * 10 ** self._decimals))
+
+        tx = self.make_tx(initial_balances=initial_balances)
+
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
 
     def test_validate_custom(self, m_logger):
         # Token symbol too long

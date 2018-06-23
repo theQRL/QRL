@@ -2,10 +2,13 @@ from unittest import TestCase
 
 from mock import patch, Mock
 
+from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.ChainManager import ChainManager
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from tests.misc.helper import get_alice_xmss
+
+logger.initialize_default()
 
 
 @patch('qrl.core.txs.Transaction.Transaction._revert_state_changes_for_PK')
@@ -71,3 +74,15 @@ class TestMessageTransactionStateChanges(TestCase):
 
         self.assertEqual({}, addresses_state)
         m_revert_state_PK.assert_called_once()
+
+    def test_validate_tx(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+        tx = MessageTransaction.create(**self.params)
+        tx.sign(self.alice)
+
+        self.assertTrue(tx.validate_or_raise())
+
+        tx._data.transaction_hash = b'abc'
+
+        # Should fail, as we have modified with invalid transaction_hash
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()

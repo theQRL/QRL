@@ -10,6 +10,7 @@ from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.generated import qrlstateinfo_pb2
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.crypto.xmss import XMSS
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
@@ -19,6 +20,8 @@ from qrl.core.State import State
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_default_balance_size, set_qrl_dir, replacement_getTime
+
+logger.initialize_default()
 
 alice = get_alice_xmss()
 bob = get_bob_xmss()

@@ -14,11 +14,14 @@ from pyqrllib.pyqrllib import XmssFast
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
+
+logger.initialize_default()
 
 
 def replacement_getTime():

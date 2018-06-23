@@ -10,6 +10,7 @@ from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
+from qrl.core.misc import logger
 from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pfactory import P2PFactory
@@ -17,6 +18,8 @@ from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 from tests.misc.helper import replacement_getTime
 from tests.misc.helper import set_qrl_dir
+
+logger.initialize_default()
 
 
 def make_channel(name=''):

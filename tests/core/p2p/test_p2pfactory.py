@@ -30,6 +30,8 @@ from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.generated import qrl_pb2, qrllegacy_pb2
 from tests.misc.helper import replacement_getTime
 
+logger.initialize_default()
+
 
 def bhstr2bin(a_string: str) -> bytes:
     return bytes(hstr2bin(a_string))
