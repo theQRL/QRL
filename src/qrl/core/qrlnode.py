@@ -427,24 +427,10 @@ class QRLNode:
         return reversed(result)
 
     def get_blockheader_and_metadata(self, block_number=0) -> Tuple:
-        block_number = block_number or self.block_height  # if both are non-zero, then block_number takes priority
-
-        result = (None, None)
-        block = self.get_block_from_index(block_number)
-        if block:
-            blockheader = block.blockheader
-            blockmetadata = self._chain_manager.get_block_metadata(blockheader.headerhash)
-            result = (blockheader, blockmetadata)
-
-        return result
+        return self._chain_manager.get_blockheader_and_metadata(block_number)
 
     def get_block_to_mine(self, wallet_address) -> list:
-        last_block = self._chain_manager.last_block
-        last_block_metadata = self._chain_manager.get_block_metadata(last_block.headerhash)
-        return self._pow.miner.get_block_to_mine(wallet_address,
-                                                 self._chain_manager.tx_pool,
-                                                 last_block,
-                                                 last_block_metadata.block_difficulty)
+        return self._chain_manager.get_block_to_mine(self._pow.miner, wallet_address)
 
     def submit_mined_block(self, blob) -> bool:
         return self._pow.miner.submit_mined_block(blob)
