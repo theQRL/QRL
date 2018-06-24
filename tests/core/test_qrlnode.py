@@ -74,6 +74,9 @@ class TestQRLNode(TestCase):
         self.qrlnode.start_time -= 10
 
         self.qrlnode._pow = Mock(autospec=POW)
+        self.qrlnode._pow.miner.lock.__enter__ = Mock()
+        self.qrlnode._pow.miner.lock.__exit__ = Mock()
+
         self.qrlnode.peer_manager = Mock(autospec=P2PPeerManager, name='mock P2PPeerManager',
                                          known_peer_addresses=set())
         self.qrlnode.p2pchain_manager = Mock(autospec=P2PChainManager, name='mock P2PChainManager')
