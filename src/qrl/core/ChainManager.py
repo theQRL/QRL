@@ -116,13 +116,14 @@ class ChainManager:
             return result
 
     def get_block_to_mine(self, miner, wallet_address) -> list:
-        with self.lock:
-            last_block = self.last_block
-            last_block_metadata = self.get_block_metadata(last_block.headerhash)
-            return miner.get_block_to_mine(wallet_address,
-                                           self.tx_pool,
-                                           last_block,
-                                           last_block_metadata.block_difficulty)
+        with miner.lock:  # Trying to acquire miner.lock to make sure pre_block_logic is not running
+            with self.lock:
+                last_block = self.last_block
+                last_block_metadata = self.get_block_metadata(last_block.headerhash)
+                return miner.get_block_to_mine(wallet_address,
+                                               self.tx_pool,
+                                               last_block,
+                                               last_block_metadata.block_difficulty)
 
     def get_measurement(self, block_timestamp, parent_headerhash, parent_metadata: BlockMetadata):
         with self.lock:

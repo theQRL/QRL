@@ -212,7 +212,7 @@ def _parse_dsts_amounts(addresses: str, amounts: str, token_decimals: int = 0):
 @click.group()
 @click.option('--verbose', '-v', default=False, is_flag=True, help='verbose output whenever possible')
 @click.option('--host', default='127.0.0.1', help='remote host address             [127.0.0.1]')
-@click.option('--port_pub', default=9009, help='remote port number (public api) [9009]')
+@click.option('--port_pub', default=19009, help='remote port number (public api) [19009]')
 @click.option('--wallet_dir', default='.', help='local wallet dir', envvar=ENV_QRL_WALLET_DIR)
 @click.option('--json', default=False, is_flag=True, help='output in json')
 @click.pass_context
