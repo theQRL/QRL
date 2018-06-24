@@ -109,6 +109,7 @@ class P2PProtocol(Protocol):
             self.update_counters()
             self.in_counter += 1
             if self.in_counter > self.rate_limit:
+                logger.warning("Rate Limit hit by %s %s", self.peer.ip, self.peer.port)
                 self.peer_manager.ban_channel(self)
 
             if self._valid_message_count < config.dev.trust_min_msgcount * 2:
