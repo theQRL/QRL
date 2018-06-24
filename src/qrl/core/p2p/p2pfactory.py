@@ -254,7 +254,7 @@ class P2PFactory(ServerFactory):
         block_headerhash = node_header_hash.headerhashes[curr_index]
         block = self._chain_manager.get_block(block_headerhash)
 
-        if retry >= 5:
+        if retry >= 1:
             logger.debug('Retry Limit Hit')
             self._qrl_node.peer_manager.ban_channel(self._target_channel)
             self.is_syncing_finished(force_finish=True)
@@ -270,7 +270,7 @@ class P2PFactory(ServerFactory):
             return
 
         self._target_channel.send_fetch_block(self._last_requested_block_number)
-        reactor.download_monitor = reactor.callLater(20, self.peer_fetch_block, retry + 1)
+        reactor.download_monitor = reactor.callLater(100, self.peer_fetch_block, retry + 1)
 
     def compare_and_sync(self, source_peer, node_header_hash: qrl_pb2.NodeHeaderHash):
         if self._syncing_enabled:
