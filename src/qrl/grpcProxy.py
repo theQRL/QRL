@@ -92,12 +92,11 @@ def api_proxy(api_method_name):
     """
     Proxy JSON RPC requests to the gRPC server as well as converts back gRPC response
     to JSON.
-    TODO :
-    1.  Remove hardcoded Server IP and Port
     :param api_method_name:
     :return:
     """
-    stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel('127.0.0.1:9009'))
+    stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel('{}:{}'.format(config.user.public_api_host,
+                                                                           config.user.public_api_port)))
     public_api = qrl_pb2.DESCRIPTOR.services_by_name['PublicAPI']
     api_method = public_api.FindMethodByName(api_method_name)
     api_request = getattr(qrl_pb2, api_method.input_type.name)()

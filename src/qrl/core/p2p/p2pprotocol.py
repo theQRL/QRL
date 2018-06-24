@@ -16,6 +16,9 @@ from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.p2p.p2pObservable import P2PObservable
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
+OUT_FACTOR = 0.9
+IN_FACTOR = 1.1
+
 
 # Rename to p2p channel
 class P2PProtocol(Protocol):
@@ -108,7 +111,8 @@ class P2PProtocol(Protocol):
         for msg in self._parse_buffer(read_bytes):
             self.update_counters()
             self.in_counter += 1
-            if self.in_counter > self.rate_limit:
+            if self.in_counter > self.rate_limit * IN_FACTOR:
+                logger.warning("Rate Limit hit by %s %s", self.peer.ip, self.peer.port)
                 self.peer_manager.ban_channel(self)
 
             if self._valid_message_count < config.dev.trust_min_msgcount * 2:
@@ -133,7 +137,7 @@ class P2PProtocol(Protocol):
 
     def send_next(self):
         self.update_counters()
-        if self.out_counter == self.rate_limit:
+        if self.out_counter >= self.rate_limit * OUT_FACTOR:
             return
 
         if self.bytes_sent < config.dev.max_bytes_out:
@@ -156,7 +160,7 @@ class P2PProtocol(Protocol):
                     outgoing_bytes += wrapped_message
 
                     self.out_counter += 1
-                    if self.out_counter == self.rate_limit:
+                    if self.out_counter >= self.rate_limit * OUT_FACTOR:
                         break
 
         return outgoing_bytes
