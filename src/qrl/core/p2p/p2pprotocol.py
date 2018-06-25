@@ -17,7 +17,7 @@ from qrl.core.p2p.p2pObservable import P2PObservable
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 OUT_FACTOR = 0.9
-IN_FACTOR = 1.1
+IN_FACTOR = 2.2
 
 
 # Rename to p2p channel
@@ -170,6 +170,7 @@ class P2PProtocol(Protocol):
         priority = self.factory.p2p_msg_priority[message.func_name]
         outgoing_msg = OutgoingMessage(priority, message)
         if self.outgoing_queue.full():
+            logger.info("Outgoing Queue Full: Skipping Message Type %s", message.WhichOneof('data'))
             return
         self.outgoing_queue.put((outgoing_msg.priority, outgoing_msg.timestamp, outgoing_msg))
         self.send_next()

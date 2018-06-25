@@ -44,6 +44,8 @@ class UserConfig(object):
         self.p2p_public_port = 19000  # Public port forwarding connections to server
 
         self.peer_rate_limit = 500  # Max Number of messages per minute per peer
+        self.p2p_q_size = 10000
+        self.outgoing_message_expiry = 90  # Outgoing message expires after 90 seconds
 
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
         self.ntp_refresh = 12 * 60 * 60  # 12 hours
@@ -106,8 +108,6 @@ class UserConfig(object):
         # ======================================
         self.grpc_proxy_host = "127.0.0.1"
         self.grpc_proxy_port = 18090
-        self.p2p_q_size = 1000
-        self.outgoing_message_expiry = 90  # Outgoing message expires after 90 seconds
 
         # WARNING! loading should be the last line.. any new setting after this will not be updated by the config file
         self.load_yaml(self.config_path)

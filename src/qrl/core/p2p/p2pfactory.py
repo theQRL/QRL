@@ -35,8 +35,8 @@ p2p_msg_priority = {
             qrllegacy_pb2.LegacyMessage.SFM: 1,
 
             qrllegacy_pb2.LegacyMessage.BK: 1,
-            qrllegacy_pb2.LegacyMessage.FB: 1,
-            qrllegacy_pb2.LegacyMessage.PB: 1,
+            qrllegacy_pb2.LegacyMessage.FB: 0,
+            qrllegacy_pb2.LegacyMessage.PB: 0,
             qrllegacy_pb2.LegacyMessage.BH: 1,
 
             ############################
