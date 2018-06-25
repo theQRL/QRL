@@ -49,19 +49,22 @@ class TestCLI_Wallet_Gen(TestCase):
         os.chdir(self.prev_dir)
         shutil.rmtree(self.temp_dir)
 
-    def test_wallet_gen_default_height(self):
-        self.runner.invoke(qrl_cli, ["wallet_gen"])
+    def wallet_gen_default_height(self):
+        result = self.runner.invoke(qrl_cli, ["wallet_gen"])
         wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
         self.assertEqual(wallet["addresses"][0]["height"], 12)
 
     def test_wallet_gen_different_height(self):
-        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
+        result = self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
         wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
         self.assertEqual(wallet["addresses"][0]["height"], 4)
 
     def test_wallet_gen_different_hash_function(self):
-        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--hash_function=sha2_256"])
+        result = self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--hash_function=sha2_256"])
         wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
         self.assertEqual(wallet["addresses"][0]["hashFunction"], "sha2_256")
 
     def test_wallet_gen_json(self):
@@ -69,8 +72,9 @@ class TestCLI_Wallet_Gen(TestCase):
         self.assertTrue(json.loads(result.output))  # Throws an exception if output is not valid JSON
 
     def test_wallet_gen_encrypt(self):
-        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--encrypt"], input='password\npassword\n')
         wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
         self.assertTrue(wallet["encrypted"])
 
 
