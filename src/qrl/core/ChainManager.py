@@ -27,7 +27,7 @@ class ChainManager:
         self._state = state
         self.tx_pool = TransactionPool(None)
         self._last_block = Block.deserialize(GenesisBlock().serialize())
-        self.current_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
+        self.current_difficulty = StringToUInt256(str(config.user.genesis_difficulty))
 
         self.trigger_miner = False
         self.lock = threading.RLock()
@@ -218,7 +218,7 @@ class ChainManager:
                                                               prev_headerhash=genesis_block.prev_headerhash)
 
             self._state.put_block_number_mapping(genesis_block.block_number, block_number_mapping, None)
-            parent_difficulty = StringToUInt256(str(config.dev.genesis_difficulty))
+            parent_difficulty = StringToUInt256(str(config.user.genesis_difficulty))
 
             self.current_difficulty, _ = DifficultyTracker.get(
                 measurement=config.dev.mining_setpoint_blocktime,

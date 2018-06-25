@@ -91,9 +91,9 @@ class MockedBlockchain(object):
 
             state.get_measurement = MagicMock(return_value=10000000)
 
-            genesis_difficulty = config.dev.genesis_difficulty
+            genesis_difficulty = config.user.genesis_difficulty
             try:
-                config.dev.genesis_difficulty = 10
+                config.user.genesis_difficulty = 10
                 genesis_block = GenesisBlock()
                 chain_manager = ChainManager(state)
                 chain_manager.load(genesis_block)
@@ -114,4 +114,4 @@ class MockedBlockchain(object):
 
                 yield mock_blockchain
             finally:
-                config.dev.genesis_difficulty = genesis_difficulty
+                config.user.genesis_difficulty = genesis_difficulty

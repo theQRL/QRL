@@ -114,7 +114,7 @@ def main():
         config.user.mining_thread_count = 1
         config.user.mining_pause = 500
         config.dev.mining_setpoint_blocktime = 1
-        config.dev.genesis_difficulty = 2
+        config.user.genesis_difficulty = 2
 
         # Mocknet mining address
         # Q01050058bb3f8cb66fd90d0347478e5bdf3a475e82cfc5fe5dc276500ca21531e6edaf3d2d0f7e
