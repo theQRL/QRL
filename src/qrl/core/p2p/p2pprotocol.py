@@ -114,6 +114,7 @@ class P2PProtocol(Protocol):
             if self.in_counter > self.rate_limit * IN_FACTOR:
                 logger.warning("Rate Limit hit by %s %s", self.peer.ip, self.peer.port)
                 self.peer_manager.ban_channel(self)
+                return
 
             if self._valid_message_count < config.dev.trust_min_msgcount * 2:
                 # Avoid overflows
@@ -243,7 +244,7 @@ class P2PProtocol(Protocol):
                 if chunk_size > config.dev.message_buffer_size:
                     raise Exception("Invalid chunk size > message_buffer_size")
 
-                if len(self._buffer) < chunk_size:
+                if len(self._buffer) - 4 < chunk_size:  # As 4 bytes includes chunk_size_raw
                     ignore_skip = True  # Buffer is still incomplete as it doesn't have message so skip moving buffer
                     return
 
