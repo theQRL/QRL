@@ -23,6 +23,7 @@ class UserConfig(object):
 
         self.genesis_prev_headerhash = b'Emmy Noether'
         self.genesis_timestamp = 1529656982
+        self.genesis_difficulty = 10000000
 
         # Default configuration
         self.mining_enabled = False
@@ -44,6 +45,8 @@ class UserConfig(object):
         self.p2p_public_port = 19000  # Public port forwarding connections to server
 
         self.peer_rate_limit = 500  # Max Number of messages per minute per peer
+        self.p2p_q_size = 10000
+        self.outgoing_message_expiry = 90  # Outgoing message expires after 90 seconds
 
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
         self.ntp_refresh = 12 * 60 * 60  # 12 hours
@@ -106,8 +109,6 @@ class UserConfig(object):
         # ======================================
         self.grpc_proxy_host = "127.0.0.1"
         self.grpc_proxy_port = 18090
-        self.p2p_q_size = 1000
-        self.outgoing_message_expiry = 90  # Outgoing message expires after 90 seconds
 
         # WARNING! loading should be the last line.. any new setting after this will not be updated by the config file
         self.load_yaml(self.config_path)
@@ -224,7 +225,7 @@ class DevConfig(object):
         self.hash_buffer_size = 4
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
         self.mining_setpoint_blocktime = 60
-        self.genesis_difficulty = 5000
+
         self.tx_extra_overhead = 15  # 15 bytes
         self.coinbase_address = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' \
                                 b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
