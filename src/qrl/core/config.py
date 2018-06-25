@@ -224,7 +224,7 @@ class DevConfig(object):
         self.hash_buffer_size = 4
         self.minimum_minting_delay = 45  # Minimum delay in second before a block is being created
         self.mining_setpoint_blocktime = 60
-        self.genesis_difficulty = 5000
+        self.genesis_difficulty = 10000000
         self.tx_extra_overhead = 15  # 15 bytes
         self.coinbase_address = b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00' \
                                 b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00'
