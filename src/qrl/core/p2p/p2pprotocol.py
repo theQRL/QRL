@@ -243,7 +243,7 @@ class P2PProtocol(Protocol):
                 if chunk_size > config.dev.message_buffer_size:
                     raise Exception("Invalid chunk size > message_buffer_size")
 
-                if len(self._buffer) < chunk_size:
+                if len(self._buffer) - 4 < chunk_size:  # As 4 bytes includes chunk_size_raw
                     ignore_skip = True  # Buffer is still incomplete as it doesn't have message so skip moving buffer
                     return
 
