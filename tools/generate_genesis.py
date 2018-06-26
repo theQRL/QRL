@@ -31,10 +31,14 @@ def get_migration_transactions(signing_xmss):
     count = 1
     addrs_to = []
     amounts = []
-    # output_limit = config.dev.transaction_multi_output_limit
-    output_limit = 4  # Overriding output limit to 4, to get multiple txns and better testing scenario
+    output_limit = config.dev.transaction_multi_output_limit
+    # output_limit = 100  # Overriding output limit to 4, to get multiple txns and better testing scenario
     for addr in json_data:
-        addrs_to.append(bytes(hstr2bin(addr[1:])))
+        try:
+            addrs_to.append(bytes(hstr2bin(addr[1:])))
+        except:
+            print("Invalid Address ", addr)
+            raise Exception
         amounts.append(json_data[addr])
 
         count += 1
@@ -45,7 +49,7 @@ def get_migration_transactions(signing_xmss):
             amounts = []
 
     if addrs_to:
-        transactions.append(create_tx(addrs_to, amounts, signing_xmss, count))
+        transactions.append(create_tx(addrs_to, amounts, signing_xmss, (count // output_limit) + 1))
 
     return transactions
 
@@ -58,7 +62,7 @@ transactions = get_migration_transactions(signing_xmss=dist_xmss)
 
 block = Block.create(block_number=0,
                      prev_headerhash=config.user.genesis_prev_headerhash,
-                     prev_timestamp=config.dev.genesis_timestamp,
+                     prev_timestamp=config.user.genesis_timestamp,
                      transactions=transactions,
                      miner_address=dist_xmss.address)
 

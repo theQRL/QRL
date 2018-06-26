@@ -21,8 +21,8 @@ class UserConfig(object):
 
         UserConfig.__instance = self
 
-        self.genesis_prev_headerhash = b'Emmy Noether'
-        self.genesis_timestamp = 1529656982
+        self.genesis_prev_headerhash = b'The sleeper must awaken'
+        self.genesis_timestamp = 1530004179
         self.genesis_difficulty = 10000000
 
         # Default configuration
@@ -37,10 +37,12 @@ class UserConfig(object):
         # PEER Configuration
         self.max_redundant_connections = 5  # Number of connections allowed from nodes having same IP
         self.enable_peer_discovery = True  # Allows to discover new peers from the connected peers
-        self.peer_list = ['52.56.107.165',
-                          '35.177.23.167',
-                          '18.130.56.212',
-                          '18.130.130.193']
+
+        self.peer_list = ['35.178.79.137',
+                          '35.177.182.85',
+                          '18.130.119.29',
+                          '18.130.25.64']
+
         self.p2p_local_port = 19000  # Locally binded port at which node will listen for connection
         self.p2p_public_port = 19000  # Public port forwarding connections to server
 
