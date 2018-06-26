@@ -36,7 +36,7 @@ def get_migration_transactions(signing_xmss):
     for addr in json_data:
         try:
             addrs_to.append(bytes(hstr2bin(addr[1:])))
-        except:
+        except: # noqa
             print("Invalid Address ", addr)
             raise Exception
         amounts.append(json_data[addr])
