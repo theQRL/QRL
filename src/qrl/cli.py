@@ -255,7 +255,7 @@ def wallet_gen(ctx, height, hash_function, encrypt):
 
     wallet.add_new_address(height, hash_function)
 
-    _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+    _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_path)
 
     if encrypt:
         secret = click.prompt('Enter password to encrypt wallet with', hide_input=True, confirmation_prompt=True)
