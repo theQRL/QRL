@@ -3,6 +3,7 @@ from unittest import TestCase
 from mock import Mock, patch, create_autospec, MagicMock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
+from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.misc import logger
 from qrl.core.ChainManager import ChainManager
@@ -12,7 +13,8 @@ from qrl.core.misc.helper import parse_qaddress
 from qrl.core.node import POW
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.txs.CoinBase import CoinBase
-from tests.misc.helper import get_alice_xmss, get_bob_xmss
+from qrl.core.txs.TransferTransaction import TransferTransaction
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, replacement_getTime
 
 logger.initialize_default()
 
@@ -108,10 +110,6 @@ class TestMiner(TestCase):
         with patch('qrl.core.Miner.Miner.start', spec=True) as m_start:
             self.miner.start_mining(self.parent_block, self.parent_difficulty)
             m_start.assert_called_once()
-
-    def create_block_with_transactions(self, m_logger):
-        self.miner.create_block(last_block=self.parent_block, mining_nonce=0, tx_pool=self.txpool,
-                                miner_address=self.m_mining_address)
 
     def test_get_block_to_mine_no_existing_block_being_mined_upon(self, m_getTime, m_logger):
         """
@@ -211,6 +209,12 @@ class TestMiner(TestCase):
         self.assertIsNotNone(blob)
         self.assertEqual(difficulty, 1)
 
+    def test_get_block_to_mine_chokes_on_invalid_mining_address(self, m_getTime, m_logger):
+        invalid_address = self.m_mining_qaddress + 'aaaa'
+        m_parent_block = Mock(autospec=Block, name='mock parent_block')
+        with self.assertRaises(ValueError):
+            self.miner.get_block_to_mine(invalid_address.encode(), self.txpool, m_parent_block, self.parent_difficulty)
+
     def test_submit_mined_block(self, m_getTime, m_logger):
         """
         This runs when a miner submits a blob with a valid nonce. It returns True only if
@@ -237,3 +241,75 @@ class TestMiner(TestCase):
         self.m_pre_block_logic.return_value = True
         result = self.miner.submit_mined_block(blob)
         self.assertTrue(result)
+
+
+@patch('qrl.core.Miner.logger')
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+class TestMinerWithRealTransactionPool(TestCase):
+    def setUp(self):
+        self.m_mining_qaddress = alice.qaddress
+        self.m_mining_address = parse_qaddress(self.m_mining_qaddress)
+
+        self.chain_manager = Mock(spec=ChainManager)
+        self.chain_manager.get_block_size_limit.return_value = 500
+        self.chain_manager.get_address_state.return_value = Mock(autospec=AddressState, name='mock alice AddressState')
+
+        self.parent_block = Block()
+        self.parent_difficulty = StringToUInt256('0')  # tuple (0,0,0,0,0...) length 32
+
+        self.m_pre_block_logic = Mock(spec=POW.pre_block_logic, name='hello')
+        m_add_unprocessed_txn_fn = create_autospec(P2PFactory.add_unprocessed_txn)
+        mining_thread_count = 1
+
+        self.miner = Miner(self.m_pre_block_logic,
+                           self.m_mining_address,
+                           self.chain_manager,
+                           mining_thread_count,
+                           m_add_unprocessed_txn_fn)
+
+        self.txpool = TransactionPool(None)
+
+        def replacement_set_affected_address(addresses_set):
+            return addresses_set.add(alice.address)
+
+        self.m_tx_args = {"addr_from": alice.address,
+                          "addrs_to": [bob.address],
+                          "amounts": [10],
+                          "fee": 1,
+                          "PK": alice.pk,
+                          "master_addr": None,
+                          "size": 150,
+                          "validate_extended.return_value": True,
+                          "set_affected_address": replacement_set_affected_address
+                          }
+
+    @patch('qrl.core.Miner.Block.create')
+    def test_create_block_with_one_transaction(self, m_create, m_logger):
+        m_tx = Mock(autospec=TransferTransaction, name='mock TransferTransaction')
+        m_tx.configure_mock(**self.m_tx_args)
+
+        m_create.return_value = Mock(autospec=Block, name='mock Block', size=205)
+
+        self.txpool.add_tx_to_pool(m_tx, 1, replacement_getTime())
+
+        self.miner.create_block(last_block=self.parent_block, mining_nonce=0, tx_pool=self.txpool,
+                                miner_address=self.m_mining_address)
+
+        m_create.assert_called_with(block_number=1, prev_headerhash=b'', prev_timestamp=0, transactions=[m_tx],
+                                    miner_address=alice.address)
+
+    @patch('qrl.core.Miner.Block.create')
+    def test_create_block_does_not_include_invalid_txs_from_txpool(self, m_create, m_logger):
+        self.m_tx_args["validate_extended.return_value"] = False
+        m_tx = Mock(autospec=TransferTransaction, name='mock TransferTransaction')
+        m_tx.configure_mock(**self.m_tx_args)
+
+        m_create.return_value = Mock(autospec=Block, name='mock Block', size=205)
+
+        self.txpool.add_tx_to_pool(m_tx, 1, replacement_getTime())
+
+        self.miner.create_block(last_block=self.parent_block, mining_nonce=0, tx_pool=self.txpool,
+                                miner_address=self.m_mining_address)
+
+        m_create.assert_called_with(block_number=1, prev_headerhash=b'', prev_timestamp=0, transactions=[],
+                                    miner_address=alice.address)
