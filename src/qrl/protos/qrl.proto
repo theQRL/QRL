@@ -119,7 +119,7 @@ message GetBlockResp {
  * Represents a query to get statistics about node
 */
 message GetStatsReq {
-    bool include_timeseries = 1;            // Boolean to define if block timeseries should be included in reply or not
+    bool block_timeseries = 1;            // Boolean to define if block timeseries should be included in reply or not
 }
 
 /**
