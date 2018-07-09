@@ -82,7 +82,6 @@ class PublicAPIService(PublicAPIServicer):
         if request.exclude_transaction_hashes:
             del address_state.pbdata.transaction_hashes[:]
         return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
-    
     @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] TransferCoins")
