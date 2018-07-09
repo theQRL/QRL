@@ -164,10 +164,18 @@ message BlockDataPoint
     bytes header_hash_prev = 8;             // Previous block's header hash
 }
 
-message GetAddressStateReq {   bytes address = 1; }
+
+message GetAddressStateReq {   
+                            bytes address = 1;
+                            bool exclude_ots_bitfield = 2;
+                            bool exclude_transaction_hashes = 3; 
+}
+
 message GetAddressStateResp {
+    
     AddressState state = 1;
 }
+
 
 message GetObjectReq {  bytes query = 1;    }
 message GetObjectResp {
