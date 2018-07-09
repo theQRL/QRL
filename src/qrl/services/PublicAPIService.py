@@ -70,7 +70,6 @@ class PublicAPIService(PublicAPIServicer):
                 vals = [v.time_last for v in tmp[1:]]
                 response.block_time_mean = int(mean(vals))
                 response.block_time_sd = int(variance(vals) ** 0.5)
-
         return response
     
     @GrpcExceptionWrapper(qrl_pb2.GetAddressStateResp)
@@ -82,6 +81,7 @@ class PublicAPIService(PublicAPIServicer):
         if request.exclude_transaction_hashes:
             del address_state.pbdata.transaction_hashes[:]
         return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
+    
     @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] TransferCoins")
