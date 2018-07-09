@@ -72,33 +72,17 @@ class PublicAPIService(PublicAPIServicer):
                 response.block_time_sd = int(variance(vals) ** 0.5)
 
         return response
-
+    
     @GrpcExceptionWrapper(qrl_pb2.GetAddressStateResp)
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:
-        response = qrl_pb2.GetAddressStateResp()
         address_state = self.qrlnode.get_address_state(request.address)
-        response.state.address = address_state.address
-        response.state.balance = address_state.balance
-        response.state.nonce = address_state.nonce
-        response.state.ots_counter = address_state.ots_counter
-
-        if hasattr(address_state, 'tokens'):
-            response.state.tokens = address_state.tokens
-        if hasattr(address_state, 'latticePK_list'):
-            response.state.latticePK_list.extend(address_state.latticePK_list)
-        if hasattr(address_state, 'slave_pks_access_type'):
-            for key in address_state.slave_pks_access_type:
-                response.state.slave_pks_access_type[key] = address_state.slave_pks_access_type[key]
         
-        if not request.exclude_ots_bitfield:
-            response.state.ots_bitfield.extend(address_state.ots_bitfield)
-        
-        if not request.exclude_transaction_hashes:
-            response.state.transaction_hashes.extend(address_state.transaction_hashes)
-
-        return response
-
-
+        if request.exclude_ots_bitfield:
+            del address_state.pbdata.ots_bitfield[:]
+        if request.exclude_transaction_hashes:
+            del address_state.pbdata.transaction_hashes[:]
+        return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
+    
     @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] TransferCoins")
