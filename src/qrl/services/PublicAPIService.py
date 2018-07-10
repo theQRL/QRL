@@ -77,11 +77,9 @@ class PublicAPIService(PublicAPIServicer):
         response = qrl_pb2.ParseAddressResp()
         response.is_valid = QRLHelper.addressIsValid(request.address)
         descriptor = QRLDescriptor.fromBytes(request.address[:3])
-        
         hf_dict = {0:'SHA2-256', 1:'SHAKE-128', 2:'SHAKE-256', 3:'RESERVED' }
         ss_dict = {0:'XMSS', 1:'XMSS-MT'}
         af_dict = {0:'SHA2-256',1:'RESERVED',3:'RESERVED'}
-
         response.desc.hash_function = hf_dict[descriptor.getHashFunction()]
         response.desc.tree_height = descriptor.getHeight()
         response.desc.signatures = 2**response.desc.tree_height
