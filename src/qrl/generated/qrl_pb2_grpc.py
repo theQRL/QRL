@@ -67,6 +67,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.TransferCoinsReq.SerializeToString,
         response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
         )
+    self.ParseAddress = channel.unary_unary(
+        '/qrl.PublicAPI/ParseAddress',
+        request_serializer=qrl__pb2.ParseAddressReq.SerializeToString,
+        response_deserializer=qrl__pb2.ParseAddressResp.FromString,
+        )
     self.GetAddressFromPK = channel.unary_unary(
         '/qrl.PublicAPI/GetAddressFromPK',
         request_serializer=qrl__pb2.GetAddressFromPKReq.SerializeToString,
@@ -108,84 +113,105 @@ class PublicAPIServicer(object):
 
   def GetNodeState(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetKnownPeers(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetPeersStat(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetStats(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetAddressState(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetObject(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetLatestData(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def PushTransaction(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def TransferCoins(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def ParseAddress(self, request, context):
+    # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetAddressFromPK(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetMessageTxn(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetTokenTxn(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetTransferTokenTxn(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetSlaveTxn(self, request, context):
     # missing associated documentation comment in .proto file
+    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
@@ -237,6 +263,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.TransferCoins,
           request_deserializer=qrl__pb2.TransferCoinsReq.FromString,
           response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
+      ),
+      'ParseAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.ParseAddress,
+          request_deserializer=qrl__pb2.ParseAddressReq.FromString,
+          response_serializer=qrl__pb2.ParseAddressResp.SerializeToString,
       ),
       'GetAddressFromPK': grpc.unary_unary_rpc_method_handler(
           servicer.GetAddressFromPK,

@@ -4,7 +4,7 @@
 import traceback
 from statistics import variance, mean
 
-from pyqrllib.pyqrllib import hstr2bin, QRLHelper
+from pyqrllib.pyqrllib import hstr2bin, QRLHelper, QRLDescriptor
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
@@ -70,12 +70,30 @@ class PublicAPIService(PublicAPIServicer):
                 vals = [v.time_last for v in tmp[1:]]
                 response.block_time_mean = int(mean(vals))
                 response.block_time_sd = int(variance(vals) ** 0.5)
+        return response
 
+    @GrpcExceptionWrapper(qrl_pb2.ParseAddressResp)
+    def ParseAddress(self, request: qrl_pb2.ParseAddressReq, context) -> qrl_pb2.ParseAddressResp:
+        response = qrl_pb2.ParseAddressResp()
+        response.is_valid = QRLHelper.addressIsValid(request.address)
+        descriptor = QRLDescriptor.fromBytes(request.address[:3])
+        hf_dict = {0: 'SHA2-256', 1: 'SHAKE-128', 2: 'SHAKE-256', 3: 'RESERVED'}
+        ss_dict = {0: 'XMSS', 1: 'XMSS-MT'}
+        af_dict = {0: 'SHA2-256', 1: 'RESERVED', 3: 'RESERVED'}
+        response.desc.hash_function = hf_dict[descriptor.getHashFunction()]
+        response.desc.tree_height = descriptor.getHeight()
+        response.desc.signatures = 2**response.desc.tree_height
+        response.desc.signature_scheme = ss_dict[descriptor.getSignatureType()]
+        response.desc.address_format = af_dict[descriptor.getAddrFormatType()]
         return response
 
     @GrpcExceptionWrapper(qrl_pb2.GetAddressStateResp)
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:
         address_state = self.qrlnode.get_address_state(request.address)
+        if request.exclude_ots_bitfield:
+            del address_state.pbdata.ots_bitfield[:]
+        if request.exclude_transaction_hashes:
+            del address_state.pbdata.transaction_hashes[:]
         return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
 
     @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
