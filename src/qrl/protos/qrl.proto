@@ -30,7 +30,7 @@ service PublicAPI
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
-
+    rpc ParseAddress (ParseAddressReq) returns (ParseAddressResp);
     rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp);
 
     rpc GetMessageTxn (MessageTxnReq) returns (TransferCoinsResp);
@@ -176,6 +176,15 @@ message GetAddressStateResp {
     AddressState state = 1;
 }
 
+message ParseAddressReq { 
+                            bytes address = 1;
+}
+
+message ParseAddressResp{ 
+                       bool is_valid = 1;
+                       AddressDescriptor desc = 2;
+}
+
 
 message GetObjectReq {  bytes query = 1;    }
 message GetObjectResp {
@@ -306,6 +315,14 @@ message NodeInfo
     uint64 block_height = 6;
     bytes  block_last_hash = 7;
     string network_id = 8;
+}
+
+message AddressDescriptor {                 // 3 byte scheme, 0-3 bits = hf, 4-7 = sig scheme, 8-11 = params (inc h), 12-15 addr fmt, 16-23 params2
+        string hash_function = 1;
+        string signature_scheme = 2;
+        uint32 tree_height = 3;
+        uint32 signatures = 4;
+        string address_format = 5;
 }
 
 message StoredPeers {
