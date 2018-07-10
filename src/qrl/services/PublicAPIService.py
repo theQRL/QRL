@@ -90,7 +90,6 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.GetAddressStateResp)
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:
         address_state = self.qrlnode.get_address_state(request.address)
-        
         if request.exclude_ots_bitfield:
             del address_state.pbdata.ots_bitfield[:]
         if request.exclude_transaction_hashes:
