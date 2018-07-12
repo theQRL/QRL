@@ -9,7 +9,7 @@ from os.path import expanduser
 
 from mock import MagicMock
 from twisted.internet import reactor
-from pyqrllib.pyqrllib import hstr2bin
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
