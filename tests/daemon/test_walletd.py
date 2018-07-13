@@ -247,12 +247,12 @@ class TestWalletD(TestCase):
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
-                _ = walletd.relay_transfer_txn(qaddresses_to=qaddresses_to,
-                                               amounts=amounts,
-                                               fee=100000000,
-                                               master_qaddress=None,
-                                               signer_address=qaddress,
-                                               ots_index=0)
+                walletd.relay_transfer_txn(qaddresses_to=qaddresses_to,
+                                           amounts=amounts,
+                                           fee=100000000,
+                                           master_qaddress=None,
+                                           signer_address=qaddress,
+                                           ots_index=0)
 
     def test_relay_message_txn(self):
         with set_qrl_dir("wallet_ver1"):
@@ -284,11 +284,11 @@ class TestWalletD(TestCase):
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
-                _ = walletd.relay_message_txn(message=b'Hello QRL!',
-                                              fee=100000000,
-                                              master_qaddress=None,
-                                              signer_address=qaddress,
-                                              ots_index=0)
+                walletd.relay_message_txn(message=b'Hello QRL!',
+                                          fee=100000000,
+                                          master_qaddress=None,
+                                          signer_address=qaddress,
+                                          ots_index=0)
 
     def test_relay_token_txn(self):
         with set_qrl_dir("wallet_ver1"):
@@ -339,16 +339,16 @@ class TestWalletD(TestCase):
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
-                _ = walletd.relay_token_txn(symbol=b'QRL',
-                                            name=b'Quantum Resistant Ledger',
-                                            owner_qaddress=alice_xmss.qaddress,
-                                            decimals=5,
-                                            qaddresses=qaddresses,
-                                            amounts=amounts,
-                                            fee=100000000,
-                                            master_qaddress=None,
-                                            signer_address=qaddress,
-                                            ots_index=0)
+                walletd.relay_token_txn(symbol=b'QRL',
+                                        name=b'Quantum Resistant Ledger',
+                                        owner_qaddress=alice_xmss.qaddress,
+                                        decimals=5,
+                                        qaddresses=qaddresses,
+                                        amounts=amounts,
+                                        fee=100000000,
+                                        master_qaddress=None,
+                                        signer_address=qaddress,
+                                        ots_index=0)
 
     def test_relay_transfer_token_txn(self):
         with set_qrl_dir("wallet_ver1"):
@@ -374,13 +374,13 @@ class TestWalletD(TestCase):
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
-                _ = walletd.relay_transfer_token_txn(qaddresses_to=qaddresses_to,
-                                                     amounts=amounts,
-                                                     token_txhash='',
-                                                     fee=100000000,
-                                                     master_qaddress=None,
-                                                     signer_address=qaddress,
-                                                     ots_index=0)
+                walletd.relay_transfer_token_txn(qaddresses_to=qaddresses_to,
+                                                 amounts=amounts,
+                                                 token_txhash='',
+                                                 fee=100000000,
+                                                 master_qaddress=None,
+                                                 signer_address=qaddress,
+                                                 ots_index=0)
 
     def test_relay_slave_txn(self):
         with set_qrl_dir("wallet_ver1"):
@@ -404,12 +404,12 @@ class TestWalletD(TestCase):
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
-                _ = walletd.relay_slave_txn(slave_pks=slave_pks,
-                                            access_types=access_types,
-                                            fee=100000000,
-                                            master_qaddress=None,
-                                            signer_address=qaddress,
-                                            ots_index=0)
+                walletd.relay_slave_txn(slave_pks=slave_pks,
+                                        access_types=access_types,
+                                        fee=100000000,
+                                        master_qaddress=None,
+                                        signer_address=qaddress,
+                                        ots_index=0)
 
     def test_encrypt_wallet(self):
         with set_qrl_dir("wallet_ver1"):
