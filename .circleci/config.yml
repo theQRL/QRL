@@ -40,7 +40,7 @@ jobs:
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
       - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
-      - run: python3 setup.py test --addopts "--ignore=tests/tools/ --open-files --threadleak -n0"
+      - run: python3 setup.py test --addopts "--ignore=tests/tools/ --ignore=tests/daemon/ --ignore=tests/services/test_WalletAPIService.py --open-files --threadleak -n0"
 
   build_trusty:
     docker:
