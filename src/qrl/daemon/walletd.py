@@ -24,12 +24,12 @@ from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from qrl.crypto.xmss import XMSS
 
 CONNECTION_TIMEOUT = 15
-pid = "/tmp/qrl_walletd.pid"
+config.create_path(config.user.wallet_dir)
+pid = os.path.join(config.user.wallet_dir, 'qrl_walletd.pid')
 
 
 class WalletD:
     def __init__(self):
-        config.create_path(config.user.wallet_dir)
         self._wallet_path = os.path.join(config.user.wallet_dir, 'walletd.json')
         self._public_stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel(config.user.public_api_server))
         self._wallet = None
@@ -202,9 +202,9 @@ class WalletD:
         index, xmss = self._get_wallet_index_xmss(signer_address, ots_index)
 
         initial_balances = []
-        for i in range(len(qaddresses)):
-            initial_balances.append(qrl_pb2.AddressAmount(address=self.qaddress_to_address(qaddresses[i]),
-                                                          amount=amounts[i]))
+        for idx, qaddress in enumerate(qaddresses):
+            initial_balances.append(qrl_pb2.AddressAmount(address=self.qaddress_to_address(qaddress),
+                                                          amount=amounts[idx]))
         tx = TokenTransaction.create(symbol=symbol,
                                      name=name,
                                      owner=self.qaddress_to_address(owner_qaddress),

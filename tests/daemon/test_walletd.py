@@ -74,7 +74,6 @@ class TestWalletD(TestCase):
             walletd = WalletD()
             qaddress = walletd.add_new_address(height=4)
             self.assertEqual(qaddress[0], 'Q')
-
             self.assertEqual(len(walletd.list_address()), 1)
 
     def test_add_new_address2(self):
