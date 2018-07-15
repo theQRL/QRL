@@ -270,7 +270,7 @@ message SlaveTxnReq {
 }
 
 message GetTransactionReq {
-    bytes hash = 1;
+    bytes tx_hash = 1;
 }
 
 message GetTransactionResp {
@@ -303,7 +303,7 @@ message GetHeightResp {
 }
 
 message GetBlockReq {
-    bytes hash = 1;
+    bytes header_hash = 1;
 }
 
 message GetBlockResp {

@@ -321,12 +321,12 @@ class PublicAPIService(PublicAPIServicer):
     def GetTransaction(self, request: qrl_pb2.GetTransactionReq, context) -> qrl_pb2.GetTransactionResp:
         logger.debug("[PublicAPI] GetTransaction")
         response = qrl_pb2.GetTransactionResp()
-        tx_blocknumber = self.qrlnode.get_transaction(request.hash)
+        tx_blocknumber = self.qrlnode.get_transaction(request.tx_hash)
         if tx_blocknumber:
             response.tx.MergeFrom(tx_blocknumber[0].pbdata)
             response.confirmations = self.qrlnode.block_height - tx_blocknumber[1] + 1
         else:
-            tx_timestamp = self.qrlnode.get_unconfirmed_transaction(request.hash)
+            tx_timestamp = self.qrlnode.get_unconfirmed_transaction(request.tx_hash)
             if tx_timestamp:
                 response.tx.MergeFrom(tx_timestamp[0].pbdata)
                 response.confirmations = 0
@@ -356,7 +356,7 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.GetBlockResp)
     def GetBlock(self, request: qrl_pb2.GetBlockReq, context) -> qrl_pb2.GetBlockResp:
         logger.debug("[PublicAPI] GetBlock")
-        block = self.qrlnode.get_block_from_hash(request.hash)
+        block = self.qrlnode.get_block_from_hash(request.header_hash)
         if block:
             return qrl_pb2.GetBlockResp(block=block.pbdata)
         return qrl_pb2.GetBlockResp()

@@ -475,7 +475,7 @@ class TestWalletD(TestCase):
 
             walletd._public_stub.GetTransaction = Mock(
                 return_value=qrl_pb2.GetTransactionResp(tx=tx, confirmations=10))
-            tx, confirmations = walletd.get_transaction(hash='1234')
+            tx, confirmations = walletd.get_transaction(tx_hash='1234')
             self.assertIsNotNone(tx)
             self.assertEqual(tx.transaction_hash, b'1234')
             self.assertEqual(confirmations, 10)

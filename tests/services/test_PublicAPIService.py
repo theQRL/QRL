@@ -449,7 +449,7 @@ class TestPublicAPI(TestCase):
 
         context = Mock(spec=ServicerContext)
         request = qrl_pb2.GetTransactionReq()
-        request.hash = tx1.txhash
+        request.tx_hash = tx1.txhash
         response = service.GetTransaction(request=request, context=context)
         context.set_code.assert_not_called()
         self.assertIsNotNone(response.tx)
@@ -591,7 +591,7 @@ class TestPublicAPI(TestCase):
         db_state.get_block = MagicMock(return_value=b)
 
         context = Mock(spec=ServicerContext)
-        request = qrl_pb2.GetBlockReq(hash=b.headerhash)
+        request = qrl_pb2.GetBlockReq(header_hash=b.headerhash)
         response = service.GetBlock(request=request, context=context)
         context.set_code.assert_not_called()
         self.assertEqual(1, response.block.header.block_number)

@@ -217,7 +217,7 @@ message ChangePassphraseResp {
 }
 
 message TransactionReq {
-    string hash = 1;
+    string tx_hash = 1;
 }
 
 message TransactionResp {
@@ -258,7 +258,7 @@ message HeightResp {
 }
 
 message BlockReq {
-    string hash = 1;
+    string header_hash = 1;
 }
 
 message BlockResp {

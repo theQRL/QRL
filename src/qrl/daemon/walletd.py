@@ -297,9 +297,9 @@ class WalletD:
         self._wallet.encrypt(new_passphrase)
         self.lock_wallet()
 
-    def get_transaction(self, hash: str):
-        txhash = bytes(hstr2bin(hash))
-        response = self._public_stub.GetTransaction(qrl_pb2.GetTransactionReq(hash=txhash))
+    def get_transaction(self, tx_hash: str):
+        txhash = bytes(hstr2bin(tx_hash))
+        response = self._public_stub.GetTransaction(qrl_pb2.GetTransactionReq(tx_hash=txhash))
         return response.tx, response.confirmations
 
     def get_balance(self, qaddress: str) -> int:
@@ -312,9 +312,9 @@ class WalletD:
         response = self._public_stub.GetOTS(qrl_pb2.GetOTSReq(address=address))
         return response.ots_bitfield, response.next_unused_ots_index
 
-    def get_block(self, hash: str):
-        headerhash = bytes(hstr2bin(hash))
-        response = self._public_stub.GetBlock(qrl_pb2.GetBlockReq(hash=headerhash))
+    def get_block(self, header_hash: str):
+        headerhash = bytes(hstr2bin(header_hash))
+        response = self._public_stub.GetBlock(qrl_pb2.GetBlockReq(header_hash=headerhash))
         return response.block
 
     def get_block_by_number(self, block_number: int):

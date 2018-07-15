@@ -213,7 +213,7 @@ class WalletAPIService(WalletAPIServicer):
     def GetTransaction(self, request: qrlwallet_pb2.TransactionReq, context) -> qrlwallet_pb2.TransactionResp:
         resp = qrlwallet_pb2.TransactionResp()
         try:
-            tx, confirmations = self._walletd.get_transaction(request.hash)
+            tx, confirmations = self._walletd.get_transaction(request.tx_hash)
             resp.tx.MergeFrom(tx)
             resp.confirmations = confirmations
         except Exception as e:
@@ -261,7 +261,7 @@ class WalletAPIService(WalletAPIServicer):
     def GetBlock(self, request: qrlwallet_pb2.BlockReq, context) -> qrlwallet_pb2.BlockResp:
         resp = qrlwallet_pb2.BlockResp()
         try:
-            resp.block.MergeFrom(self._walletd.get_block(request.hash))
+            resp.block.MergeFrom(self._walletd.get_block(request.header_hash))
         except Exception as e:
             resp.status = 1
             resp.error_message = str(e)

@@ -362,7 +362,7 @@ class TestWalletAPI(TestCase):
             walletd._public_stub.GetTransaction = Mock(
                 return_value=qrl_pb2.GetTransactionResp(tx=tx, confirmations=10))
 
-            resp = service.GetTransaction(qrlwallet_pb2.TransactionReq(hash=tx.transaction_hash), context=None)
+            resp = service.GetTransaction(qrlwallet_pb2.TransactionReq(tx_hash=tx.transaction_hash), context=None)
 
             self.assertEqual(resp.status, 0)
             self.assertIsNotNone(resp.tx)
@@ -407,7 +407,7 @@ class TestWalletAPI(TestCase):
             walletd._public_stub.GetBlock = Mock(
                 return_value=qrl_pb2.GetBlockResp(block=block))
 
-            resp = service.GetBlock(qrlwallet_pb2.BlockReq(hash=b'001122'), context=None)
+            resp = service.GetBlock(qrlwallet_pb2.BlockReq(header_hash=b'001122'), context=None)
 
             self.assertEqual(resp.status, 0)
             self.assertEqual(resp.block.header.hash_header, block.header.hash_header)
