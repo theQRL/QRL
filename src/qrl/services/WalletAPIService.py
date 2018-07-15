@@ -208,3 +208,73 @@ class WalletAPIService(WalletAPIServicer):
             resp.error_message = str(e)
 
         return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.TransactionResp)
+    def GetTransaction(self, request: qrlwallet_pb2.TransactionReq, context) -> qrlwallet_pb2.TransactionResp:
+        resp = qrlwallet_pb2.TransactionResp()
+        try:
+            tx, confirmations = self._walletd.get_transaction(request.hash)
+            resp.tx.MergeFrom(tx)
+            resp.confirmations = confirmations
+        except Exception as e:
+            resp.status = 1
+            resp.error_message = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.BalanceResp)
+    def GetBalance(self, request: qrlwallet_pb2.BalanceReq, context) -> qrlwallet_pb2.BalanceResp:
+        resp = qrlwallet_pb2.BalanceResp()
+        try:
+            resp.balance = self._walletd.get_balance(request.address)
+        except Exception as e:
+            resp.status = 1
+            resp.error_message = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.OTSResp)
+    def GetOTS(self, request: qrlwallet_pb2.OTSReq, context) -> qrlwallet_pb2.OTSResp:
+        resp = qrlwallet_pb2.OTSResp()
+        try:
+            ots_bitfield, next_unused_ots_index = self._walletd.get_ots(request.address)
+            resp.ots_bitfield.extend(ots_bitfield)
+            resp.next_unused_ots_index = next_unused_ots_index
+        except Exception as e:
+            resp.status = 1
+            resp.error_message = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.HeightResp)
+    def GetHeight(self, request: qrlwallet_pb2.HeightReq, context) -> qrlwallet_pb2.HeightResp:
+        resp = qrlwallet_pb2.HeightResp()
+        try:
+            resp.height = self._walletd.get_height()
+        except Exception as e:
+            resp.status = 1
+            resp.error_message = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.BlockResp)
+    def GetBlock(self, request: qrlwallet_pb2.BlockReq, context) -> qrlwallet_pb2.BlockResp:
+        resp = qrlwallet_pb2.BlockResp()
+        try:
+            resp.block.MergeFrom(self._walletd.get_block(request.hash))
+        except Exception as e:
+            resp.status = 1
+            resp.error_message = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.BlockResp)
+    def GetBlockByNumber(self, request: qrlwallet_pb2.BlockByNumberReq, context) -> qrlwallet_pb2.BlockResp:
+        resp = qrlwallet_pb2.BlockResp()
+        try:
+            resp.block.MergeFrom(self._walletd.get_block_by_number(request.block_number))
+        except Exception as e:
+            resp.status = 1
+            resp.error_message = str(e)
+
+        return resp
