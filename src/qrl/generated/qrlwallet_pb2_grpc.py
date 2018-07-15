@@ -97,6 +97,36 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.ChangePassphraseReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.ChangePassphraseResp.FromString,
         )
+    self.GetTransaction = channel.unary_unary(
+        '/qrl.WalletAPI/GetTransaction',
+        request_serializer=qrlwallet__pb2.TransactionReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.TransactionResp.FromString,
+        )
+    self.GetBalance = channel.unary_unary(
+        '/qrl.WalletAPI/GetBalance',
+        request_serializer=qrlwallet__pb2.BalanceReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.BalanceResp.FromString,
+        )
+    self.GetOTS = channel.unary_unary(
+        '/qrl.WalletAPI/GetOTS',
+        request_serializer=qrlwallet__pb2.OTSReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.OTSResp.FromString,
+        )
+    self.GetHeight = channel.unary_unary(
+        '/qrl.WalletAPI/GetHeight',
+        request_serializer=qrlwallet__pb2.HeightReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.HeightResp.FromString,
+        )
+    self.GetBlock = channel.unary_unary(
+        '/qrl.WalletAPI/GetBlock',
+        request_serializer=qrlwallet__pb2.BlockReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.BlockResp.FromString,
+        )
+    self.GetBlockByNumber = channel.unary_unary(
+        '/qrl.WalletAPI/GetBlockByNumber',
+        request_serializer=qrlwallet__pb2.BlockByNumberReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.BlockResp.FromString,
+        )
 
 
 class WalletAPIServicer(object):
@@ -201,6 +231,42 @@ class WalletAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetTransaction(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetBalance(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetOTS(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetHeight(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetBlock(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetBlockByNumber(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_WalletAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -278,6 +344,36 @@ def add_WalletAPIServicer_to_server(servicer, server):
           servicer.ChangePassphrase,
           request_deserializer=qrlwallet__pb2.ChangePassphraseReq.FromString,
           response_serializer=qrlwallet__pb2.ChangePassphraseResp.SerializeToString,
+      ),
+      'GetTransaction': grpc.unary_unary_rpc_method_handler(
+          servicer.GetTransaction,
+          request_deserializer=qrlwallet__pb2.TransactionReq.FromString,
+          response_serializer=qrlwallet__pb2.TransactionResp.SerializeToString,
+      ),
+      'GetBalance': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBalance,
+          request_deserializer=qrlwallet__pb2.BalanceReq.FromString,
+          response_serializer=qrlwallet__pb2.BalanceResp.SerializeToString,
+      ),
+      'GetOTS': grpc.unary_unary_rpc_method_handler(
+          servicer.GetOTS,
+          request_deserializer=qrlwallet__pb2.OTSReq.FromString,
+          response_serializer=qrlwallet__pb2.OTSResp.SerializeToString,
+      ),
+      'GetHeight': grpc.unary_unary_rpc_method_handler(
+          servicer.GetHeight,
+          request_deserializer=qrlwallet__pb2.HeightReq.FromString,
+          response_serializer=qrlwallet__pb2.HeightResp.SerializeToString,
+      ),
+      'GetBlock': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBlock,
+          request_deserializer=qrlwallet__pb2.BlockReq.FromString,
+          response_serializer=qrlwallet__pb2.BlockResp.SerializeToString,
+      ),
+      'GetBlockByNumber': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBlockByNumber,
+          request_deserializer=qrlwallet__pb2.BlockByNumberReq.FromString,
+          response_serializer=qrlwallet__pb2.BlockResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

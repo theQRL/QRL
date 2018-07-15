@@ -122,8 +122,8 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetBlockReq.SerializeToString,
         response_deserializer=qrl__pb2.GetBlockResp.FromString,
         )
-    self.GetBlockFromNumber = channel.unary_unary(
-        '/qrl.PublicAPI/GetBlockFromNumber',
+    self.GetBlockByNumber = channel.unary_unary(
+        '/qrl.PublicAPI/GetBlockByNumber',
         request_serializer=qrl__pb2.GetBlockByNumberReq.SerializeToString,
         response_deserializer=qrl__pb2.GetBlockByNumberResp.FromString,
         )
@@ -261,7 +261,7 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetBlockFromNumber(self, request, context):
+  def GetBlockByNumber(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -370,8 +370,8 @@ def add_PublicAPIServicer_to_server(servicer, server):
           request_deserializer=qrl__pb2.GetBlockReq.FromString,
           response_serializer=qrl__pb2.GetBlockResp.SerializeToString,
       ),
-      'GetBlockFromNumber': grpc.unary_unary_rpc_method_handler(
-          servicer.GetBlockFromNumber,
+      'GetBlockByNumber': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBlockByNumber,
           request_deserializer=qrl__pb2.GetBlockByNumberReq.FromString,
           response_serializer=qrl__pb2.GetBlockByNumberResp.SerializeToString,
       ),

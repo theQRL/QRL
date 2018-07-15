@@ -48,6 +48,18 @@ service WalletAPI
 
     rpc ChangePassphrase(ChangePassphraseReq) returns (ChangePassphraseResp);
 
+    rpc GetTransaction(TransactionReq) returns (TransactionResp);
+
+    rpc GetBalance(BalanceReq) returns (BalanceResp);
+
+    rpc GetOTS(OTSReq) returns (OTSResp);
+
+    rpc GetHeight(HeightReq) returns (HeightResp);
+
+    rpc GetBlock(BlockReq) returns (BlockResp);
+
+    rpc GetBlockByNumber(BlockByNumberReq) returns (BlockResp);
+
 }
 
 message AddNewAddressReq {
@@ -202,4 +214,59 @@ message ChangePassphraseReq {
 message ChangePassphraseResp {
     uint32 status = 1;
     string error_message = 2;
+}
+
+message TransactionReq {
+    string hash = 1;
+}
+
+message TransactionResp {
+    uint32 status = 1;
+    string error_message = 2;
+    Transaction tx = 3;
+    uint64 confirmations = 4;
+}
+
+message BalanceReq {
+    string address = 1;
+}
+
+message BalanceResp {
+    uint32 status = 1;
+    string error_message = 2;
+    uint64 balance = 3;
+}
+
+message OTSReq {
+    string address = 1;
+}
+
+message OTSResp {
+    uint32 status = 1;
+    string error_message = 2;
+    repeated bytes ots_bitfield = 3;
+    uint64 next_unused_ots_index = 4;
+}
+
+message HeightReq {
+}
+
+message HeightResp {
+    uint32 status = 1;
+    string error_message = 2;
+    uint64 height = 3;
+}
+
+message BlockReq {
+    string hash = 1;
+}
+
+message BlockResp {
+    uint32 status = 1;
+    string error_message = 2;
+    Block block = 3;
+}
+
+message BlockByNumberReq {
+    uint64 block_number = 1;
 }
