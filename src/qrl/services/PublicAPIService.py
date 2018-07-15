@@ -316,3 +316,55 @@ class PublicAPIService(PublicAPIServicer):
             response.transactions_unconfirmed.extend(result)
 
         return response
+
+    @GrpcExceptionWrapper(qrl_pb2.GetTransactionResp)
+    def GetTransaction(self, request: qrl_pb2.GetTransactionReq, context) -> qrl_pb2.GetTransactionResp:
+        logger.debug("[PublicAPI] GetTransaction")
+        response = qrl_pb2.GetTransactionResp()
+        tx_blocknumber = self.qrlnode.get_transaction(request.hash)
+        if tx_blocknumber:
+            response.tx.MergeFrom(tx_blocknumber[0].pbdata)
+            response.confirmations = self.qrlnode.block_height - tx_blocknumber[1] + 1
+        else:
+            tx_timestamp = self.qrlnode.get_unconfirmed_transaction(request.hash)
+            if tx_timestamp:
+                response.tx.MergeFrom(tx_timestamp[0].pbdata)
+                response.confirmations = 0
+
+        return response
+
+    @GrpcExceptionWrapper(qrl_pb2.GetBalanceResp)
+    def GetBalance(self, request: qrl_pb2.GetBalanceReq, context) -> qrl_pb2.GetBalanceResp:
+        logger.debug("[PublicAPI] GetBalance")
+        address_state = self.qrlnode.get_address_state(request.address)
+        response = qrl_pb2.GetBalanceResp(balance=address_state.balance)
+        return response
+
+    @GrpcExceptionWrapper(qrl_pb2.GetOTSResp)
+    def GetOTS(self, request: qrl_pb2.GetOTSReq, context) -> qrl_pb2.GetOTSResp:
+        logger.debug("[PublicAPI] GetOTS")
+        address_state = self.qrlnode.get_address_state(request.address)
+        response = qrl_pb2.GetOTSResp(ots_bitfield=address_state.ots_bitfield,
+                                      next_unused_ots_index=address_state.get_unused_ots_index())
+        return response
+
+    @GrpcExceptionWrapper(qrl_pb2.GetHeightResp)
+    def GetHeight(self, request: qrl_pb2.GetHeightReq, context) -> qrl_pb2.GetHeightResp:
+        logger.debug("[PublicAPI] GetHeight")
+        return qrl_pb2.GetHeightResp(height=self.qrlnode.block_height)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetBlockResp)
+    def GetBlock(self, request: qrl_pb2.GetBlockReq, context) -> qrl_pb2.GetBlockResp:
+        logger.debug("[PublicAPI] GetBlock")
+        block = self.qrlnode.get_block_from_hash(request.hash)
+        if block:
+            return qrl_pb2.GetBlockResp(block=block.pbdata)
+        return qrl_pb2.GetBlockResp()
+
+    @GrpcExceptionWrapper(qrl_pb2.GetBlockByNumberResp)
+    def GetBlockByNumber(self, request: qrl_pb2.GetBlockByNumberReq, context) -> qrl_pb2.GetBlockByNumberResp:
+        logger.debug("[PublicAPI] GetBlockFromNumber")
+        block = self.qrlnode.get_block_from_index(request.block_number)
+        if block:
+            return qrl_pb2.GetBlockByNumberResp(block=block.pbdata)
+        return qrl_pb2.GetBlockByNumberResp()
