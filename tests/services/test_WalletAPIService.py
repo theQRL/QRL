@@ -349,3 +349,84 @@ class TestWalletAPI(TestCase):
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=new_passphrase), context=None)
             self.assertEqual(resp.status, 0)
+
+    def test_getTransaction(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            tx = qrl_pb2.Transaction()
+            tx.fee = 10
+            tx.transaction_hash = b'1234'
+
+            walletd._public_stub.GetTransaction = Mock(
+                return_value=qrl_pb2.GetTransactionResp(tx=tx, confirmations=10))
+
+            resp = service.GetTransaction(qrlwallet_pb2.TransactionReq(hash=tx.transaction_hash), context=None)
+
+            self.assertEqual(resp.status, 0)
+            self.assertIsNotNone(resp.tx)
+            self.assertEqual(tx.transaction_hash, resp.tx.transaction_hash)
+
+    def test_getBalance(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            walletd._public_stub.GetBalance = Mock(
+                return_value=qrl_pb2.GetBalanceResp(balance=1000))
+
+            resp = service.GetBalance(qrlwallet_pb2.BalanceReq(address=self.qaddress), context=None)
+
+            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.balance, 1000)
+
+    def test_getOTS(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(ots_bitfield=[b'\x00'] * 10, next_unused_ots_index=1))
+
+            resp = service.GetOTS(qrlwallet_pb2.OTSReq(address=self.qaddress), context=None)
+
+            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.ots_bitfield, [b'\x00'] * 10)
+            self.assertEqual(resp.next_unused_ots_index, 1)
+
+    def test_getBlock(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            block = qrl_pb2.Block()
+            block.header.hash_header = b'001122'
+            block.header.block_number = 1
+
+            walletd._public_stub.GetBlock = Mock(
+                return_value=qrl_pb2.GetBlockResp(block=block))
+
+            resp = service.GetBlock(qrlwallet_pb2.BlockReq(hash=b'001122'), context=None)
+
+            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.block.header.hash_header, block.header.hash_header)
+            self.assertEqual(resp.block.header.block_number, block.header.block_number)
+
+    def test_getBlockByNumber(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            block = qrl_pb2.Block()
+            block.header.hash_header = b'001122'
+            block.header.block_number = 1
+
+            walletd._public_stub.GetBlockByNumber = Mock(
+                return_value=qrl_pb2.GetBlockResp(block=block))
+
+            resp = service.GetBlockByNumber(qrlwallet_pb2.BlockByNumberReq(block_number=1), context=None)
+
+            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.block.header.hash_header, block.header.hash_header)
+            self.assertEqual(resp.block.header.block_number, block.header.block_number)

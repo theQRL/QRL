@@ -465,3 +465,66 @@ class TestWalletD(TestCase):
             qaddresses = walletd.list_address()
             self.assertEqual(len(qaddresses), 1)
             self.assertEqual(qaddresses[0], qaddress)
+
+    def test_get_transaction(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            tx = qrl_pb2.Transaction()
+            tx.fee = 10
+            tx.transaction_hash = b'1234'
+
+            walletd._public_stub.GetTransaction = Mock(
+                return_value=qrl_pb2.GetTransactionResp(tx=tx, confirmations=10))
+            tx, confirmations = walletd.get_transaction(hash='1234')
+            self.assertIsNotNone(tx)
+            self.assertEqual(tx.transaction_hash, b'1234')
+            self.assertEqual(confirmations, 10)
+
+    def test_get_balance(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.GetBalance = Mock(
+                return_value=qrl_pb2.GetBalanceResp(balance=1000))
+
+            balance = walletd.get_balance(self.qaddress)
+            self.assertEqual(balance, 1000)
+
+    def test_get_ots(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(ots_bitfield=[b'\x00'] * 10, next_unused_ots_index=1))
+
+            ots_bitfield, next_unused_ots_index = walletd.get_ots(self.qaddress)
+            self.assertEqual(ots_bitfield, [b'\x00'] * 10)
+            self.assertEqual(next_unused_ots_index, 1)
+
+    def test_get_block(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+
+            block = qrl_pb2.Block()
+            block.header.hash_header = b'001122'
+            block.header.block_number = 1
+
+            walletd._public_stub.GetBlock = Mock(
+                return_value=qrl_pb2.GetBlockResp(block=block))
+
+            b = walletd.get_block('001122')
+            self.assertEqual(b.header.hash_header, block.header.hash_header)
+            self.assertEqual(b.header.block_number, block.header.block_number)
+
+    def test_get_block_by_number(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+
+            block = qrl_pb2.Block()
+            block.header.hash_header = b'001122'
+            block.header.block_number = 1
+
+            walletd._public_stub.GetBlockByNumber = Mock(
+                return_value=qrl_pb2.GetBlockResp(block=block))
+
+            b = walletd.get_block_by_number(1)
+            self.assertEqual(b.header.hash_header, block.header.hash_header)
+            self.assertEqual(b.header.block_number, block.header.block_number)
