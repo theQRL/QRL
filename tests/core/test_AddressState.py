@@ -224,3 +224,48 @@ class TestAddressState(TestCase):
     def test_address_is_valid(self):
         self.assertTrue(AddressState.address_is_valid(alice.address))
         self.assertFalse(AddressState.address_is_valid(b'fake address'))
+
+    def test_height(self):
+        self.assertEqual(self.addr_state.height, alice.address[1] << 1)
+
+    def test_get_unused_ots_index(self):
+        random_xmss = get_random_xmss(xmss_height=4)
+        addr_state = AddressState.get_default(random_xmss.address)
+        self.assertEqual(addr_state.get_unused_ots_index(), 0)
+        addr_state.set_ots_key(0)
+        self.assertEqual(addr_state.get_unused_ots_index(), 1)
+        addr_state.set_ots_key(2)
+        self.assertEqual(addr_state.get_unused_ots_index(), 1)
+        addr_state.set_ots_key(1)
+        self.assertEqual(addr_state.get_unused_ots_index(), 3)
+        for i in range(3, min(2 ** addr_state.height, config.dev.max_ots_tracking_index)):
+            addr_state.set_ots_key(i)
+        self.assertIsNone(addr_state.get_unused_ots_index())
+
+    def test_get_unused_ots_index2(self):
+        old_value = config.dev.max_ots_tracking_index
+        config.dev.max_ots_tracking_index = 128
+
+        try:
+            random_xmss = get_random_xmss(xmss_height=8)
+            addr_state = AddressState.get_default(random_xmss.address)
+            self.assertEqual(addr_state.get_unused_ots_index(), 0)
+            addr_state.set_ots_key(0)
+            self.assertEqual(addr_state.get_unused_ots_index(), 1)
+            addr_state.set_ots_key(2)
+            self.assertEqual(addr_state.get_unused_ots_index(), 1)
+            addr_state.set_ots_key(1)
+            self.assertEqual(addr_state.get_unused_ots_index(), 3)
+
+            for i in range(3, min(2 ** addr_state.height, config.dev.max_ots_tracking_index)):
+                addr_state.set_ots_key(i)
+                self.assertEqual(addr_state.get_unused_ots_index(), i + 1)
+
+            self.assertEqual(addr_state.get_unused_ots_index(), config.dev.max_ots_tracking_index)
+
+            for i in range(config.dev.max_ots_tracking_index, 2 ** addr_state.height):
+                addr_state.set_ots_key(i)
+
+            self.assertIsNone(addr_state.get_unused_ots_index())
+        finally:
+            config.dev.max_ots_tracking_index = old_value
