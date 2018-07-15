@@ -41,6 +41,17 @@ service PublicAPI
 
     rpc GetSlaveTxn (SlaveTxnReq) returns (TransferCoinsResp);
 
+    rpc GetTransaction(GetTransactionReq) returns (GetTransactionResp);
+
+    rpc GetBalance(GetBalanceReq) returns (GetBalanceResp);
+
+    rpc GetOTS(GetOTSReq) returns (GetOTSResp);
+
+    rpc GetHeight(GetHeightReq) returns (GetHeightResp);
+
+    rpc GetBlock(GetBlockReq) returns (GetBlockResp);
+
+    rpc GetBlockFromNumber(GetBlockByNumberReq) returns (GetBlockByNumberResp);
 }
 
 // This is a place holder for testing/instrumentation APIs
@@ -96,23 +107,6 @@ message GetPeersStatReq { }
 */
 message GetPeersStatResp {
     repeated PeerStat peers_stat = 1;    // PeerState object contains peer_ip, port and peer state information
-}
-
-/**
- * NOT USED -> RM?
-*/
-message GetBlockReq {
-    oneof query {
-        uint64 index = 1;               // Indicates the index number in mainchain
-        bytes after_hash = 2;           // request the node that comes after hash
-    }
-}
-/**
- * NOT USED -> RM?
-*/
-message GetBlockResp {
-    NodeInfo node_info = 1;
-    Block block = 2;
 }
 
 /**
@@ -273,6 +267,55 @@ message SlaveTxnReq {
     repeated uint32 access_types = 3;
     uint64 fee = 4;
     bytes xmss_pk = 5;
+}
+
+message GetTransactionReq {
+    bytes hash = 1;
+}
+
+message GetTransactionResp {
+    Transaction tx = 1;
+    uint64 confirmations = 2;
+}
+
+message GetBalanceReq {
+    bytes address = 1;
+}
+
+message GetBalanceResp {
+    uint64 balance = 1;
+}
+
+message GetOTSReq {
+    bytes address = 1;
+}
+
+message GetOTSResp {
+    repeated bytes ots_bitfield = 1;
+    uint64 next_unused_ots_index = 2;
+}
+
+message GetHeightReq {
+}
+
+message GetHeightResp {
+    uint64 height = 1;
+}
+
+message GetBlockReq {
+    bytes hash = 1;
+}
+
+message GetBlockResp {
+    Block block = 1;
+}
+
+message GetBlockByNumberReq {
+    uint64 block_number = 1;
+}
+
+message GetBlockByNumberResp {
+    Block block = 1;
 }
 
 ////////////////////////////
