@@ -68,8 +68,8 @@ message AddNewAddressReq {
 }
 
 message AddNewAddressResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     string address = 3;
 }
 
@@ -78,8 +78,8 @@ message AddAddressFromSeedReq {
 }
 
 message AddAddressFromSeedResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     string address = 3;
 }
 
@@ -88,8 +88,8 @@ message ListAddressesReq {
 }
 
 message ListAddressesResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     repeated string addresses = 3;
 }
 
@@ -98,8 +98,8 @@ message RemoveAddressReq {
 }
 
 message RemoveAddressResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
 }
 
 message EncryptWalletReq {
@@ -107,8 +107,8 @@ message EncryptWalletReq {
 }
 
 message EncryptWalletResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
 }
 
 message UnlockWalletReq {
@@ -116,16 +116,16 @@ message UnlockWalletReq {
 }
 
 message UnlockWalletResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
 }
 
 message LockWalletReq {
 }
 
 message LockWalletResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
 }
 
 message GetRecoverySeedsReq {
@@ -133,8 +133,8 @@ message GetRecoverySeedsReq {
 }
 
 message GetRecoverySeedsResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     string hexseed = 3;
     string mnemonic = 4;
 }
@@ -144,8 +144,8 @@ message GetWalletInfoReq {
 }
 
 message GetWalletInfoResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     uint32 version = 3;
     uint64 address_count = 4;
     bool is_encrypted = 5;
@@ -161,7 +161,7 @@ message RelayTransferTxnReq {
 }
 
 message RelayMessageTxnReq {
-    bytes message = 1;
+    string message = 1;
     uint64 fee = 2;
     string master_address = 3;
     string signer_address = 4;
@@ -169,8 +169,8 @@ message RelayMessageTxnReq {
 }
 
 message RelayTokenTxnReq {
-    bytes symbol = 1;
-    bytes name = 2;
+    string symbol = 1;
+    string name = 2;
     string owner = 3;
     uint64 decimals = 4;
     repeated string addresses = 5;
@@ -201,8 +201,8 @@ message RelaySlaveTxnReq {
 }
 
 message RelayTxnResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     Transaction tx = 3;
 }
 
@@ -212,8 +212,8 @@ message ChangePassphraseReq {
 }
 
 message ChangePassphraseResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
 }
 
 message TransactionReq {
@@ -221,8 +221,8 @@ message TransactionReq {
 }
 
 message TransactionResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     Transaction tx = 3;
     uint64 confirmations = 4;
 }
@@ -232,8 +232,8 @@ message BalanceReq {
 }
 
 message BalanceResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     uint64 balance = 3;
 }
 
@@ -242,8 +242,8 @@ message OTSReq {
 }
 
 message OTSResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     repeated bytes ots_bitfield = 3;
     uint64 next_unused_ots_index = 4;
 }
@@ -252,8 +252,8 @@ message HeightReq {
 }
 
 message HeightResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     uint64 height = 3;
 }
 
@@ -262,8 +262,8 @@ message BlockReq {
 }
 
 message BlockResp {
-    uint32 status = 1;
-    string error_message = 2;
+    uint32 code = 1;
+    string error = 2;
     Block block = 3;
 }
 

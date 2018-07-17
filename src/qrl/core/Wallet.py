@@ -165,13 +165,13 @@ class Wallet:
         search_addr_str = self._get_Qaddress(search_addr)
         return self.get_xmss_by_qaddress(search_addr_str)
 
-    def get_xmss_by_qaddress(self, search_addr_str) -> Optional[XMSS]:
+    def get_xmss_by_qaddress(self, search_addr_str, passphrase: str=None) -> Optional[XMSS]:
         idx, _ = self.get_address_item(search_addr_str)
 
         if idx == -1:
             return None
 
-        return self.get_xmss_by_index(idx)
+        return self.get_xmss_by_index(idx, passphrase)
 
     def set_ots_index(self, index, ots_index):
         item = self._address_items[index]

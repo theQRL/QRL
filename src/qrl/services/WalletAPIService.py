@@ -19,8 +19,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.address = self._walletd.add_new_address(request.height, request.hash_function.lower())
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -30,8 +30,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.address = self._walletd.add_address_from_seed(seed=request.seed)
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -41,8 +41,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.addresses.extend(self._walletd.list_address())
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -51,11 +51,11 @@ class WalletAPIService(WalletAPIServicer):
         resp = qrlwallet_pb2.RemoveAddressResp()
         try:
             if not self._walletd.remove_address(request.address):
-                resp.status = 1
-                resp.error_message = "No such address found"
+                resp.code = 1
+                resp.error = "No such address found"
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -65,8 +65,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.hexseed, resp.mnemonic = self._walletd.get_recovery_seeds(request.address)
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -76,8 +76,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.version, resp.address_count, resp.is_encrypted = self._walletd.get_wallet_info()
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -92,8 +92,8 @@ class WalletAPIService(WalletAPIServicer):
                                                                request.signer_address,
                                                                request.ots_index))
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -107,8 +107,8 @@ class WalletAPIService(WalletAPIServicer):
                                                               request.signer_address,
                                                               request.ots_index))
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -127,8 +127,8 @@ class WalletAPIService(WalletAPIServicer):
                                                             request.signer_address,
                                                             request.ots_index))
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -144,8 +144,8 @@ class WalletAPIService(WalletAPIServicer):
                                                                      request.signer_address,
                                                                      request.ots_index))
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -160,8 +160,8 @@ class WalletAPIService(WalletAPIServicer):
                                                             request.signer_address,
                                                             request.ots_index))
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -171,8 +171,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             self._walletd.encrypt_wallet(request.passphrase)
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -182,8 +182,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             self._walletd.lock_wallet()
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -193,8 +193,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             self._walletd.unlock_wallet(request.passphrase)
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -204,8 +204,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             self._walletd.change_passphrase(request.oldPassphrase, request.newPassphrase)
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -217,8 +217,8 @@ class WalletAPIService(WalletAPIServicer):
             resp.tx.MergeFrom(tx)
             resp.confirmations = confirmations
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -228,8 +228,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.balance = self._walletd.get_balance(request.address)
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -241,8 +241,8 @@ class WalletAPIService(WalletAPIServicer):
             resp.ots_bitfield.extend(ots_bitfield)
             resp.next_unused_ots_index = next_unused_ots_index
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -252,8 +252,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.height = self._walletd.get_height()
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -263,8 +263,8 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.block.MergeFrom(self._walletd.get_block(request.header_hash))
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp
 
@@ -274,7 +274,7 @@ class WalletAPIService(WalletAPIServicer):
         try:
             resp.block.MergeFrom(self._walletd.get_block_by_number(request.block_number))
         except Exception as e:
-            resp.status = 1
-            resp.error_message = str(e)
+            resp.code = 1
+            resp.error = str(e)
 
         return resp

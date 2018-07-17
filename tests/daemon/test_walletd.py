@@ -259,7 +259,7 @@ class TestWalletD(TestCase):
             qaddress = walletd.add_new_address(height=4)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
-            tx = walletd.relay_message_txn(message=b'Hello QRL!',
+            tx = walletd.relay_message_txn(message='Hello QRL!',
                                            fee=100000000,
                                            master_qaddress=None,
                                            signer_address=qaddress,
@@ -274,7 +274,7 @@ class TestWalletD(TestCase):
             walletd.unlock_wallet(self.passphrase)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
-            tx = walletd.relay_message_txn(message=b'Hello QRL!',
+            tx = walletd.relay_message_txn(message='Hello QRL!',
                                            fee=100000000,
                                            master_qaddress=None,
                                            signer_address=qaddress,
@@ -283,7 +283,7 @@ class TestWalletD(TestCase):
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
-                walletd.relay_message_txn(message=b'Hello QRL!',
+                walletd.relay_message_txn(message='Hello QRL!',
                                           fee=100000000,
                                           master_qaddress=None,
                                           signer_address=qaddress,
@@ -299,8 +299,8 @@ class TestWalletD(TestCase):
             amounts = [1000000000, 1000000000]
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
-            tx = walletd.relay_token_txn(symbol=b'QRL',
-                                         name=b'Quantum Resistant Ledger',
+            tx = walletd.relay_token_txn(symbol='QRL',
+                                         name='Quantum Resistant Ledger',
                                          owner_qaddress=alice_xmss.qaddress,
                                          decimals=5,
                                          qaddresses=qaddresses,
@@ -324,8 +324,8 @@ class TestWalletD(TestCase):
             amounts = [1000000000, 1000000000]
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
-            tx = walletd.relay_token_txn(symbol=b'QRL',
-                                         name=b'Quantum Resistant Ledger',
+            tx = walletd.relay_token_txn(symbol='QRL',
+                                         name='Quantum Resistant Ledger',
                                          owner_qaddress=alice_xmss.qaddress,
                                          decimals=5,
                                          qaddresses=qaddresses,
@@ -338,8 +338,8 @@ class TestWalletD(TestCase):
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
-                walletd.relay_token_txn(symbol=b'QRL',
-                                        name=b'Quantum Resistant Ledger',
+                walletd.relay_token_txn(symbol='QRL',
+                                        name='Quantum Resistant Ledger',
                                         owner_qaddress=alice_xmss.qaddress,
                                         decimals=5,
                                         qaddresses=qaddresses,
@@ -498,6 +498,15 @@ class TestWalletD(TestCase):
             ots_bitfield, next_unused_ots_index = walletd.get_ots(self.qaddress)
             self.assertEqual(ots_bitfield, [b'\x00'] * 10)
             self.assertEqual(next_unused_ots_index, 1)
+
+    def test_get_height(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.GetHeight = Mock(
+                return_value=qrl_pb2.GetHeightResp(height=1001))
+
+            height = walletd.get_height()
+            self.assertEqual(height, 1001)
 
     def test_get_block(self):
         with set_qrl_dir("wallet_ver1"):

@@ -32,7 +32,7 @@ class TestWalletAPI(TestCase):
             walletd = WalletD()
             service = WalletAPIService(walletd)
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(resp.address[0], 'Q')
 
     def test_addAddressFromSeed(self):
@@ -43,7 +43,7 @@ class TestWalletAPI(TestCase):
             walletd = WalletD()
             service = WalletAPIService(walletd)
             resp = service.AddAddressFromSeed(qrlwallet_pb2.AddAddressFromSeedReq(seed=hex_seed), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(resp.address, qaddress)
 
     def test_addAddressFromSeed2(self):
@@ -51,7 +51,7 @@ class TestWalletAPI(TestCase):
             walletd = WalletD()
             service = WalletAPIService(walletd)
             resp = service.AddAddressFromSeed(qrlwallet_pb2.AddAddressFromSeedReq(seed=self.mnemonic), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(resp.address, self.qaddress)
 
     def test_listAddresses(self):
@@ -77,7 +77,7 @@ class TestWalletAPI(TestCase):
             self.assertEqual(len(resp.addresses), 1)
 
             resp = service.RemoveAddress(qrlwallet_pb2.RemoveAddressReq(address=address), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
             self.assertEqual(len(resp.addresses), 0)
@@ -127,7 +127,7 @@ class TestWalletAPI(TestCase):
                                                                               signer_address=qaddress,
                                                                               ots_index=0), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
     def test_relayMessageTxn(self):
@@ -147,7 +147,7 @@ class TestWalletAPI(TestCase):
                                                                             signer_address=qaddress,
                                                                             ots_index=0), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
     def test_relayTokenTxn(self):
@@ -177,7 +177,7 @@ class TestWalletAPI(TestCase):
                                                                         signer_address=qaddress,
                                                                         ots_index=0), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
     def test_relayTransferTokenTxn(self):
@@ -204,7 +204,7 @@ class TestWalletAPI(TestCase):
                                                                                         signer_address=qaddress,
                                                                                         ots_index=0), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
     def test_relaySlaveTxn(self):
@@ -229,7 +229,7 @@ class TestWalletAPI(TestCase):
                                                                         signer_address=qaddress,
                                                                         ots_index=0), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
     def test_encryptWallet(self):
@@ -240,13 +240,13 @@ class TestWalletAPI(TestCase):
             service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
 
             resp = service.EncryptWallet(qrlwallet_pb2.EncryptWalletReq(), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
             resp = service.EncryptWallet(qrlwallet_pb2.EncryptWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.EncryptWallet(qrlwallet_pb2.EncryptWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
     def test_lockWallet(self):
         with set_qrl_dir("wallet_ver1"):
@@ -256,26 +256,26 @@ class TestWalletAPI(TestCase):
             service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(len(resp.addresses), 1)
 
             resp = service.EncryptWallet(qrlwallet_pb2.EncryptWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.LockWallet(qrlwallet_pb2.LockWalletReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
     def test_unlockWallet(self):
         with set_qrl_dir("wallet_ver1"):
@@ -285,32 +285,32 @@ class TestWalletAPI(TestCase):
             service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(len(resp.addresses), 1)
 
             resp = service.EncryptWallet(qrlwallet_pb2.EncryptWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.LockWallet(qrlwallet_pb2.LockWalletReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase="wrong"), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
     def test_changePassphrase(self):
         with set_qrl_dir("wallet_ver1"):
@@ -320,35 +320,35 @@ class TestWalletAPI(TestCase):
             service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(len(resp.addresses), 1)
 
             resp = service.EncryptWallet(qrlwallet_pb2.EncryptWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.LockWallet(qrlwallet_pb2.LockWalletReq(), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             new_passphrase = "Hello World"
             resp = service.ChangePassphrase(qrlwallet_pb2.ChangePassphraseReq(oldPassphrase=self.passphrase,
                                                                               newPassphrase=new_passphrase),
                                             context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=self.passphrase), context=None)
-            self.assertEqual(resp.status, 1)
+            self.assertEqual(resp.code, 1)
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=new_passphrase), context=None)
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
 
     def test_getTransaction(self):
         with set_qrl_dir("wallet_ver1"):
@@ -364,7 +364,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.GetTransaction(qrlwallet_pb2.TransactionReq(tx_hash=tx.transaction_hash), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
             self.assertEqual(tx.transaction_hash, resp.tx.transaction_hash)
 
@@ -378,7 +378,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.GetBalance(qrlwallet_pb2.BalanceReq(address=self.qaddress), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(resp.balance, 1000)
 
     def test_getOTS(self):
@@ -391,9 +391,22 @@ class TestWalletAPI(TestCase):
 
             resp = service.GetOTS(qrlwallet_pb2.OTSReq(address=self.qaddress), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(resp.ots_bitfield, [b'\x00'] * 10)
             self.assertEqual(resp.next_unused_ots_index, 1)
+
+    def test_getHeight(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            walletd._public_stub.GetHeight = Mock(
+                return_value=qrl_pb2.GetHeightResp(height=1001))
+
+            resp = service.GetHeight(qrlwallet_pb2.HeightReq(), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertEqual(resp.height, 1001)
 
     def test_getBlock(self):
         with set_qrl_dir("wallet_ver1"):
@@ -409,7 +422,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.GetBlock(qrlwallet_pb2.BlockReq(header_hash=b'001122'), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(resp.block.header.hash_header, block.header.hash_header)
             self.assertEqual(resp.block.header.block_number, block.header.block_number)
 
@@ -427,6 +440,6 @@ class TestWalletAPI(TestCase):
 
             resp = service.GetBlockByNumber(qrlwallet_pb2.BlockByNumberReq(block_number=1), context=None)
 
-            self.assertEqual(resp.status, 0)
+            self.assertEqual(resp.code, 0)
             self.assertEqual(resp.block.header.hash_header, block.header.hash_header)
             self.assertEqual(resp.block.header.block_number, block.header.block_number)

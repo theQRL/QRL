@@ -97,7 +97,7 @@ class WalletD:
             raise ValueError("Invalid Seed")
 
         address_from_seed = XMSS.from_extended_seed(bin_seed)
-        if self._wallet.get_xmss_by_qaddress(address_from_seed.qaddress):
+        if self._wallet.get_xmss_by_qaddress(address_from_seed.qaddress, self._passphrase):
             raise Exception("Address is already in the wallet")
         self._wallet.append_xmss(address_from_seed)
         self._encrypt_last_item()
@@ -122,7 +122,7 @@ class WalletD:
     def get_recovery_seeds(self, qaddress: str):
         self.authenticate()
 
-        xmss = self._wallet.get_xmss_by_qaddress(qaddress)
+        xmss = self._wallet.get_xmss_by_qaddress(qaddress, self._passphrase)
         if xmss:
             return xmss.hexseed, xmss.mnemonic
 
@@ -165,7 +165,7 @@ class WalletD:
         return tx.pbdata
 
     def relay_message_txn(self,
-                          message: bytes,
+                          message: str,
                           fee: int,
                           master_qaddress,
                           signer_address: str,
@@ -173,7 +173,7 @@ class WalletD:
         self.authenticate()
         index, xmss = self._get_wallet_index_xmss(signer_address, ots_index)
 
-        tx = MessageTransaction.create(message_hash=message,
+        tx = MessageTransaction.create(message_hash=message.encode(),
                                        fee=fee,
                                        xmss_pk=xmss.pk,
                                        master_addr=self.qaddress_to_address(master_qaddress))
@@ -184,8 +184,8 @@ class WalletD:
         return tx.pbdata
 
     def relay_token_txn(self,
-                        symbol: bytes,
-                        name: bytes,
+                        symbol: str,
+                        name: str,
                         owner_qaddress: str,
                         decimals: int,
                         qaddresses: list,
@@ -205,8 +205,8 @@ class WalletD:
         for idx, qaddress in enumerate(qaddresses):
             initial_balances.append(qrl_pb2.AddressAmount(address=self.qaddress_to_address(qaddress),
                                                           amount=amounts[idx]))
-        tx = TokenTransaction.create(symbol=symbol,
-                                     name=name,
+        tx = TokenTransaction.create(symbol=symbol.encode(),
+                                     name=name.encode(),
                                      owner=self.qaddress_to_address(owner_qaddress),
                                      decimals=decimals,
                                      initial_balances=initial_balances,
@@ -230,7 +230,7 @@ class WalletD:
         self.authenticate()
         index, xmss = self._get_wallet_index_xmss(signer_address, ots_index)
 
-        tx = TransferTokenTransaction.create(token_txhash=token_txhash.encode(),
+        tx = TransferTokenTransaction.create(token_txhash=bytes(hstr2bin(token_txhash)),
                                              addrs_to=self.qaddresses_to_address(qaddresses_to),
                                              amounts=amounts,
                                              fee=fee,
@@ -295,6 +295,7 @@ class WalletD:
             raise ValueError('Invalid Old Passphrase')
 
         self._wallet.encrypt(new_passphrase)
+        self._wallet.save()
         self.lock_wallet()
 
     def get_transaction(self, tx_hash: str):
@@ -311,6 +312,10 @@ class WalletD:
         address = self.qaddress_to_address(qaddress)
         response = self._public_stub.GetOTS(qrl_pb2.GetOTSReq(address=address))
         return response.ots_bitfield, response.next_unused_ots_index
+
+    def get_height(self) -> int:
+        response = self._public_stub.GetHeight(qrl_pb2.GetHeightReq())
+        return response.height
 
     def get_block(self, header_hash: str):
         headerhash = bytes(hstr2bin(header_hash))
