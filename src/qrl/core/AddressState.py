@@ -28,6 +28,10 @@ class AddressState(object):
         return self._data.address
 
     @property
+    def height(self):
+        return self._data.address[1] << 1
+
+    @property
     def nonce(self):
         return self._data.nonce
 
@@ -184,6 +188,25 @@ class AddressState(object):
                 if tx.ots_key >= config.dev.max_ots_tracking_index:
                     self._data.ots_counter = tx.ots_key
                     break
+
+    def get_unused_ots_index(self):
+        ots_key_count = (2 ** self.height)
+
+        for i in range(0, min(ots_key_count, config.dev.max_ots_tracking_index) // 8):
+            if self.ots_bitfield[i][0] < 255:
+                offset = 8 * i
+                bitfield = bytearray(self.ots_bitfield[i])
+                for relative in range(0, 8):
+                    if ((bitfield[0] >> relative) & 1) != 1:
+                        return offset + relative
+
+        if ots_key_count > config.dev.max_ots_tracking_index:
+            if self.ots_counter + 1 < ots_key_count:
+                if self.ots_counter == 0:
+                    return config.dev.max_ots_tracking_index
+                return self.ots_counter + 1
+
+        return None
 
     @staticmethod
     def address_is_valid(address: bytes) -> bool:
