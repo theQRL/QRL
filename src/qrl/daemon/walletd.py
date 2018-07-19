@@ -282,6 +282,12 @@ class WalletD:
         self.load_wallet()
 
     def change_passphrase(self, old_passphrase: str, new_passphrase: str):
+        if len(old_passphrase) == 0:
+            raise Exception('Missing Old Passphrase')
+
+        if len(new_passphrase) == 0:
+            raise Exception('Missing New Passphrase')
+
         if old_passphrase == new_passphrase:
             raise Exception('Old Passphrase and New Passphrase cannot be same')
 
