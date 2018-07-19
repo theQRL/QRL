@@ -56,7 +56,7 @@ class WalletD:
 
     def authenticate(self):
         if not self._passphrase:
-            if self._wallet.encrypted:
+            if self._wallet.is_encrypted():
                 raise ValueError('Failed: Passphrase Missing')
 
     def _encrypt_last_item(self):
@@ -264,7 +264,7 @@ class WalletD:
         return tx.pbdata
 
     def encrypt_wallet(self, passphrase: str):
-        if self._wallet.encrypted:
+        if self._wallet.is_encrypted():
             raise Exception('Wallet Already Encrypted')
         if not passphrase:
             raise Exception("Missing Passphrase")
@@ -278,10 +278,16 @@ class WalletD:
 
     def unlock_wallet(self, passphrase: str):
         self._passphrase = passphrase
-        self._wallet.decrypt(passphrase)
+        self._wallet.decrypt(passphrase, first_address_only=True)
         self.load_wallet()
 
     def change_passphrase(self, old_passphrase: str, new_passphrase: str):
+        if len(old_passphrase) == 0:
+            raise Exception('Missing Old Passphrase')
+
+        if len(new_passphrase) == 0:
+            raise Exception('Missing New Passphrase')
+
         if old_passphrase == new_passphrase:
             raise Exception('Old Passphrase and New Passphrase cannot be same')
 

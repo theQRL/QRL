@@ -96,6 +96,12 @@ class Wallet:
 
         return xmss
 
+    def is_encrypted(self) -> bool:
+        if len(self.address_items) == 0:
+            return False
+
+        return self.address_items[0].encrypted
+
     def wallet_info(self):
         """
         Provides Wallet Info
@@ -280,7 +286,7 @@ class Wallet:
         tmp['encrypted'] = True
         self._address_items[index] = AddressItem(**tmp)
 
-    def decrypt(self, password: str):
+    def decrypt(self, password: str, first_address_only: bool=False):
         if self.encrypted_partially:
             raise WalletEncryptionError("Some addresses are already decrypted. Please re-encrypt all addresses before"
                                         "running decrypt().")
@@ -297,6 +303,8 @@ class Wallet:
         try:
             for i in range(len(self._address_items)):
                 decryptor(i, password)
+                if first_address_only:
+                    return
         except Exception as e:
             raise WalletDecryptionError("Error during decryption. Likely due to invalid password: {}".format(str(e)))
 
