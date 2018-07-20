@@ -414,6 +414,35 @@ class TestPublicAPI(TestCase):
         service.GetTokenTxn(request=request, context=context)
         context.set_code.assert_called_with(StatusCode.INVALID_ARGUMENT)
 
+    def test_getTransactionsByAddress(self):
+        db_state = Mock(spec=State)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.pow = Mock(spec=POW)
+
+        chain_manager = ChainManager(db_state)
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pow = p2p_factory.pow
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        # Find a transaction
+        alice_xmss = get_alice_xmss()
+        db_state.get_address_state = MagicMock(return_value=AddressState.get_default(alice_xmss.address))
+        db_state.address_used = MagicMock(return_value=False)
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetTransactionsByAddressReq(address=alice_xmss.address)
+        response = service.GetTransactionsByAddress(request=request, context=context)
+        context.set_code.assert_not_called()
+
+        self.assertEqual(len(response.mini_transactions), 0)
+        self.assertEqual(response.balance, 0)
+
     def test_getTransaction(self):
         db_state = Mock(spec=State)
         db_state.get_tx_metadata = MagicMock(return_value=None)

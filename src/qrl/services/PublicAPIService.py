@@ -317,6 +317,17 @@ class PublicAPIService(PublicAPIServicer):
 
         return response
 
+    @GrpcExceptionWrapper(qrl_pb2.GetTransactionsByAddressResp)
+    def GetTransactionsByAddress(self,
+                                 request: qrl_pb2.GetTransactionsByAddressReq,
+                                 context) -> qrl_pb2.GetTransactionsByAddressResp:
+        logger.debug("[PublicAPI] GetTransactionsByAddress")
+        response = qrl_pb2.GetTransactionsByAddressResp()
+        mini_transactions, balance = self.qrlnode.get_transactions_by_address(request.address)
+        response.mini_transactions.extend(mini_transactions)
+        response.balance = balance
+        return response
+
     @GrpcExceptionWrapper(qrl_pb2.GetTransactionResp)
     def GetTransaction(self, request: qrl_pb2.GetTransactionReq, context) -> qrl_pb2.GetTransactionResp:
         logger.debug("[PublicAPI] GetTransaction")
