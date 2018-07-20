@@ -327,7 +327,7 @@ class QRLNode:
         for tx_hash in address_state.transaction_hashes:
             mini_transaction = qrl_pb2.MiniTransaction()
             mini_transaction.transaction_hash = bin2hstr(tx_hash)
-            tx, block_number = self._chain_manager.get_tx_metadata(tx_hash)
+            tx, _ = self._chain_manager.get_tx_metadata(tx_hash)
             amount = 0
             if tx.addr_from == address:
                 amount -= tx.fee

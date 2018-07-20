@@ -304,6 +304,11 @@ class WalletD:
         self._wallet.save()
         self.lock_wallet()
 
+    def get_transactions_by_address(self, qaddress: str) -> tuple:
+        address = self.qaddress_to_address(qaddress)
+        response = self._public_stub.GetTransactionsByAddress(qrl_pb2.GetTransactionsByAddressReq(address=address))
+        return response.mini_transactions, response.balance
+
     def get_transaction(self, tx_hash: str):
         txhash = bytes(hstr2bin(tx_hash))
         response = self._public_stub.GetTransaction(qrl_pb2.GetTransactionReq(tx_hash=txhash))
