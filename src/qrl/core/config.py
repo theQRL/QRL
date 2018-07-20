@@ -112,6 +112,21 @@ class UserConfig(object):
         self.grpc_proxy_host = "127.0.0.1"
         self.grpc_proxy_port = 18090
 
+        # ======================================
+        #      WALLET DAEMON CONFIGURATION
+        # ======================================
+        self.public_api_server = "127.0.0.1:19009"
+        self.wallet_daemon_host = "127.0.0.1"
+        self.wallet_daemon_port = 18091
+
+        # ======================================
+        #        WALLET API CONFIGURATION
+        # ======================================
+        self.wallet_api_host = "127.0.0.1"
+        self.wallet_api_port = 19010
+        self.wallet_api_threads = 1
+        self.wallet_api_max_concurrent_rpc = 100
+
         # WARNING! loading should be the last line.. any new setting after this will not be updated by the config file
         self.load_yaml(self.config_path)
         # WARNING! loading should be the last line.. any new setting after this will not be updated by the config file
