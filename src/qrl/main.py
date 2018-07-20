@@ -9,7 +9,7 @@ from os.path import expanduser
 
 from mock import MagicMock
 from twisted.internet import reactor
-from pyqrllib.pyqrllib import hstr2bin
+from pyqrllib.pyqrllib import hstr2bin, bin2hstr
 
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
@@ -155,7 +155,11 @@ def main():
     qrlnode.start_pow(args.mining_thread_count)
 
     logger.info('QRL blockchain ledger %s', config.dev.version)
-    logger.info('mining/staking address %s', args.mining_address)
+    if config.user.mining_enabled:
+        logger.info('Mining/staking address %s using %s threads (0 = auto)', 'Q' + bin2hstr(mining_address), args.mining_thread_count)
+        
+    elif args.mining_address or args.mining_thread_count:
+        logger.warning('%s', 'Mining is not enabled but you sent some "mining related" param via CLI')
 
     # FIXME: This will be removed once we move away from Twisted
     reactor.run()
