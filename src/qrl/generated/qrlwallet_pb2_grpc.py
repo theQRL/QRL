@@ -97,6 +97,11 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.ChangePassphraseReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.ChangePassphraseResp.FromString,
         )
+    self.GetTransactionsByAddress = channel.unary_unary(
+        '/qrl.WalletAPI/GetTransactionsByAddress',
+        request_serializer=qrlwallet__pb2.TransactionsByAddressReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.TransactionsByAddressResp.FromString,
+        )
     self.GetTransaction = channel.unary_unary(
         '/qrl.WalletAPI/GetTransaction',
         request_serializer=qrlwallet__pb2.TransactionReq.SerializeToString,
@@ -231,6 +236,12 @@ class WalletAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetTransactionsByAddress(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def GetTransaction(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -344,6 +355,11 @@ def add_WalletAPIServicer_to_server(servicer, server):
           servicer.ChangePassphrase,
           request_deserializer=qrlwallet__pb2.ChangePassphraseReq.FromString,
           response_serializer=qrlwallet__pb2.ChangePassphraseResp.SerializeToString,
+      ),
+      'GetTransactionsByAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.GetTransactionsByAddress,
+          request_deserializer=qrlwallet__pb2.TransactionsByAddressReq.FromString,
+          response_serializer=qrlwallet__pb2.TransactionsByAddressResp.SerializeToString,
       ),
       'GetTransaction': grpc.unary_unary_rpc_method_handler(
           servicer.GetTransaction,

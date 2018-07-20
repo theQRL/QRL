@@ -48,6 +48,8 @@ service WalletAPI
 
     rpc ChangePassphrase(ChangePassphraseReq) returns (ChangePassphraseResp);
 
+    rpc GetTransactionsByAddress(TransactionsByAddressReq) returns (TransactionsByAddressResp);
+
     rpc GetTransaction(TransactionReq) returns (TransactionResp);
 
     rpc GetBalance(BalanceReq) returns (BalanceResp);
@@ -214,6 +216,17 @@ message ChangePassphraseReq {
 message ChangePassphraseResp {
     uint32 code = 1;
     string error = 2;
+}
+
+message TransactionsByAddressReq {
+    string address = 1;
+}
+
+message TransactionsByAddressResp {
+    uint32 code = 1;
+    string error = 2;
+    repeated MiniTransaction mini_transactions = 3;
+    uint64 balance = 4;
 }
 
 message TransactionReq {

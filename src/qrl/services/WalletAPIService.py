@@ -199,10 +199,27 @@ class WalletAPIService(WalletAPIServicer):
         return resp
 
     @GrpcExceptionWrapper(qrlwallet_pb2.ChangePassphraseResp)
-    def ChangePassphrase(self, request: qrlwallet_pb2.ChangePassphraseReq, context) -> qrlwallet_pb2.ChangePassphraseResp:
+    def ChangePassphrase(self,
+                         request: qrlwallet_pb2.ChangePassphraseReq,
+                         context) -> qrlwallet_pb2.ChangePassphraseResp:
         resp = qrlwallet_pb2.ChangePassphraseResp()
         try:
             self._walletd.change_passphrase(request.oldPassphrase, request.newPassphrase)
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.TransactionsByAddressResp)
+    def GetTransactionsByAddress(self,
+                                 request: qrlwallet_pb2.TransactionsByAddressReq,
+                                 context) -> qrlwallet_pb2.TransactionsByAddressResp:
+        resp = qrlwallet_pb2.TransactionsByAddressResp()
+        try:
+            mini_transactions, balance = self._walletd.get_transactions_by_address(request.address)
+            resp.mini_transactions.extend(mini_transactions)
+            resp.balance = balance
         except Exception as e:
             resp.code = 1
             resp.error = str(e)

@@ -466,6 +466,17 @@ class TestWalletD(TestCase):
             self.assertEqual(len(qaddresses), 1)
             self.assertEqual(qaddresses[0], qaddress)
 
+    def test_get_transactions_by_address(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+
+            walletd._public_stub.GetTransactionsByAddress = Mock(
+                return_value=qrl_pb2.GetTransactionsByAddressResp(mini_transactions=[],
+                                                                  balance=0))
+            mini_transactions, balance = walletd.get_transactions_by_address(qaddress=get_alice_xmss(4).qaddress)
+            self.assertEqual(len(mini_transactions), 0)
+            self.assertEqual(balance, 0)
+
     def test_get_transaction(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()

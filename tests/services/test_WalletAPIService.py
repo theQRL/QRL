@@ -350,6 +350,22 @@ class TestWalletAPI(TestCase):
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=new_passphrase), context=None)
             self.assertEqual(resp.code, 0)
 
+    def test_getTransactionsByAddress(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            walletd._public_stub.GetTransactionsByAddress = Mock(
+                return_value=qrl_pb2.GetTransactionsByAddressResp(mini_transactions=[],
+                                                                  balance=0))
+
+            resp = service.GetTransactionsByAddress(
+                qrlwallet_pb2.TransactionsByAddressReq(address=get_alice_xmss(4).qaddress), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertEqual(len(resp.mini_transactions), 0)
+            self.assertEqual(resp.balance, 0)
+
     def test_getTransaction(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
