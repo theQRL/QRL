@@ -338,7 +338,7 @@ class WalletD:
         return response.block
 
 
-def main():
+def run():
     walletd = WalletD()
     wallet_server = grpc.server(ThreadPoolExecutor(max_workers=config.user.wallet_api_threads),
                                 maximum_concurrent_rpcs=config.user.wallet_api_max_concurrent_rpc)
@@ -355,6 +355,10 @@ def main():
         wallet_server.stop(0)
 
 
-if __name__ == '__main__':
-    daemon = Daemonize(app="qrl_walletd", pid=pid, action=main)
+def main():
+    daemon = Daemonize(app="qrl_walletd", pid=pid, action=run)
     daemon.start()
+
+
+if __name__ == '__main__':
+    main()
