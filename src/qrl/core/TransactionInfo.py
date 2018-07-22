@@ -47,3 +47,22 @@ class TransactionInfo:
 
     def update_block_number(self, current_block_number: int):
         self._block_number = current_block_number
+
+    def validate(self, state) -> bool:
+        addresses_set = set()
+        self.transaction.set_affected_address(addresses_set)
+
+        addresses_state = dict()
+        for address in addresses_set:
+            addresses_state[address] = state.get_address_state(address)
+
+        addr_from_pk_state = addresses_state[self.transaction.addr_from]
+        addr_from_pk = Transaction.get_slave(self.transaction)
+
+        if addr_from_pk:
+            addr_from_pk_state = addresses_state[addr_from_pk]
+
+        if not self.transaction.validate_extended(addresses_state[self.transaction.addr_from], addr_from_pk_state):
+            return False
+
+        return True
