@@ -8,7 +8,7 @@ import grpc
 from time import sleep
 from daemonize import Daemonize
 
-from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin
+from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr
 
 from qrl.core import config
 from qrl.core.Wallet import WalletDecryptionError
@@ -336,6 +336,10 @@ class WalletD:
     def get_block_by_number(self, block_number: int):
         response = self._public_stub.GetBlockByNumber(qrl_pb2.GetBlockByNumberReq(block_number=block_number))
         return response.block
+
+    def get_address_from_pk(self, pk: bytes) -> str:
+        response = self._public_stub.GetAddressFromPK(qrl_pb2.GetAddressFromPKReq(pk=pk))
+        return 'Q' + bin2hstr(response.address)
 
 
 def run():

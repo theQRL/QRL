@@ -62,6 +62,8 @@ service WalletAPI
 
     rpc GetBlockByNumber(BlockByNumberReq) returns (BlockResp);
 
+    rpc GetAddressFromPK(AddressFromPKReq) returns (AddressFromPKResp);
+
 }
 
 message AddNewAddressReq {
@@ -282,4 +284,14 @@ message BlockResp {
 
 message BlockByNumberReq {
     uint64 block_number = 1;
+}
+
+message AddressFromPKReq {
+    bytes pk = 1;
+}
+
+message AddressFromPKResp {
+    uint32 code = 1;
+    string error = 2;
+    string address = 3;
 }
