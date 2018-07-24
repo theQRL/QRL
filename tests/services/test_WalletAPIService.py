@@ -459,3 +459,23 @@ class TestWalletAPI(TestCase):
             self.assertEqual(resp.code, 0)
             self.assertEqual(resp.block.header.hash_header, block.header.hash_header)
             self.assertEqual(resp.block.header.block_number, block.header.block_number)
+
+    def test_getAddressFromPK(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            pk = b'\x01\x02\x00\x16\xec\xb9\xf3\x9b\x9fBu\xd5\xa4\x9e##F\xa1Z\xe2\xfa\x8cP\xa2\x92}\xae' \
+                 b'\xac\x18\x9b\x8c_-\x18\xbcN9\x83\xbdVB\x98\xc4\x9a\xe2\xe7\xfan(\xd4\xb9T\xd8\xcdY9' \
+                 b'\x8f\x12%\xb0\x8daD\x85J\xee\x0e'
+
+            address = b'\x01\x02\x00g\x02F\xb0\x02d6\xb7\x17\xf1\x99\xe3\xecS \xbaj\xb6\x1d^\xdd\xff\x81' \
+                      b'\x1a\xc1\x99\xa9\xe9\xb8q\xd3(\x01x\xb3C'
+
+            walletd._public_stub.GetAddressFromPK = Mock(return_value=qrl_pb2.GetAddressFromPKResp(address=address))
+
+            resp = service.GetAddressFromPK(qrlwallet_pb2.AddressFromPKReq(pk=pk), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertEqual(resp.address,
+                             'Q010200670246b0026436b717f199e3ec5320ba6ab61d5eddff811ac199a9e9b871d3280178b343')

@@ -295,3 +295,14 @@ class WalletAPIService(WalletAPIServicer):
             resp.error = str(e)
 
         return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.AddressFromPKResp)
+    def GetAddressFromPK(self, request: qrlwallet_pb2.AddressFromPKReq, context) -> qrlwallet_pb2.AddressFromPKResp:
+        resp = qrlwallet_pb2.AddressFromPKResp()
+        try:
+            resp.address = self._walletd.get_address_from_pk(request.pk)
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
