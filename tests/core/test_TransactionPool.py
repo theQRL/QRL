@@ -8,6 +8,8 @@ from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.State import State
+from qrl.core.ChainManager import ChainManager
+from qrl.core.TransactionMetadata import TransactionMetadata
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.TransactionPool import TransactionPool
@@ -18,13 +20,22 @@ logger.initialize_default()
 
 
 def make_tx(txhash=b'hashbrownies', fee=1, autospec=TransferTransaction, PK=b'publickey', **kwargs):
-    return Mock(autospec=autospec, txhash=txhash, fee=fee, PK=PK, **kwargs)
+    m_tx = Mock(autospec=autospec, txhash=txhash, fee=fee, PK=PK, **kwargs)
+    m_tx.serialize.return_value = b'Mock Serialized Transaction'
+    return m_tx
 
 
 def replacement_from_pbdata(protobuf_tx):
     return protobuf_tx
 
 
+def replacement_TransactionMetadata_create(tx, block_number, timestamp):
+    m_tx_meta = Mock(autospec=TransactionMetadata, transaction=tx, block_number=block_number, timestamp=timestamp)
+    m_tx_meta.serialize.return_value = b'Mock Serialized TransactionMetadata'
+    return m_tx_meta
+
+
+@patch('qrl.core.TransactionPool.TransactionMetadata.create', new=replacement_TransactionMetadata_create)
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestTransactionPool(TestCase):
     """
@@ -35,13 +46,20 @@ class TestTransactionPool(TestCase):
     """
 
     def setUp(self):
-        self.txpool = TransactionPool(None)
+        with set_qrl_dir('no_data'):
+            self.m_chain_manager = Mock(name='Mock ChainManager', autospec=ChainManager)
+            self.m_chain_manager.get_manifest_of_txpool.side_effect = KeyError
+            self.txpool = TransactionPool(None, self.m_chain_manager)
 
     def test_add_tx_to_pool(self):
         tx = make_tx()
         result = self.txpool.add_tx_to_pool(tx, 1, replacement_getTime())
         self.assertTrue(result)
         self.assertEqual(len(self.txpool.transactions), 1)
+
+        # The manifest should have been updated, and the database written to.
+        self.assertEqual(self.txpool.manifest.txhashes, [tx.txhash])
+        self.m_chain_manager.add_tx_to_txpool.assert_called_once()
 
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', autospec=True)
     def test_add_tx_to_pool_while_full(self, m_is_full_func):
@@ -55,17 +73,25 @@ class TestTransactionPool(TestCase):
     def test_is_full_transaction_pool(self, m_config):
         m_config.user.transaction_pool_size = 2
 
+        # Make sure txpool reports it is not full.
         result = self.txpool.is_full_transaction_pool()
         self.assertFalse(result)
 
         tx1 = make_tx(fee=1)
         tx2 = make_tx(fee=2)
+        tx3 = make_tx(fee=3)
 
+        # FIll up txpool. It should report that it is now full.
         self.txpool.add_tx_to_pool(tx1, 1, replacement_getTime())
         self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
 
         result = self.txpool.is_full_transaction_pool()
         self.assertTrue(result)
+
+        # Adding another tx while txpool is full shouldn't work
+        result = self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime())
+        self.assertFalse(result)
+        self.assertEqual(len(self.txpool.transaction_pool), 2)
 
     def test_get_tx_index_from_pool(self):
         tx1 = make_tx(txhash=b'red')
@@ -95,6 +121,7 @@ class TestTransactionPool(TestCase):
         # If we try to remove a tx that wasn't there, the transaction pool should be untouched
         self.assertEqual(len(self.txpool.transaction_pool), 1)
         self.txpool.remove_tx_from_pool(tx2)
+        self.m_chain_manager.remove_tx_from_txpool.assert_not_called()
         self.assertEqual(len(self.txpool.transaction_pool), 1)
 
         # Now let's remove a tx from the heap. The size should decrease.
@@ -103,6 +130,7 @@ class TestTransactionPool(TestCase):
 
         self.assertEqual(len(self.txpool.transaction_pool), 3)
         self.txpool.remove_tx_from_pool(tx2)
+        self.m_chain_manager.remove_tx_from_txpool.assert_called_once()
         self.assertEqual(len(self.txpool.transaction_pool), 2)
 
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_pending_transaction_pool', autospec=True)
@@ -229,14 +257,16 @@ class TestTransactionPool(TestCase):
 
         self.txpool.remove_tx_in_block_from_pool(m_block)
         self.assertEqual(len(self.txpool.transaction_pool), 0)
+        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 2)
 
     @patch('qrl.core.TransactionInfo.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     def test_check_stale_txn(self, m_is_full_transaction_pool, m_config):
         """
-        Stale Transactions are Transactions that were supposed to go into block 5, but for some reason didn't make it.
-        They languish in TransactionPool until check_stale_txn() checks the Pool and updates the tx_info to make them
-        go into a higher block.
+        Imagine 2 Transactions are sent in almost the same time, so that both can appear in a node's TxPool.
+        However, the address only has enough funds for 1 of these transactions to be valid.
+        Thus, one of the Transactions is said to be stale. check_stale_txn() will see if they are still valid
+        (against the new state) and try include it in the next block, or drop it if it no longer validates.
         For each stale transaction, P2PFactory.broadcast_tx() will be called.
         """
 
@@ -274,6 +304,7 @@ class TestTransactionPool(TestCase):
             self.assertEqual(m_broadcast_tx.call_count, 1)
 
 
+@patch('qrl.core.TransactionPool.TransactionMetadata.create', new=replacement_TransactionMetadata_create)
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
     """
@@ -288,10 +319,13 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
     Of course, 4098 and 4099 also have to be deleted.
     """
 
+    @patch('qrl.core.TransactionPool.TransactionMetadata.create', new=replacement_TransactionMetadata_create)
     @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def setUp(self):
-
-        self.txpool = TransactionPool(None)
+        with set_qrl_dir('no_data'):
+            self.m_chain_manager = Mock(name='Mock ChainManager', autospec=ChainManager)
+            self.m_chain_manager.get_manifest_of_txpool.side_effect = KeyError
+            self.txpool = TransactionPool(None, chain_manager=self.m_chain_manager)
 
         self.tx_3907 = make_tx(name='Mock TX 3907', txhash=b'h3907', ots_key=3907)
 
@@ -339,6 +373,8 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.assertIn(self.tx_4100, txs_in_txpool)
         self.assertIn(self.tx_4200, txs_in_txpool)
 
+        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 4)
+
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
@@ -370,6 +406,8 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.assertIn(self.tx_4100, txs_in_txpool)
         self.assertIn(self.tx_4200, txs_in_txpool)
 
+        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 4)
+
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
@@ -393,6 +431,8 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.assertEqual(len(self.txpool.transaction_pool), 2)
         self.assertIn(self.tx_3907, txs_in_txpool)
         self.assertIn(self.tx_4095, txs_in_txpool)
+
+        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 6)
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
@@ -426,6 +466,8 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.assertIn(tx_other_4096, txs_in_txpool)
         self.assertIn(tx_other_4097, txs_in_txpool)
 
+        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 6)
+
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
@@ -447,3 +489,30 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
 
         txs_in_txpool = [t[1].transaction for t in self.txpool.transaction_pool]
         self.assertEqual(7, len(txs_in_txpool))
+        self.m_chain_manager.remove_tx_from_txpool.assert_not_called()
+
+
+@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+class TestTransactionPoolPersistence(TestCase):
+    def setUp(self):
+        with set_qrl_dir('no_data'):
+            self.state = State()
+            self.chain_manager = ChainManager(self.state)
+            self.txpool = TransactionPool(None, self.chain_manager)
+
+        alice_xmss = get_alice_xmss(4)
+        bob_xmss = get_bob_xmss(4)
+
+        tx1 = TransferTransaction.create(addrs_to=[bob_xmss.address], amounts=[1000000], fee=1, xmss_pk=alice_xmss.pk)
+        tx1.sign(alice_xmss)
+        tx2 = TransferTransaction.create(addrs_to=[bob_xmss.address], amounts=[10000], fee=1, xmss_pk=alice_xmss.pk)
+        tx2.sign(alice_xmss)
+
+        self.txpool.add_tx_to_pool(tx1, 1, replacement_getTime())
+        self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
+
+    def test_load_txs_from_state(self):
+        new_txpool = TransactionPool(None, self.chain_manager)
+        new_txpool.load_txs_from_state()
+
+        self.assertEqual(self.txpool.manifest, new_txpool.manifest)

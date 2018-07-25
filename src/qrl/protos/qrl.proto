@@ -590,6 +590,10 @@ message LRUStateCache {
 
 }
 
+message TransactionPoolManifest {
+    repeated bytes txhashes = 1;
+}
+
 message PeerStat {
     bytes peer_ip = 1;
     uint32 port = 2;

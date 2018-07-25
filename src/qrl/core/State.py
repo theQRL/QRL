@@ -503,3 +503,25 @@ class State:
                 data_point.hash_power = 0
 
         return data_point
+
+    def add_tx_to_txpool(self, manifest: bytes, txhash: bytes, tx_meta: bytes):
+        key = b'txpool_' + txhash
+
+        batch = self._db.get_batch()
+        self._db.put_raw(b'txpool', manifest, batch=batch)
+        self._db.put_raw(key, tx_meta, batch=batch)
+        self._db.write_batch(batch)
+
+    def remove_tx_from_txpool(self, manifest: bytes, txhash: bytes):
+        key = b'txpool_' + txhash
+
+        batch = self._db.get_batch()
+        self._db.put_raw(b'txpool', manifest, batch=batch)
+        self._db.delete(key, batch=batch)
+        self._db.write_batch(batch)
+
+    def get_tx_from_txpool(self, txhash: bytes):
+        return self._db.get_raw(b'txpool_' + txhash)
+
+    def get_manifest_of_txpool(self):
+        return self._db.get_raw(b'txpool')

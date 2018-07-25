@@ -25,7 +25,7 @@ from qrl.generated import qrl_pb2, qrlstateinfo_pb2
 class ChainManager:
     def __init__(self, state):
         self._state = state
-        self.tx_pool = TransactionPool(None)
+        self.tx_pool = TransactionPool(None, self)
         self._last_block = Block.deserialize(GenesisBlock().serialize())
         self.current_difficulty = StringToUInt256(str(config.user.genesis_difficulty))
 
@@ -524,3 +524,19 @@ class ChainManager:
         block_number_mapping = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
                                                           prev_headerhash=block.prev_headerhash)
         self._state.put_block_number_mapping(block.block_number, block_number_mapping, batch)
+
+    def add_tx_to_txpool(self, *args):
+        with self.lock:
+            self._state.add_tx_to_txpool(*args)
+
+    def remove_tx_from_txpool(self, *args):
+        with self.lock:
+            self._state.remove_tx_from_txpool(*args)
+
+    def get_tx_from_txpool(self, *args):
+        with self.lock:
+            return self._state.get_tx_from_txpool(*args)
+
+    def get_manifest_of_txpool(self):
+        with self.lock:
+            return self._state.get_manifest_of_txpool()

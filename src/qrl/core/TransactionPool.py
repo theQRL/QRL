@@ -12,15 +12,38 @@ from qrl.core.Block import Block
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.TransactionInfo import TransactionInfo
+from qrl.core.TransactionMetadata import TransactionMetadata
+from qrl.generated import qrl_pb2
 
 
 class TransactionPool:
     # FIXME: Remove tx pool from all method names
-    def __init__(self, broadcast_tx):
+    def __init__(self, broadcast_tx, chain_manager):
+        self.chain_manager = chain_manager
         self.pending_tx_pool = []
         self.pending_tx_pool_hash = set()
         self.transaction_pool = []  # FIXME: Everyone is touching this
         self.broadcast_tx = broadcast_tx
+
+    @property
+    def manifest(self):
+        txhashes = [t[1].transaction.txhash for t in self.transaction_pool]
+        manifest = qrl_pb2.TransactionPoolManifest(txhashes=txhashes)
+        return manifest
+
+    def load_txs_from_state(self):
+        # Read persistent TXPool from LevelDB or start with empty TXPool
+        try:
+            manifest_raw = self.chain_manager.get_manifest_of_txpool()
+            manifest = qrl_pb2.TransactionPoolManifest()
+            manifest.ParseFromString(manifest_raw)
+            for txhash in manifest.txhashes:
+                tx_metadata = TransactionMetadata.deserialize(
+                    self.chain_manager.get_tx_from_txpool(txhash))
+                self.add_tx_to_pool(Transaction.from_pbdata(tx_metadata.transaction), tx_metadata.block_number,
+                                    tx_metadata.timestamp, persistent=False)
+        except KeyError:
+            logger.info('No saved TransactionPool in State, continuing with empty TransactionPool')
 
     @property
     def transactions(self):
@@ -78,13 +101,18 @@ class TransactionPool:
 
         return True
 
-    def add_tx_to_pool(self, tx_class_obj, block_number, timestamp: int=None) -> bool:
+    def add_tx_to_pool(self, tx_class_obj, block_number, timestamp: int = None, persistent=True) -> bool:
         if self.is_full_transaction_pool():
             return False
 
-        heapq.heappush(self.transaction_pool, [tx_class_obj.fee, TransactionInfo(tx_class_obj,
-                                                                                 block_number,
-                                                                                 timestamp)])
+        tx_info = TransactionInfo(tx_class_obj, block_number, timestamp)
+        heapq.heappush(self.transaction_pool, [tx_class_obj.fee, tx_info])
+        if persistent:
+            tx_meta = TransactionMetadata.create(tx=tx_info.transaction,
+                                                 block_number=tx_info.block_number,
+                                                 timestamp=tx_info.timestamp)
+            self.chain_manager.add_tx_to_txpool(self.manifest.SerializeToString(), tx_info.transaction.txhash,
+                                                tx_meta.serialize())
         return True
 
     def get_tx_index_from_pool(self, txhash):
@@ -95,27 +123,28 @@ class TransactionPool:
 
         return -1
 
-    def remove_tx_from_pool(self, tx: Transaction):
+    def remove_tx_from_pool(self, tx: Transaction, persistent=True):
         idx = self.get_tx_index_from_pool(tx.txhash)
         if idx > -1:
             del self.transaction_pool[idx]
             heapq.heapify(self.transaction_pool)
+            if persistent:
+                self.chain_manager.remove_tx_from_txpool(self.manifest.SerializeToString(), tx.txhash)
 
     def remove_tx_in_block_from_pool(self, block_obj: Block):
-        for protobuf_tx in block_obj.transactions[1:]:  # Ignore first transaction, as it is a coinbase txn
-            tx = Transaction.from_pbdata(protobuf_tx)
-            if tx.ots_key < config.dev.max_ots_tracking_index:
-                idx = self.get_tx_index_from_pool(tx.txhash)
-                if idx > -1:
-                    del self.transaction_pool[idx]
+        for protobuf_tx in block_obj.transactions[1:]:  # Ignore first transaction, as it is a coinbase
+            tx_from_block = Transaction.from_pbdata(protobuf_tx)
+            if tx_from_block.ots_key < config.dev.max_ots_tracking_index:
+                self.remove_tx_from_pool(tx_from_block)
             else:
                 i = 0
                 while i < len(self.transaction_pool):
-                    txn = self.transaction_pool[i][1].transaction
-                    if txn.PK == tx.PK:
-                        if txn.ots_key >= config.dev.max_ots_tracking_index:
-                            if txn.ots_key <= tx.ots_key:
+                    tx_from_pool = self.transaction_pool[i][1].transaction
+                    if tx_from_pool.PK == tx_from_block.PK:
+                        if tx_from_pool.ots_key >= config.dev.max_ots_tracking_index:
+                            if tx_from_pool.ots_key <= tx_from_block.ots_key:
                                 del self.transaction_pool[i]
+                                self.chain_manager.remove_tx_from_txpool(self.manifest.SerializeToString(), tx_from_pool.txhash)
                                 continue
                     i += 1
 

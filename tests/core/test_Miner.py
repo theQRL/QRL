@@ -15,9 +15,9 @@ from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, replacement_getTime
+from tests.core.test_TransactionPool import replacement_TransactionMetadata_create
 
 logger.initialize_default()
-
 
 alice = get_alice_xmss()
 bob = get_bob_xmss()
@@ -245,6 +245,7 @@ class TestMiner(TestCase):
 
 @patch('qrl.core.Miner.logger')
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+@patch('qrl.core.TransactionPool.TransactionMetadata.create', new=replacement_TransactionMetadata_create)
 class TestMinerWithRealTransactionPool(TestCase):
     def setUp(self):
         self.m_mining_qaddress = alice.qaddress
@@ -267,7 +268,7 @@ class TestMinerWithRealTransactionPool(TestCase):
                            mining_thread_count,
                            m_add_unprocessed_txn_fn)
 
-        self.txpool = TransactionPool(None)
+        self.txpool = TransactionPool(None, self.chain_manager)
 
         def replacement_set_affected_address(addresses_set):
             return addresses_set.add(alice.address)
@@ -280,7 +281,8 @@ class TestMinerWithRealTransactionPool(TestCase):
                           "master_addr": None,
                           "size": 150,
                           "validate_extended.return_value": True,
-                          "set_affected_address": replacement_set_affected_address
+                          "set_affected_address": replacement_set_affected_address,
+                          "txhash": b'Mock TX Hash'
                           }
 
     @patch('qrl.core.Miner.Block.create')
