@@ -24,6 +24,7 @@ logger.initialize_default()
 
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestMiningAPI(TestCase):
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def setUp(self):
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()

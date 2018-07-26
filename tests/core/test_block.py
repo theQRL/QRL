@@ -26,6 +26,7 @@ slave = get_slave_xmss()
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestBlockReal(TestCase):
     # These tests rely on a real BlockHeader
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def setUp(self):
         self.block = Block.create(block_number=5,
                                   prev_headerhash=bytes(sha2_256(b'test')),
@@ -65,6 +66,7 @@ class TestBlockReal(TestCase):
 
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestBlock(TestCase):
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def setUp(self):
         self.blockheader = Mock(name='mock BlockHeader', autospec=BlockHeader, block_number=5,
                                 headerhash=bytes(sha2_256(b'mock headerhash')),
