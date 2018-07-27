@@ -525,13 +525,13 @@ class ChainManager:
                                                           prev_headerhash=block.prev_headerhash)
         self._state.put_block_number_mapping(block.block_number, block_number_mapping, batch)
 
-    def add_tx_to_txpool(self, *args):
+    def add_txs_to_txpool(self, *args):
         with self.lock:
-            self._state.add_tx_to_txpool(*args)
+            self._state.add_txs_to_txpool(*args)
 
-    def remove_tx_from_txpool(self, *args):
+    def remove_txs_from_txpool(self, *args):
         with self.lock:
-            self._state.remove_tx_from_txpool(*args)
+            self._state.remove_txs_from_txpool(*args)
 
     def get_tx_from_txpool(self, *args):
         with self.lock:

@@ -85,7 +85,7 @@ class TestState(TestCase):
         self.assertIsNotNone(self.state)  # to avoid warning (unused variable)
 
     def test_get_address_state(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
 
         alice_address = alice_xmss.address
         address_state = self.state.get_address_state(alice_address)
@@ -110,7 +110,7 @@ class TestState(TestCase):
         addresses_state = self.state.get_all_address_state()
         self.assertEqual(len(addresses_state), 0)
 
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         alice_address = alice_xmss.address
         address_state = self.state.get_address_state(alice_address)
         addresses_state = {
@@ -135,7 +135,7 @@ class TestState(TestCase):
         self.assertEqual(len(addresses_state), 2)
 
     def test_basic_state_funcs(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         self.assertTrue(self.state.get_address_is_used(alice_xmss.address))
         self.assertEqual(self.state._return_all_addresses(), [])
         batch = self.state.batch
@@ -144,15 +144,15 @@ class TestState(TestCase):
         self.assertEqual(self.state.total_coin_supply, 0)
 
     def test_get_address_nonce(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         self.assertEqual(self.state.get_address_nonce(alice_xmss.address), 0)
 
     def test_get_address_balance(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         self.assertEqual(self.state.get_address_balance(alice_xmss.address), 0)
 
     def test_get_address2(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
 
         alice_address = alice_xmss.address
         address_state = self.state.get_address_state(alice_address)
@@ -165,7 +165,7 @@ class TestState(TestCase):
         self.assertTrue(isinstance(address_state.address, bytes))
 
     def test_create_token_metadata(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         bob_xmss = get_bob_xmss()
 
         token_transaction = get_token_transaction(alice_xmss, bob_xmss)
@@ -176,7 +176,7 @@ class TestState(TestCase):
         self.assertEqual(token_metadata.transfer_token_tx_hashes[0], token_transaction.txhash)
 
     def test_update_token_metadata(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         bob_xmss = get_bob_xmss()
 
         token_transaction = get_token_transaction(alice_xmss, bob_xmss)
@@ -205,7 +205,7 @@ class TestState(TestCase):
                          token_metadata.to_json())
 
     def test_remove_transfer_token_metadata(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         bob_xmss = get_bob_xmss()
 
         token_transaction = get_token_transaction(alice_xmss, bob_xmss)
@@ -229,7 +229,7 @@ class TestState(TestCase):
                          token_metadata.transfer_token_tx_hashes)
 
     def test_remove_token_metadata(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         bob_xmss = get_bob_xmss()
 
         token_tx = get_token_transaction(alice_xmss, bob_xmss)
@@ -241,7 +241,7 @@ class TestState(TestCase):
         self.assertIsNone(self.state.get_token_metadata(token_tx.txhash))
 
     def test_address_used(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         self.assertTrue(self.state.get_address_is_used(alice_xmss.address))
 
     def test_return_all_addresses(self):
@@ -335,7 +335,7 @@ class TestState(TestCase):
         self.assertIsNone(self.state.get_block(block.headerhash))
 
     def test_get_block_size_limit(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         blocks = gen_blocks(20, self.state, alice_xmss.address)
         self.assertEqual(self.state.get_block_size_limit(blocks[-1]), 1048576)
 
@@ -380,7 +380,7 @@ class TestState(TestCase):
         self.assertEqual(self.state.prepare_address_list(block),
                          {config.dev.coinbase_address, get_some_address(1)})
 
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         block = Block.create(block_number=10,
                              prev_headerhash=b'',
                              prev_timestamp=10,
@@ -400,7 +400,7 @@ class TestState(TestCase):
                           alice_xmss.address})
 
     def test_put_addresses_state(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         alice_state = AddressState.get_default(alice_xmss.address)
         addresses_state = {
             alice_state.address: alice_state,
@@ -413,7 +413,7 @@ class TestState(TestCase):
         self.assertEqual(test_state.serialize(), AddressState.get_default(b'test1').serialize())
 
     def test_get_state_mainchain(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         alice_state = AddressState.get_default(alice_xmss.address)
         alice_state.increase_nonce()
         alice_state.balance += 1000
@@ -433,7 +433,7 @@ class TestState(TestCase):
         # Test Case: When block not found
         self.assertIsNone(self.state.get_block_datapoint(b'test'))
 
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         blocks = gen_blocks(20, self.state, alice_xmss.address)
         for i in range(1, 20):
             datapoint = self.state.get_block_datapoint(blocks[i].headerhash)
@@ -493,7 +493,7 @@ class TestState(TestCase):
         self.assertEqual(self.state.last_block.block_number, 1)
 
     def test_update_last_tx(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         # Test Case: When there is no last txns
         self.assertEqual(self.state.get_last_txs(), [])
 
@@ -536,7 +536,7 @@ class TestState(TestCase):
     def test_get_last_txs(self):
         self.assertEqual(self.state.get_last_txs(), [])
 
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         block = Block()
         tx1 = TransferTransaction.create(addrs_to=[get_some_address(0), get_some_address(1)],
                                          amounts=[1, 2],
@@ -554,7 +554,7 @@ class TestState(TestCase):
         # Test Case: When there is no last txns
         self.assertEqual(self.state.get_last_txs(), [])
 
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
 
         block = Block()
         tx1 = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
@@ -572,7 +572,7 @@ class TestState(TestCase):
         self.assertEqual(last_txns, [])
 
     def test_rollback_tx_metadata(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
 
         tx1 = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                          amounts=[1, 2],
@@ -595,7 +595,7 @@ class TestState(TestCase):
         self.assertIsNone(self.state.get_tx_metadata(tx1.txhash))
 
     def test_update_tx_metadata(self):
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         tx = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                         amounts=[1, 2],
                                         fee=0,
@@ -610,7 +610,7 @@ class TestState(TestCase):
     def test_remove_tx_metadata(self):
         self.assertIsNone(self.state.get_tx_metadata(b'test1'))
 
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         tx = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                         amounts=[1, 2],
                                         fee=0,
@@ -628,7 +628,7 @@ class TestState(TestCase):
     def test_put_tx_metadata(self):
         self.assertIsNone(self.state.get_tx_metadata(b'test1'))
 
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         tx = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                         amounts=[1, 2],
                                         fee=0,
@@ -643,7 +643,7 @@ class TestState(TestCase):
     def test_get_tx_metadata(self):
         self.assertIsNone(self.state.get_tx_metadata(b'test1'))
 
-        alice_xmss = get_alice_xmss()
+        alice_xmss = get_alice_xmss(4)
         tx = TransferTransaction.create(addrs_to=[get_some_address(1), get_some_address(2)],
                                         amounts=[1, 2],
                                         fee=0,
@@ -694,3 +694,32 @@ class TestState(TestCase):
 
         self.state.delete_fork_state()
         self.assertIsNone(self.state.get_fork_state())
+
+    def test_add_txs_to_txpool(self):
+        manifest = b'txhash1_txhash2_txhash3_txhash4_txhash5_txhash6'
+        txhash_and_txmeta_list = [(b'txhash1', b'txmeta1'), (b'txhash2', b'txmeta2'), (b'txhash3', b'txmeta3')]
+
+        self.state.add_txs_to_txpool(manifest, txhash_and_txmeta_list)
+
+        self.assertEqual(self.state.get_tx_from_txpool(b'txhash1'), b'txmeta1')
+        self.assertEqual(self.state.get_tx_from_txpool(b'txhash2'), b'txmeta2')
+        self.assertEqual(self.state.get_tx_from_txpool(b'txhash3'), b'txmeta3')
+        self.assertEqual(self.state.get_manifest_of_txpool(), manifest)
+
+    def test_remove_txs_from_txpool(self):
+        manifest = b'txhash4_txhash5_txhash6'
+        txhashes = [b'txhash1', b'txhash2', b'txhash3']
+
+        self.state.remove_txs_from_txpool(manifest, txhashes)
+
+        with self.assertRaises(KeyError):
+            self.state.get_tx_from_txpool(b'txhash1')
+        with self.assertRaises(KeyError):
+            self.state.get_tx_from_txpool(b'txhash2')
+        with self.assertRaises(KeyError):
+            self.state.get_tx_from_txpool(b'txhash3')
+        self.assertEqual(self.state.get_manifest_of_txpool(), manifest)
+
+    def test_get_manifest_of_txpool(self):
+        self.state._db.put_raw(b'txpool', b'a test manifest')
+        self.assertEqual(self.state.get_manifest_of_txpool(), b'a test manifest')

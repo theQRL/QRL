@@ -99,7 +99,8 @@ class State:
         self._db.delete(str(block_number).encode(), batch)
 
     def put_block_number_mapping(self, block_number: int, block_number_mapping, batch):
-        self._db.put_raw(str(block_number).encode(), MessageToJson(block_number_mapping, sort_keys=True).encode(), batch)
+        self._db.put_raw(str(block_number).encode(), MessageToJson(block_number_mapping, sort_keys=True).encode(),
+                         batch)
 
     def get_block_number_mapping(self, block_number: int) -> Optional[qrl_pb2.BlockNumberMapping]:
         try:
@@ -425,7 +426,8 @@ class State:
     #########################################
 
     def _update_total_coin_supply(self, balance):
-        self._db.put_raw(b'total_coin_supply', (self.total_coin_supply + balance).to_bytes(8, byteorder='big', signed=False))
+        self._db.put_raw(b'total_coin_supply',
+                         (self.total_coin_supply + balance).to_bytes(8, byteorder='big', signed=False))
 
     def get_measurement(self, block_timestamp, parent_headerhash, parent_metadata: BlockMetadata):
         count_headerhashes = len(parent_metadata.last_N_headerhashes)
@@ -504,20 +506,23 @@ class State:
 
         return data_point
 
-    def add_tx_to_txpool(self, manifest: bytes, txhash: bytes, tx_meta: bytes):
-        key = b'txpool_' + txhash
+    def _txpool_key(self, txhash):
+        return b'txpool_' + txhash
 
+    def add_txs_to_txpool(self, manifest: bytes, txhash_and_txmeta_list: list):
         batch = self._db.get_batch()
         self._db.put_raw(b'txpool', manifest, batch=batch)
-        self._db.put_raw(key, tx_meta, batch=batch)
+        for txhash, txmeta in txhash_and_txmeta_list:
+            key = self._txpool_key(txhash)
+            self._db.put_raw(key, txmeta, batch=batch)
         self._db.write_batch(batch)
 
-    def remove_tx_from_txpool(self, manifest: bytes, txhash: bytes):
-        key = b'txpool_' + txhash
-
+    def remove_txs_from_txpool(self, manifest: bytes, txhashes: list):
         batch = self._db.get_batch()
         self._db.put_raw(b'txpool', manifest, batch=batch)
-        self._db.delete(key, batch=batch)
+        for txhash in txhashes:
+            key = self._txpool_key(txhash)
+            self._db.delete(key, batch=batch)
         self._db.write_batch(batch)
 
     def get_tx_from_txpool(self, txhash: bytes):
