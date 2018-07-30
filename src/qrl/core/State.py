@@ -506,7 +506,8 @@ class State:
 
         return data_point
 
-    def _txpool_key(self, txhash):
+    @classmethod
+    def _txpool_key(cls, txhash):
         return b'txpool_' + txhash
 
     def add_txs_to_txpool(self, manifest: bytes, txhash_and_txmeta_list: list):

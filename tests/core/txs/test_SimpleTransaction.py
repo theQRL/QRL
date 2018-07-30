@@ -4,6 +4,7 @@ import simplejson as json
 from mock import patch, PropertyMock, Mock
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
 from qrl.core.ChainManager import ChainManager
@@ -557,3 +558,35 @@ class TestSimpleTransaction(TestCase):
         )
         tx.set_affected_address(affected_addresses)
         self.assertEqual(3, len(affected_addresses))
+
+    @patch('qrl.core.txs.Transaction.config', autospec=config)
+    def test_ots_invalidation(self, m_config, m_logger):
+        """
+        If OTS counter starts at 4096, tx.ots_key = 4099 invalidates tx.ots_key = 4097
+        Should work across all Transaction types too since it's defined in Transaction
+        """
+        tx1 = TransferTransaction.create(addrs_to=[self.bob.address],
+                                         amounts=[100],
+                                         fee=1,
+                                         xmss_pk=self.alice.pk)
+        tx2 = TransferTransaction.create(addrs_to=[self.bob.address],
+                                         amounts=[200],
+                                         fee=1,
+                                         xmss_pk=self.alice.pk)
+
+        # We are below the OTS counter tracking, so these txs should not invalidate each other.
+        m_config.dev.max_ots_tracking_index = 8192
+        tx1.sign(self.alice)  # tx1.ots_key = bitfield, not counter
+        tx2.sign(self.alice)  # tx2.ots_key = bitfield, not counter
+        self.assertFalse(tx1.ots_invalidates(tx2))
+        self.assertFalse(tx2.ots_invalidates(tx1))
+
+        m_config.dev.max_ots_tracking_index = 2 ** (self.alice.height - 1)
+        ots_counter_start = 2 ** (self.alice.height - 1) + 1
+        self.alice.set_ots_index(ots_counter_start)
+        tx1.sign(self.alice)  # tx1.ots_key = 33
+        tx2.sign(self.alice)  # tx2.ots_key = 34
+
+        # In OTS counter mode (above 32), 34 invalidates 33
+        self.assertTrue(tx2.ots_invalidates(tx1))
+        self.assertFalse(tx1.ots_invalidates(tx2))

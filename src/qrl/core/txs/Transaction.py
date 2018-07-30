@@ -4,6 +4,7 @@
 
 from abc import ABCMeta, abstractmethod
 from math import log, floor
+from enum import Enum
 
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper, XmssFast
@@ -24,6 +25,11 @@ CODEMAP = {
     'transfer_token': 6,
     'slave': 7
 }
+
+
+class OTSType(Enum):
+    BITFIELD = 1
+    COUNTER = 2
 
 
 class Transaction(object, metaclass=ABCMeta):
@@ -85,6 +91,13 @@ class Transaction(object, metaclass=ABCMeta):
     @property
     def ots_key(self):
         return self.get_ots_from_signature(self.signature)
+
+    @property
+    def ots_type(self):
+        if self.ots_key < config.dev.max_ots_tracking_index:
+            return OTSType.BITFIELD
+        else:
+            return OTSType.COUNTER
 
     @staticmethod
     def get_ots_from_signature(signature):
@@ -296,6 +309,19 @@ class Transaction(object, metaclass=ABCMeta):
                 return False
 
         return True
+
+    def ots_invalidates(self, other_tx):
+        """
+        Let's say OTS counter mode starts at 4095.
+        If the ots_key of this Transaction and the other_tx are above 4095, we can start comparing.
+        Return True if this Transaction's ots_key is higher than other_tx.ots_key.
+        """
+        from_same_qaddress = self.PK == other_tx.PK
+        ots_keys_in_counter_range = (self.ots_type == OTSType.COUNTER) and (
+                other_tx.ots_type == OTSType.COUNTER)
+        this_ots_key_is_bigger = self.ots_key >= other_tx.ots_key
+
+        return all([from_same_qaddress, ots_keys_in_counter_range, this_ots_key_is_bigger])
 
     def get_message_hash(self):
         # FIXME: refactor, review that things are not recalculated too often, cache, etc.

@@ -3,6 +3,8 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 from mock import Mock, patch
+import os
+from functools import partial
 
 from qrl.core.misc import logger
 from qrl.core.AddressState import AddressState
@@ -11,6 +13,7 @@ from qrl.core.State import State
 from qrl.core.ChainManager import ChainManager
 from qrl.core.TransactionMetadata import TransactionMetadata
 from qrl.core.txs.CoinBase import CoinBase
+from qrl.core.txs.Transaction import OTSType
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.TransactionPool import TransactionPool
 from tests.misc.helper import replacement_getTime, set_qrl_dir, get_alice_xmss, get_bob_xmss
@@ -19,9 +22,10 @@ from tests.misc.MockHelper.mock_function import MockFunction
 logger.initialize_default()
 
 
-def make_tx(txhash=b'hashbrownies', fee=1, autospec=TransferTransaction, PK=b'publickey', **kwargs):
+def make_tx(txhash=os.urandom(3), fee=1, autospec=TransferTransaction, PK=b'publickey', **kwargs):
     m_tx = Mock(autospec=autospec, txhash=txhash, fee=fee, PK=PK, **kwargs)
     m_tx.serialize.return_value = b'Mock Serialized Transaction'
+    m_tx.ots_invalidates = partial(TransferTransaction.ots_invalidates, m_tx)
     return m_tx
 
 
@@ -53,21 +57,65 @@ class TestTransactionPool(TestCase):
 
     def test_add_tx_to_pool(self):
         tx = make_tx()
-        result = self.txpool.add_tx_to_pool(tx, 1, replacement_getTime())
+
+        result = self.txpool.add_tx_to_pool(tx, 1, replacement_getTime(), persistent=True)
+
+        # TransactionPool should now have 1 transaction
         self.assertTrue(result)
         self.assertEqual(len(self.txpool.transactions), 1)
 
         # The manifest should have been updated, and the database written to.
         self.assertEqual(self.txpool.manifest.txhashes, [tx.txhash])
-        self.m_chain_manager.add_tx_to_txpool.assert_called_once()
+        self.m_chain_manager.add_txs_to_txpool.assert_called_once()
+
+        # If persistent=False, database will not be written to.
+        result = self.txpool.add_tx_to_pool(tx, 1, replacement_getTime(), persistent=False)
+        self.assertEqual(self.txpool.manifest.txhashes, [tx.txhash, tx.txhash])
+        self.m_chain_manager.add_txs_to_txpool.assert_called_once()
 
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', autospec=True)
     def test_add_tx_to_pool_while_full(self, m_is_full_func):
+        """
+        If the TransactionPool is full, you cannot add another transaction to it.
+        """
         m_is_full_func.return_value = True
         tx = make_tx()
         result = self.txpool.add_tx_to_pool(tx, 1, replacement_getTime())
         self.assertFalse(result)  # refused to add to the pool
         self.assertEqual(len(self.txpool.transactions), 0)  # remains untouched
+
+    def test_add_txs_to_pool(self):
+        """
+        Batch adding Transactions to TransactionPool should work.
+        """
+        tx1 = make_tx()
+        tx2 = make_tx()
+        tx3 = make_tx()
+        txs = [tx1, tx2, tx3]
+
+        result = self.txpool.add_txs_to_pool(txs, 1, persistent=True)
+
+        self.assertTrue(result)
+        self.assertEqual(len(self.txpool.transaction_pool), 3)
+
+    @patch('qrl.core.TransactionPool.config', autospec=True)
+    def test_add_txs_to_pool_full_halfway(self, m_config):
+        """
+        If TransactionPool can hold 2 transactions, and you try to batch add 3,
+        2 should remain and be written to State while the 3rd is dropped.
+        """
+        m_config.user.transaction_pool_size = 2
+
+        tx1 = make_tx(txhash=b'1', name='Mock TX 1')
+        tx2 = make_tx(txhash=b'2', name='Mock TX 2')
+        tx3 = make_tx(txhbash=b'3', name='Mock TX 3')
+        txs = [tx1, tx2, tx3]
+
+        result = self.txpool.add_txs_to_pool(txs, 1, persistent=True)
+
+        self.assertFalse(result)
+        self.assertEqual(len(self.txpool.transaction_pool), 2)
+        self.assertEqual(len(self.m_chain_manager.add_txs_to_txpool.call_args[0][1]), 2)
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     def test_is_full_transaction_pool(self, m_config):
@@ -130,8 +178,26 @@ class TestTransactionPool(TestCase):
 
         self.assertEqual(len(self.txpool.transaction_pool), 3)
         self.txpool.remove_tx_from_pool(tx2)
-        self.m_chain_manager.remove_tx_from_txpool.assert_called_once()
+        self.m_chain_manager.remove_txs_from_txpool.assert_called_once()
         self.assertEqual(len(self.txpool.transaction_pool), 2)
+
+    def test_remove_txs_from_pool(self):
+        """
+        Batch removing txs from TransactionPool should work, and there should be one call to the State
+        with all the txhashes specified.
+        """
+        tx1 = make_tx(txhash=b'red', name='Mock TX red')
+        tx2 = make_tx(txhash=b'blue', name='Mock TX blue')
+        tx3 = make_tx(txhash=b'qrlpink', name='Mock TX qrlpink')
+
+        result = self.txpool.add_txs_to_pool([tx1, tx2, tx3], 1, persistent=True)
+        self.assertTrue(result)
+
+        self.txpool.remove_txs_from_pool([tx1, tx2, tx3])
+
+        self.assertEqual(len(self.txpool.transaction_pool), 0)
+        self.m_chain_manager.remove_txs_from_txpool.assert_called_once()
+        self.assertEqual(self.m_chain_manager.remove_txs_from_txpool.call_args[0][1], [b'red', b'blue', b'qrlpink'])
 
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_pending_transaction_pool', autospec=True)
     def test_update_pending_tx_pool(self, m_is_full_pending_transaction_pool):
@@ -229,25 +295,31 @@ class TestTransactionPool(TestCase):
 
     @patch('qrl.core.TransactionPool.logger')
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', return_value=make_tx())
-    @patch('qrl.core.TransactionPool.TransactionPool.add_tx_to_pool', return_value=True)
-    def test_add_tx_from_block_to_pool(self, m_add_tx_to_pool, m_from_pbdata, m_logger):
+    def test_add_tx_from_block_to_pool(self, m_from_pbdata, m_logger):
         m_block = Mock(autospec=Block, block_number=5, headerhash=b'test block header')
         m_block.transactions = [CoinBase(), make_tx(), make_tx()]
 
         self.txpool.add_tx_from_block_to_pool(m_block, 5)
 
-        self.assertEqual(m_add_tx_to_pool.call_count, 2)  # 2 because the function ignores the Coinbase tx
+        self.assertEqual(len(self.txpool.transaction_pool), 2)
 
-        # If there is a problem adding to the tx_pool, the logger should be invoked.
-        m_add_tx_to_pool.return_value = False
+    @patch('qrl.core.TransactionPool.logger')
+    @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', return_value=make_tx())
+    @patch('qrl.core.TransactionPool.TransactionPool.add_txs_to_pool')
+    def test_add_tx_from_block_to_pool_failure(self, m_add_txs_to_pool, m_from_pbdata, m_logger):
+        m_block = Mock(autospec=Block, block_number=5, headerhash=b'test block header')
+        m_block.transactions = [CoinBase(), make_tx(), make_tx()]
+        m_add_txs_to_pool.return_value = False
+
+        # If there is a problem moving transactions back to the tx_pool, the logger should be invoked.
         self.txpool.add_tx_from_block_to_pool(m_block, 5)
         m_logger.warning.assert_called()
 
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_remove_tx_in_block_from_pool(self):
         m_block = Mock(autospec=Block)
-        tx1 = make_tx(name='Mock TX 1', ots_key=1, PK=b'pk')
-        tx2 = make_tx(name='Mock TX 2', ots_key=2, PK=b'pk')
+        tx1 = make_tx(name='Mock TX 1', ots_key=1, PK=b'pk', ots_type=OTSType.BITFIELD)
+        tx2 = make_tx(name='Mock TX 2', ots_key=2, PK=b'pk', ots_type=OTSType.BITFIELD)
         m_block.transactions = [CoinBase(), tx1, tx2]
 
         # To remove the tx from the pool we have to add it first!
@@ -257,7 +329,7 @@ class TestTransactionPool(TestCase):
 
         self.txpool.remove_tx_in_block_from_pool(m_block)
         self.assertEqual(len(self.txpool.transaction_pool), 0)
-        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 2)
+        self.m_chain_manager.remove_txs_from_txpool.assert_called_once()
 
     @patch('qrl.core.TransactionInfo.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
@@ -327,15 +399,15 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
             self.m_chain_manager.get_manifest_of_txpool.side_effect = KeyError
             self.txpool = TransactionPool(None, chain_manager=self.m_chain_manager)
 
-        self.tx_3907 = make_tx(name='Mock TX 3907', txhash=b'h3907', ots_key=3907)
+        self.tx_3907 = make_tx(name='Mock TX 3907', txhash=b'h3907', ots_key=3907, ots_type=OTSType.BITFIELD)
 
-        self.tx_4095 = make_tx(name='Mock TX 4095', txhash=b'h4095', ots_key=4095)
-        self.tx_4096 = make_tx(name='Mock TX 4096', txhash=b'h4096', ots_key=4096)
-        self.tx_4097 = make_tx(name='Mock TX 4097', txhash=b'h4097', ots_key=4097)
-        self.tx_4098 = make_tx(name='Mock TX 4098', txhash=b'h4098', ots_key=4098)
-        self.tx_4099 = make_tx(name='Mock TX 4099', txhash=b'h4099', ots_key=4099)
-        self.tx_4100 = make_tx(name='Mock TX 4100', txhash=b'h4100', ots_key=4100)
-        self.tx_4200 = make_tx(name='Mock TX 4200', txhash=b'h4200', ots_key=4200)
+        self.tx_4095 = make_tx(name='Mock TX 4095', txhash=b'h4095', ots_key=4095, ots_type=OTSType.BITFIELD)
+        self.tx_4096 = make_tx(name='Mock TX 4096', txhash=b'h4096', ots_key=4096, ots_type=OTSType.COUNTER)
+        self.tx_4097 = make_tx(name='Mock TX 4097', txhash=b'h4097', ots_key=4097, ots_type=OTSType.COUNTER)
+        self.tx_4098 = make_tx(name='Mock TX 4098', txhash=b'h4098', ots_key=4098, ots_type=OTSType.COUNTER)
+        self.tx_4099 = make_tx(name='Mock TX 4099', txhash=b'h4099', ots_key=4099, ots_type=OTSType.COUNTER)
+        self.tx_4100 = make_tx(name='Mock TX 4100', txhash=b'h4100', ots_key=4100, ots_type=OTSType.COUNTER)
+        self.tx_4200 = make_tx(name='Mock TX 4200', txhash=b'h4200', ots_key=4200, ots_type=OTSType.COUNTER)
 
         # To remove the tx from the pool we have to add it first!
         self.txpool.add_tx_to_pool(self.tx_4095, 5)
@@ -346,7 +418,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.txpool.add_tx_to_pool(self.tx_4100, 5)
         self.txpool.add_tx_to_pool(self.tx_4200, 5)
 
-    @patch('qrl.core.TransactionPool.config', autospec=True)
+    @patch('qrl.core.txs.Transaction.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_block_4098_4099(self, m_is_full_transaction_pool, m_config):
@@ -372,8 +444,6 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.assertIn(self.tx_4095, txs_in_txpool)
         self.assertIn(self.tx_4100, txs_in_txpool)
         self.assertIn(self.tx_4200, txs_in_txpool)
-
-        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 4)
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
@@ -406,8 +476,6 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.assertIn(self.tx_4100, txs_in_txpool)
         self.assertIn(self.tx_4200, txs_in_txpool)
 
-        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 4)
-
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
@@ -432,8 +500,6 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.assertIn(self.tx_3907, txs_in_txpool)
         self.assertIn(self.tx_4095, txs_in_txpool)
 
-        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 6)
-
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
@@ -449,9 +515,9 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         m_block = Mock(autospec=Block)
         m_block.transactions = [CoinBase(), self.tx_4200]
 
-        tx_other_4095 = make_tx(name='Mock TX 4095', txhash=b'h4095_other', ots_key=4095, PK='otherppl')
-        tx_other_4096 = make_tx(name='Mock TX 4096', txhash=b'h4096_other', ots_key=4096, PK='otherppl')
-        tx_other_4097 = make_tx(name='Mock TX 4097', txhash=b'h4097_other', ots_key=4097, PK='otherppl')
+        tx_other_4095 = make_tx(name='Mock TX 4095', txhash=b'h4095_other', ots_key=4095, PK='otherppl', ots_type=OTSType.BITFIELD)
+        tx_other_4096 = make_tx(name='Mock TX 4096', txhash=b'h4096_other', ots_key=4096, PK='otherppl', ots_type=OTSType.COUNTER)
+        tx_other_4097 = make_tx(name='Mock TX 4097', txhash=b'h4097_other', ots_key=4097, PK='otherppl', ots_type=OTSType.COUNTER)
 
         self.txpool.add_tx_to_pool(tx_other_4095, 5)
         self.txpool.add_tx_to_pool(tx_other_4096, 5)
@@ -466,8 +532,6 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.assertIn(tx_other_4096, txs_in_txpool)
         self.assertIn(tx_other_4097, txs_in_txpool)
 
-        self.assertEqual(self.m_chain_manager.remove_tx_from_txpool.call_count, 6)
-
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
@@ -480,7 +544,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         # Ensure that a "large OTS index" is 4096
         m_config.dev.max_ots_tracking_index = 4096
 
-        tx_1000 = make_tx(name='Mock TX 1000', txhash=b'h1000', ots_key=1000)
+        tx_1000 = make_tx(name='Mock TX 1000', txhash=b'h1000', ots_key=1000, ots_type=OTSType.BITFIELD)
         m_block = Mock(autospec=Block)
         m_block.transactions = [CoinBase(), tx_1000]
         self.assertEqual(7, len(self.txpool.transaction_pool))
@@ -489,11 +553,11 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
 
         txs_in_txpool = [t[1].transaction for t in self.txpool.transaction_pool]
         self.assertEqual(7, len(txs_in_txpool))
-        self.m_chain_manager.remove_tx_from_txpool.assert_not_called()
+        self.m_chain_manager.remove_txs_from_txpool.assert_called_once()
 
 
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
-class TestTransactionPoolPersistence(TestCase):
+class TestTransactionPoolPersistenceIntegration(TestCase):
     def setUp(self):
         with set_qrl_dir('no_data'):
             self.state = State()
