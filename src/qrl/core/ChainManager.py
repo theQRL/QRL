@@ -316,7 +316,7 @@ class ChainManager:
                 return self._fork_recovery(block, fork_state), True
 
             self._update_chainstate(block, batch)
-            self.tx_pool.check_stale_txn(block.block_number)
+            self.tx_pool.check_stale_txn(self._state, block.block_number)
             self.trigger_miner = True
 
         return True, False

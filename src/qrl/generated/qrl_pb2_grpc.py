@@ -67,6 +67,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.TransferCoinsReq.SerializeToString,
         response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
         )
+    self.ParseAddress = channel.unary_unary(
+        '/qrl.PublicAPI/ParseAddress',
+        request_serializer=qrl__pb2.ParseAddressReq.SerializeToString,
+        response_deserializer=qrl__pb2.ParseAddressResp.FromString,
+        )
     self.GetAddressFromPK = channel.unary_unary(
         '/qrl.PublicAPI/GetAddressFromPK',
         request_serializer=qrl__pb2.GetAddressFromPKReq.SerializeToString,
@@ -91,6 +96,41 @@ class PublicAPIStub(object):
         '/qrl.PublicAPI/GetSlaveTxn',
         request_serializer=qrl__pb2.SlaveTxnReq.SerializeToString,
         response_deserializer=qrl__pb2.TransferCoinsResp.FromString,
+        )
+    self.GetTransactionsByAddress = channel.unary_unary(
+        '/qrl.PublicAPI/GetTransactionsByAddress',
+        request_serializer=qrl__pb2.GetTransactionsByAddressReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetTransactionsByAddressResp.FromString,
+        )
+    self.GetTransaction = channel.unary_unary(
+        '/qrl.PublicAPI/GetTransaction',
+        request_serializer=qrl__pb2.GetTransactionReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetTransactionResp.FromString,
+        )
+    self.GetBalance = channel.unary_unary(
+        '/qrl.PublicAPI/GetBalance',
+        request_serializer=qrl__pb2.GetBalanceReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetBalanceResp.FromString,
+        )
+    self.GetOTS = channel.unary_unary(
+        '/qrl.PublicAPI/GetOTS',
+        request_serializer=qrl__pb2.GetOTSReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetOTSResp.FromString,
+        )
+    self.GetHeight = channel.unary_unary(
+        '/qrl.PublicAPI/GetHeight',
+        request_serializer=qrl__pb2.GetHeightReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetHeightResp.FromString,
+        )
+    self.GetBlock = channel.unary_unary(
+        '/qrl.PublicAPI/GetBlock',
+        request_serializer=qrl__pb2.GetBlockReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetBlockResp.FromString,
+        )
+    self.GetBlockByNumber = channel.unary_unary(
+        '/qrl.PublicAPI/GetBlockByNumber',
+        request_serializer=qrl__pb2.GetBlockByNumberReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetBlockByNumberResp.FromString,
         )
 
 
@@ -160,6 +200,12 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def ParseAddress(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def GetAddressFromPK(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -185,6 +231,48 @@ class PublicAPIServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetSlaveTxn(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetTransactionsByAddress(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetTransaction(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetBalance(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetOTS(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetHeight(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetBlock(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetBlockByNumber(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -238,6 +326,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           request_deserializer=qrl__pb2.TransferCoinsReq.FromString,
           response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
       ),
+      'ParseAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.ParseAddress,
+          request_deserializer=qrl__pb2.ParseAddressReq.FromString,
+          response_serializer=qrl__pb2.ParseAddressResp.SerializeToString,
+      ),
       'GetAddressFromPK': grpc.unary_unary_rpc_method_handler(
           servicer.GetAddressFromPK,
           request_deserializer=qrl__pb2.GetAddressFromPKReq.FromString,
@@ -262,6 +355,41 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetSlaveTxn,
           request_deserializer=qrl__pb2.SlaveTxnReq.FromString,
           response_serializer=qrl__pb2.TransferCoinsResp.SerializeToString,
+      ),
+      'GetTransactionsByAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.GetTransactionsByAddress,
+          request_deserializer=qrl__pb2.GetTransactionsByAddressReq.FromString,
+          response_serializer=qrl__pb2.GetTransactionsByAddressResp.SerializeToString,
+      ),
+      'GetTransaction': grpc.unary_unary_rpc_method_handler(
+          servicer.GetTransaction,
+          request_deserializer=qrl__pb2.GetTransactionReq.FromString,
+          response_serializer=qrl__pb2.GetTransactionResp.SerializeToString,
+      ),
+      'GetBalance': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBalance,
+          request_deserializer=qrl__pb2.GetBalanceReq.FromString,
+          response_serializer=qrl__pb2.GetBalanceResp.SerializeToString,
+      ),
+      'GetOTS': grpc.unary_unary_rpc_method_handler(
+          servicer.GetOTS,
+          request_deserializer=qrl__pb2.GetOTSReq.FromString,
+          response_serializer=qrl__pb2.GetOTSResp.SerializeToString,
+      ),
+      'GetHeight': grpc.unary_unary_rpc_method_handler(
+          servicer.GetHeight,
+          request_deserializer=qrl__pb2.GetHeightReq.FromString,
+          response_serializer=qrl__pb2.GetHeightResp.SerializeToString,
+      ),
+      'GetBlock': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBlock,
+          request_deserializer=qrl__pb2.GetBlockReq.FromString,
+          response_serializer=qrl__pb2.GetBlockResp.SerializeToString,
+      ),
+      'GetBlockByNumber': grpc.unary_unary_rpc_method_handler(
+          servicer.GetBlockByNumber,
+          request_deserializer=qrl__pb2.GetBlockByNumberReq.FromString,
+          response_serializer=qrl__pb2.GetBlockByNumberResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(

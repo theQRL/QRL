@@ -133,12 +133,16 @@ class TransactionPool:
                 logger.warning('Block #%s %s', block.block_number, bin2hstr(block.headerhash))
                 return
 
-    def check_stale_txn(self, current_block_number):
+    def check_stale_txn(self, state, current_block_number):
         i = 0
         while i < len(self.transaction_pool):
             tx_info = self.transaction_pool[i][1]
             if tx_info.is_stale(current_block_number):
+                if not tx_info.validate(state):
+                    logger.warning('Txn validation failed for tx in tx_pool')
+                    self.remove_tx_from_pool(tx_info.transaction)
+                    continue
+
                 tx_info.update_block_number(current_block_number)
                 self.broadcast_tx(tx_info.transaction)
-                continue
             i += 1

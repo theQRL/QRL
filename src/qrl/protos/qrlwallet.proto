@@ -1,0 +1,297 @@
+// Distributed under the MIT software license, see the accompanying
+// file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+
+syntax = "proto3";
+
+package qrl;
+
+import "qrl.proto";
+
+////////////////////////////
+////////////////////////////
+////////////////////////////
+//////     API       ///////
+////////////////////////////
+////////////////////////////
+////////////////////////////
+
+// This service describes the Wallet API
+service WalletAPI
+{
+    rpc AddNewAddress(AddNewAddressReq) returns (AddNewAddressResp);
+
+    rpc AddAddressFromSeed(AddAddressFromSeedReq) returns (AddAddressFromSeedResp);
+
+    rpc ListAddresses(ListAddressesReq) returns(ListAddressesResp);
+
+    rpc RemoveAddress(RemoveAddressReq) returns (RemoveAddressResp);
+
+    rpc EncryptWallet(EncryptWalletReq) returns (EncryptWalletResp);
+
+    rpc LockWallet(LockWalletReq) returns (LockWalletResp);
+
+    rpc UnlockWallet(UnlockWalletReq) returns (UnlockWalletResp);
+
+    rpc GetRecoverySeeds(GetRecoverySeedsReq) returns (GetRecoverySeedsResp);
+
+    rpc GetWalletInfo(GetWalletInfoReq) returns (GetWalletInfoResp);
+
+    rpc RelayTransferTxn(RelayTransferTxnReq) returns (RelayTxnResp);
+
+    rpc RelayMessageTxn(RelayMessageTxnReq) returns (RelayTxnResp);
+
+    rpc RelayTokenTxn(RelayTokenTxnReq) returns (RelayTxnResp);
+
+    rpc RelayTransferTokenTxn(RelayTransferTokenTxnReq) returns (RelayTxnResp);
+
+    rpc RelaySlaveTxn(RelaySlaveTxnReq) returns (RelayTxnResp);
+
+    rpc ChangePassphrase(ChangePassphraseReq) returns (ChangePassphraseResp);
+
+    rpc GetTransactionsByAddress(TransactionsByAddressReq) returns (TransactionsByAddressResp);
+
+    rpc GetTransaction(TransactionReq) returns (TransactionResp);
+
+    rpc GetBalance(BalanceReq) returns (BalanceResp);
+
+    rpc GetOTS(OTSReq) returns (OTSResp);
+
+    rpc GetHeight(HeightReq) returns (HeightResp);
+
+    rpc GetBlock(BlockReq) returns (BlockResp);
+
+    rpc GetBlockByNumber(BlockByNumberReq) returns (BlockResp);
+
+    rpc GetAddressFromPK(AddressFromPKReq) returns (AddressFromPKResp);
+
+}
+
+message AddNewAddressReq {
+    uint64 height = 1;  // Seed can be either hexseed or mnemonic
+    string hash_function = 2;
+}
+
+message AddNewAddressResp {
+    uint32 code = 1;
+    string error = 2;
+    string address = 3;
+}
+
+message AddAddressFromSeedReq {
+    string seed = 1;
+}
+
+message AddAddressFromSeedResp {
+    uint32 code = 1;
+    string error = 2;
+    string address = 3;
+}
+
+message ListAddressesReq {
+
+}
+
+message ListAddressesResp {
+    uint32 code = 1;
+    string error = 2;
+    repeated string addresses = 3;
+}
+
+message RemoveAddressReq {
+    string address = 1;
+}
+
+message RemoveAddressResp {
+    uint32 code = 1;
+    string error = 2;
+}
+
+message EncryptWalletReq {
+    string passphrase = 1;
+}
+
+message EncryptWalletResp {
+    uint32 code = 1;
+    string error = 2;
+}
+
+message UnlockWalletReq {
+    string passphrase = 1;
+}
+
+message UnlockWalletResp {
+    uint32 code = 1;
+    string error = 2;
+}
+
+message LockWalletReq {
+}
+
+message LockWalletResp {
+    uint32 code = 1;
+    string error = 2;
+}
+
+message GetRecoverySeedsReq {
+    string address = 1;
+}
+
+message GetRecoverySeedsResp {
+    uint32 code = 1;
+    string error = 2;
+    string hexseed = 3;
+    string mnemonic = 4;
+}
+
+message GetWalletInfoReq {
+
+}
+
+message GetWalletInfoResp {
+    uint32 code = 1;
+    string error = 2;
+    uint32 version = 3;
+    uint64 address_count = 4;
+    bool is_encrypted = 5;
+}
+
+message RelayTransferTxnReq {
+    repeated string addresses_to = 1;
+    repeated uint64 amounts = 2;
+    uint64 fee = 3;
+    string master_address = 4;
+    string signer_address = 5;
+    uint64 ots_index = 6;
+}
+
+message RelayMessageTxnReq {
+    string message = 1;
+    uint64 fee = 2;
+    string master_address = 3;
+    string signer_address = 4;
+    uint64 ots_index = 5;
+}
+
+message RelayTokenTxnReq {
+    string symbol = 1;
+    string name = 2;
+    string owner = 3;
+    uint64 decimals = 4;
+    repeated string addresses = 5;
+    repeated uint64 amounts = 6;
+    uint64 fee = 7;
+    string master_address = 8;
+    string signer_address = 9;
+    uint64 ots_index = 10;
+}
+
+message RelayTransferTokenTxnReq {
+    repeated string addresses_to = 1;
+    string token_txhash = 2;
+    repeated uint64 amounts = 3;
+    uint64 fee = 4;
+    string master_address = 5;
+    string signer_address = 6;
+    uint64 ots_index = 7;
+}
+
+message RelaySlaveTxnReq {
+    repeated bytes slave_pks = 1;
+    repeated uint32 access_types = 2;
+    uint64 fee = 3;
+    string master_address = 4;
+    string signer_address = 5;
+    uint64 ots_index = 6;
+}
+
+message RelayTxnResp {
+    uint32 code = 1;
+    string error = 2;
+    Transaction tx = 3;
+}
+
+message ChangePassphraseReq {
+    string oldPassphrase = 1;
+    string newPassphrase = 2;
+}
+
+message ChangePassphraseResp {
+    uint32 code = 1;
+    string error = 2;
+}
+
+message TransactionsByAddressReq {
+    string address = 1;
+}
+
+message TransactionsByAddressResp {
+    uint32 code = 1;
+    string error = 2;
+    repeated MiniTransaction mini_transactions = 3;
+    uint64 balance = 4;
+}
+
+message TransactionReq {
+    string tx_hash = 1;
+}
+
+message TransactionResp {
+    uint32 code = 1;
+    string error = 2;
+    Transaction tx = 3;
+    uint64 confirmations = 4;
+}
+
+message BalanceReq {
+    string address = 1;
+}
+
+message BalanceResp {
+    uint32 code = 1;
+    string error = 2;
+    uint64 balance = 3;
+}
+
+message OTSReq {
+    string address = 1;
+}
+
+message OTSResp {
+    uint32 code = 1;
+    string error = 2;
+    repeated bytes ots_bitfield = 3;
+    uint64 next_unused_ots_index = 4;
+}
+
+message HeightReq {
+}
+
+message HeightResp {
+    uint32 code = 1;
+    string error = 2;
+    uint64 height = 3;
+}
+
+message BlockReq {
+    string header_hash = 1;
+}
+
+message BlockResp {
+    uint32 code = 1;
+    string error = 2;
+    Block block = 3;
+}
+
+message BlockByNumberReq {
+    uint64 block_number = 1;
+}
+
+message AddressFromPKReq {
+    bytes pk = 1;
+}
+
+message AddressFromPKResp {
+    uint32 code = 1;
+    string error = 2;
+    string address = 3;
+}
