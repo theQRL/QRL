@@ -666,8 +666,8 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 
         if len(name) > config.dev.max_token_name_length:
             raise Exception("Token name must be shorter than {} chars".format(config.dev.max_token_name_length))
-        if len(symbol) > config.dev.max_token_name_length:
-            raise Exception("Token symbol must be shorter than {} chars".format(config.dev.max_token_name_length))
+        if len(symbol) > config.dev.max_token_symbol_length:
+            raise Exception("Token symbol must be shorter than {} chars".format(config.dev.max_token_symbol_length))
 
     except KeyboardInterrupt:
         click.echo("Terminated by user")
@@ -844,8 +844,14 @@ def token_list(ctx, owner):
         address_state_resp = stub.GetAddressState(address_state_req, timeout=CONNECTION_TIMEOUT)
 
         for token_hash in address_state_resp.state.tokens:
+            get_object_req = qrl_pb2.GetObjectReq(query=bytes(hstr2bin(token_hash)))
+            get_object_resp = stub.GetObject(get_object_req, timeout=CONNECTION_TIMEOUT)
+
             click.echo('Hash: %s' % (token_hash,))
+            click.echo('Symbol: %s' % (get_object_resp.transaction.tx.token.symbol.decode(),))
+            click.echo('Name: %s' % (get_object_resp.transaction.tx.token.name.decode(),))
             click.echo('Balance: %s' % (address_state_resp.state.tokens[token_hash],))
+
     except Exception as e:
         print("Error {}".format(str(e)))
 
