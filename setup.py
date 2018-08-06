@@ -18,6 +18,7 @@ entry_points = """
     qrl = qrl.cli:main
     qrl_grpc_proxy = qrl.grpcProxy:main
     qrl_measure = qrl.measure:main
+    qrl_walletd = qrl.daemon.walletd:main
 """
 
 

@@ -30,7 +30,7 @@ service PublicAPI
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
-
+    rpc ParseAddress (ParseAddressReq) returns (ParseAddressResp);
     rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp);
 
     rpc GetMessageTxn (MessageTxnReq) returns (TransferCoinsResp);
@@ -41,6 +41,19 @@ service PublicAPI
 
     rpc GetSlaveTxn (SlaveTxnReq) returns (TransferCoinsResp);
 
+    rpc GetTransactionsByAddress(GetTransactionsByAddressReq) returns (GetTransactionsByAddressResp);
+
+    rpc GetTransaction(GetTransactionReq) returns (GetTransactionResp);
+
+    rpc GetBalance(GetBalanceReq) returns (GetBalanceResp);
+
+    rpc GetOTS(GetOTSReq) returns (GetOTSResp);
+
+    rpc GetHeight(GetHeightReq) returns (GetHeightResp);
+
+    rpc GetBlock(GetBlockReq) returns (GetBlockResp);
+
+    rpc GetBlockByNumber(GetBlockByNumberReq) returns (GetBlockByNumberResp);
 }
 
 // This is a place holder for testing/instrumentation APIs
@@ -99,23 +112,6 @@ message GetPeersStatResp {
 }
 
 /**
- * NOT USED -> RM?
-*/
-message GetBlockReq {
-    oneof query {
-        uint64 index = 1;               // Indicates the index number in mainchain
-        bytes after_hash = 2;           // request the node that comes after hash
-    }
-}
-/**
- * NOT USED -> RM?
-*/
-message GetBlockResp {
-    NodeInfo node_info = 1;
-    Block block = 2;
-}
-
-/**
  * Represents a query to get statistics about node
 */
 message GetStatsReq {
@@ -164,10 +160,27 @@ message BlockDataPoint
     bytes header_hash_prev = 8;             // Previous block's header hash
 }
 
-message GetAddressStateReq {   bytes address = 1; }
+
+message GetAddressStateReq {   
+    bytes address = 1;
+    bool exclude_ots_bitfield = 2;
+    bool exclude_transaction_hashes = 3; 
+}
+
 message GetAddressStateResp {
+    
     AddressState state = 1;
 }
+
+message ParseAddressReq { 
+    bytes address = 1;
+}
+
+message ParseAddressResp {
+    bool is_valid = 1;
+    AddressDescriptor desc = 2;
+}
+
 
 message GetObjectReq {  bytes query = 1;    }
 message GetObjectResp {
@@ -258,6 +271,70 @@ message SlaveTxnReq {
     bytes xmss_pk = 5;
 }
 
+message MiniTransaction {
+    string transaction_hash = 1;
+    bool out = 2;
+    uint64 amount = 3;
+}
+
+message GetTransactionsByAddressReq {
+    bytes address = 1;
+}
+
+message GetTransactionsByAddressResp {
+    repeated MiniTransaction mini_transactions = 1;
+    uint64 balance = 2;
+}
+
+message GetTransactionReq {
+    bytes tx_hash = 1;
+}
+
+message GetTransactionResp {
+    Transaction tx = 1;
+    uint64 confirmations = 2;
+}
+
+message GetBalanceReq {
+    bytes address = 1;
+}
+
+message GetBalanceResp {
+    uint64 balance = 1;
+}
+
+message GetOTSReq {
+    bytes address = 1;
+}
+
+message GetOTSResp {
+    repeated bytes ots_bitfield = 1;
+    uint64 next_unused_ots_index = 2;
+}
+
+message GetHeightReq {
+}
+
+message GetHeightResp {
+    uint64 height = 1;
+}
+
+message GetBlockReq {
+    bytes header_hash = 1;
+}
+
+message GetBlockResp {
+    Block block = 1;
+}
+
+message GetBlockByNumberReq {
+    uint64 block_number = 1;
+}
+
+message GetBlockByNumberResp {
+    Block block = 1;
+}
+
 ////////////////////////////
 ////////////////////////////
 ////////////////////////////
@@ -267,8 +344,7 @@ message SlaveTxnReq {
 ////////////////////////////
 
 message GetLocalAddressesReq { }
-message GetLocalAddressesResp
-{
+message GetLocalAddressesResp {
     repeated bytes addresses = 1;
 }
 
@@ -298,6 +374,14 @@ message NodeInfo
     uint64 block_height = 6;
     bytes  block_last_hash = 7;
     string network_id = 8;
+}
+
+message AddressDescriptor {                 // 3 byte scheme, 0-3 bits = hf, 4-7 = sig scheme, 8-11 = params (inc h), 12-15 addr fmt, 16-23 params2
+    string hash_function = 1;
+    string signature_scheme = 2;
+    uint32 tree_height = 3;
+    uint32 signatures = 4;
+    string address_format = 5;
 }
 
 message StoredPeers {
