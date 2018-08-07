@@ -11,6 +11,8 @@ from qrl.core.qrlnode import QRLNode
 from qrl.core.State import State
 from qrl.core.ChainManager import ChainManager
 from qrl.core.TransactionPool import TransactionPool
+from qrl.core.txs.CoinBase import CoinBase
+from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pChainManager import P2PChainManager
@@ -18,8 +20,9 @@ from qrl.core.node import POW
 from qrl.generated import qrl_pb2
 from pyqrllib.pyqrllib import hstr2bin
 
+from tests.misc.MockHelper.mock_get_tx_metadata import GetTXMetadata
 from tests.core.test_State import gen_blocks
-from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_slave_xmss, replacement_getTime
+from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_slave_xmss, replacement_getTime, get_random_xmss
 
 logger.initialize_default()
 
@@ -160,6 +163,53 @@ class TestQRLNode(TestCase):
 
         with self.assertRaises(ValueError):
             self.qrlnode.get_address_is_used(b'fdsa')
+
+    def test_get_transactions_by_address(self):
+        """
+        QRLNode.get_transactions_by_address() returns all the changes in balance caused by a transaction.
+        """
+        mock_get_tx_metadata = GetTXMetadata()
+
+        xmss = get_alice_xmss()
+        xmss2 = get_random_xmss()
+        addr_state = AddressState.get_default(xmss.address)
+        addr_state.pbdata.balance = 100
+
+        tx1 = CoinBase.create(100, xmss.address, 5)
+        mock_get_tx_metadata.register_tx_metadata(tx1, 5)
+        addr_state.transaction_hashes.append(tx1.txhash)
+
+        tx2 = TransferTransaction.create(addrs_to=[xmss2.address],
+                                         amounts=[10],
+                                         fee=1,
+                                         xmss_pk=xmss.pk)
+        tx2.sign(xmss)
+        mock_get_tx_metadata.register_tx_metadata(tx2, 99)
+        addr_state.transaction_hashes.append(tx2.txhash)
+
+        tx3 = TransferTransaction.create(addrs_to=[xmss.address],
+                                         amounts=[100],
+                                         fee=1,
+                                         xmss_pk=xmss2.pk)
+        tx3.sign(xmss)
+        mock_get_tx_metadata.register_tx_metadata(tx3, 101)
+        addr_state.transaction_hashes.append(tx3.txhash)
+
+        self.db_state.get_address_state.return_value = addr_state
+        self.db_state.get_tx_metadata = mock_get_tx_metadata.get_tx_metadata
+        result, balance = self.qrlnode.get_transactions_by_address(alice.address)
+        self.assertEqual(len(result), 3)
+
+        self.assertEqual(result[0].amount, 100)
+        self.assertEqual(result[0].out, False)
+
+        self.assertEqual(result[1].amount, 11)
+        self.assertEqual(result[1].out, True)
+
+        self.assertEqual(result[2].amount, 100)
+        self.assertEqual(result[2].out, False)
+
+        self.assertEqual(balance, 189)
 
     def test_get_address_state(self):
         """

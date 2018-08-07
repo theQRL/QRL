@@ -14,10 +14,6 @@ class MessageRequest:
         self.params = None
         self.is_duplicate = False
 
-    def create(self, params=None):
-        self.params = params
-        return self
-
     def add_peer(self, msg_type, peer, params=None):
         self.msg_type = msg_type
         self.peers_connection_list.append(peer)
@@ -33,5 +29,7 @@ class MessageRequest:
             logger.error('Params Keys %s', self.params.keys())
             logger.error('Data Keys %s', data.keys())
             logger.error('Key Not found %s ', k)
+        except AttributeError as k:
+            logger.error('MessageRequest.params was not initialized before calling validate()')
 
         return False

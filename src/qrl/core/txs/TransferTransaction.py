@@ -114,7 +114,7 @@ class TransferTransaction(Transaction):
 
         return True
 
-    def apply_state_changes(self, addresses_state):
+    def apply_state_changes(self, addresses_state: dict):
         if self.addr_from in addresses_state:
             addresses_state[self.addr_from].balance -= (self.total_amount + self.fee)
             addresses_state[self.addr_from].transaction_hashes.append(self.txhash)

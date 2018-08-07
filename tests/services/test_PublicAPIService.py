@@ -413,3 +413,246 @@ class TestPublicAPI(TestCase):
 
         service.GetTokenTxn(request=request, context=context)
         context.set_code.assert_called_with(StatusCode.INVALID_ARGUMENT)
+
+    def test_getTransactionsByAddress(self):
+        db_state = Mock(spec=State)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.pow = Mock(spec=POW)
+
+        chain_manager = ChainManager(db_state)
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pow = p2p_factory.pow
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        # Find a transaction
+        alice_xmss = get_alice_xmss()
+        db_state.get_address_state = MagicMock(return_value=AddressState.get_default(alice_xmss.address))
+        db_state.address_used = MagicMock(return_value=False)
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetTransactionsByAddressReq(address=alice_xmss.address)
+        response = service.GetTransactionsByAddress(request=request, context=context)
+        context.set_code.assert_not_called()
+
+        self.assertEqual(len(response.mini_transactions), 0)
+        self.assertEqual(response.balance, 0)
+
+    def test_getTransaction(self):
+        db_state = Mock(spec=State)
+        db_state.get_tx_metadata = MagicMock(return_value=None)
+        db_state.get_block = MagicMock(return_value=None)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.pow = Mock(spec=POW)
+
+        chain_manager = ChainManager(db_state)
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pow = p2p_factory.pow
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        # Find an address
+        bob_xmss = get_bob_xmss()
+
+        # Find a transaction
+        alice_xmss = get_alice_xmss()
+        db_state.address_used = MagicMock(return_value=False)
+        tx1 = TransferTransaction.create(
+            addrs_to=[bob_xmss.address],
+            amounts=[125],
+            fee=19,
+            xmss_pk=bob_xmss.pk,
+            master_addr=alice_xmss.address)
+
+        chain_manager.tx_pool.transaction_pool = [(0, TransactionInfo(tx1, 0))]
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetTransactionReq()
+        request.tx_hash = tx1.txhash
+        response = service.GetTransaction(request=request, context=context)
+        context.set_code.assert_not_called()
+        self.assertIsNotNone(response.tx)
+        self.assertEqual('transfer', response.tx.WhichOneof('transactionType'))
+        self.assertEqual(alice_xmss.address, response.tx.master_addr)
+        self.assertEqual(bob_xmss.pk, response.tx.public_key)
+        self.assertEqual(tx1.txhash, response.tx.transaction_hash)
+        self.assertEqual(b'', response.tx.signature)
+
+        self.assertEqual(bob_xmss.address, response.tx.transfer.addrs_to[0])
+        self.assertEqual(125, response.tx.transfer.amounts[0])
+        self.assertEqual(19, response.tx.fee)
+
+    def test_getBalance(self):
+        db_state = Mock(spec=State)
+        alice_xmss = get_alice_xmss()
+        address_state = AddressState.create(address=alice_xmss.address,
+                                            nonce=25,
+                                            balance=10,
+                                            ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                            tokens=dict(),
+                                            slave_pks_access_type=dict(),
+                                            ots_counter=0)
+        db_state.get_address_state = MagicMock(return_value=address_state)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        chain_manager = ChainManager(db_state)
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetAddressStateReq()
+        service.GetAddressState(request=request, context=context)
+        context.set_code.assert_called()
+        context.set_details.assert_called()
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetBalanceReq()
+        request.address = get_alice_xmss().address
+        response = service.GetBalance(request=request, context=context)
+        context.set_code.assert_not_called()
+
+        self.assertEqual(10, response.balance)
+
+    def test_getOTS(self):
+        db_state = Mock(spec=State)
+        alice_xmss = get_alice_xmss()
+        address_state = AddressState.create(address=alice_xmss.address,
+                                            nonce=25,
+                                            balance=10,
+                                            ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                            tokens=dict(),
+                                            slave_pks_access_type=dict(),
+                                            ots_counter=0)
+        db_state.get_address_state = MagicMock(return_value=address_state)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        chain_manager = ChainManager(db_state)
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetOTSReq()
+        request.address = get_alice_xmss().address
+        response = service.GetOTS(request=request, context=context)
+        context.set_code.assert_not_called()
+
+        self.assertEqual(0, response.next_unused_ots_index)
+
+        address_state.set_ots_key(0)
+
+        response = service.GetOTS(request=request, context=context)
+        context.set_code.assert_not_called()
+
+        self.assertEqual(1, response.next_unused_ots_index)
+
+    def test_getHeight(self):
+        db_state = Mock(spec=State)
+        alice_xmss = get_alice_xmss()
+        address_state = AddressState.create(address=alice_xmss.address,
+                                            nonce=25,
+                                            balance=10,
+                                            ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                            tokens=dict(),
+                                            slave_pks_access_type=dict(),
+                                            ots_counter=0)
+        db_state.get_address_state = MagicMock(return_value=address_state)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        chain_manager = ChainManager(db_state)
+        chain_manager._last_block = Mock()
+        chain_manager._last_block.block_number = 100
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetHeightReq()
+        response = service.GetHeight(request=request, context=context)
+        self.assertEqual(response.height, 100)
+
+    def test_getBlock(self):
+        db_state = Mock(spec=State)
+        db_state.get_tx_metadata = MagicMock(return_value=None)
+        db_state.get_block = MagicMock(return_value=None)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.pow = Mock(spec=POW)
+
+        chain_manager = ChainManager(db_state)
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pow = p2p_factory.pow
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        alice_xmss = get_alice_xmss()
+        b = Block.create(block_number=1,
+                         prev_headerhash=sha256(b'reveal'),
+                         prev_timestamp=10,
+                         transactions=[],
+                         miner_address=alice_xmss.address)
+        db_state.get_block = MagicMock(return_value=b)
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetBlockReq(header_hash=b.headerhash)
+        response = service.GetBlock(request=request, context=context)
+        context.set_code.assert_not_called()
+        self.assertEqual(1, response.block.header.block_number)
+
+    def test_getBlockByNumber(self):
+        db_state = Mock(spec=State)
+        db_state.get_tx_metadata = MagicMock(return_value=None)
+        db_state.get_block = MagicMock(return_value=None)
+
+        p2p_factory = Mock(spec=P2PFactory)
+        p2p_factory.pow = Mock(spec=POW)
+
+        chain_manager = ChainManager(db_state)
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._pow = p2p_factory.pow
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        alice_xmss = get_alice_xmss()
+        b = Block.create(block_number=1,
+                         prev_headerhash=sha256(b'reveal'),
+                         prev_timestamp=10,
+                         transactions=[],
+                         miner_address=alice_xmss.address)
+        db_state.get_block_by_number = MagicMock(return_value=b)
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetBlockByNumberReq(block_number=b.block_number)
+        response = service.GetBlockByNumber(request=request, context=context)
+        context.set_code.assert_not_called()
+        self.assertEqual(1, response.block.header.block_number)

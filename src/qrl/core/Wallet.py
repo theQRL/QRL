@@ -79,13 +79,36 @@ class Wallet:
         return any([item.encrypted for item in self.address_items]) and not self.encrypted
 
     @functools.lru_cache(maxsize=20)
-    def get_xmss_by_index(self, idx) -> Optional[XMSS]:
+    def get_xmss_by_index(self, idx, passphrase=None) -> Optional[XMSS]:
         """
         Generates an XMSS tree based on the information contained in the wallet
         :param idx: The index of the address item
+        :param passphrase: passphrase to decrypt
         :return: An XMSS tree object
         """
-        return self._get_xmss_by_index_no_cache(idx)
+        if passphrase:
+            self.decrypt_item(idx, passphrase)
+
+        xmss = self._get_xmss_by_index_no_cache(idx)
+
+        if passphrase:
+            self.encrypt_item(idx, passphrase)
+
+        return xmss
+
+    def is_encrypted(self) -> bool:
+        if len(self.address_items) == 0:
+            return False
+
+        return self.address_items[0].encrypted
+
+    def wallet_info(self):
+        """
+        Provides Wallet Info
+        :return:
+        """
+
+        return self.version, len(self._address_items), self.encrypted
 
     def _get_xmss_by_index_no_cache(self, idx) -> Optional[XMSS]:
         """
@@ -138,12 +161,38 @@ class Wallet:
             encrypted=False
         )
 
+    def get_address_item(self, qaddress) -> [int, AddressItem]:
+        for idx, item in enumerate(self._address_items):
+            if item.qaddress == qaddress:
+                return idx, item
+        return -1, None
+
     def get_xmss_by_address(self, search_addr) -> Optional[XMSS]:
         search_addr_str = self._get_Qaddress(search_addr)
-        for idx, item in enumerate(self._address_items):
-            if item.qaddress == search_addr_str:
-                return self.get_xmss_by_index(idx)
-        return None
+        return self.get_xmss_by_qaddress(search_addr_str)
+
+    def get_xmss_by_qaddress(self, search_addr_str, passphrase: str=None) -> Optional[XMSS]:
+        idx, _ = self.get_address_item(search_addr_str)
+
+        if idx == -1:
+            return None
+
+        return self.get_xmss_by_index(idx, passphrase)
+
+    def set_ots_index(self, index, ots_index):
+        item = self._address_items[index]
+        self._address_items[index] = AddressItem(
+            qaddress=item.qaddress,
+            pk=item.pk,
+            hexseed=item.hexseed,
+            mnemonic=item.mnemonic,
+            height=item.height,
+            hashFunction=item.hashFunction,
+            signatureType=item.signatureType,
+            index=ots_index,
+            encrypted=item.encrypted
+        )
+        self.save()
 
     def verify_wallet(self):
         """
@@ -237,7 +286,7 @@ class Wallet:
         tmp['encrypted'] = True
         self._address_items[index] = AddressItem(**tmp)
 
-    def decrypt(self, password: str):
+    def decrypt(self, password: str, first_address_only: bool=False):
         if self.encrypted_partially:
             raise WalletEncryptionError("Some addresses are already decrypted. Please re-encrypt all addresses before"
                                         "running decrypt().")
@@ -254,6 +303,8 @@ class Wallet:
         try:
             for i in range(len(self._address_items)):
                 decryptor(i, password)
+                if first_address_only:
+                    return
         except Exception as e:
             raise WalletDecryptionError("Error during decryption. Likely due to invalid password: {}".format(str(e)))
 
@@ -292,21 +343,23 @@ class Wallet:
         tmp_item = self._get_address_item_from_xmss(xmss)
         self._address_items.append(tmp_item)
 
-    def add_new_address(self, height, hash_function="shake128"):
-        if self.encrypted or self.encrypted_partially:
-            raise WalletEncryptionError("Please decrypt all addresses in this wallet before adding a new address!")
+    def add_new_address(self, height, hash_function="shake128", force=False):
+        if not force:
+            if self.encrypted or self.encrypted_partially:
+                raise WalletEncryptionError("Please decrypt all addresses in this wallet before adding a new address!")
 
         tmp_xmss = XMSS.from_height(height, hash_function)
 
         self.append_xmss(tmp_xmss)
         return tmp_xmss
 
-    def remove(self, addr):
+    def remove(self, addr) -> bool:
         for item in self._address_items:
             if item.qaddress == addr:
                 try:
                     self._address_items.remove(item)
                     self.save_wallet(self.wallet_path)
-                    return
+                    return True
                 except ValueError:
                     logger.warning("Could not remove address from wallet")
+        return False

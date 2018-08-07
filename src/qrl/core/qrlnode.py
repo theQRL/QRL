@@ -4,7 +4,7 @@
 from decimal import Decimal
 from typing import Optional, List, Iterator, Tuple
 
-from pyqrllib.pyqrllib import QRLHelper
+from pyqrllib.pyqrllib import QRLHelper, bin2hstr
 from twisted.internet import reactor
 
 from qrl.core import config
@@ -19,6 +19,7 @@ from qrl.core.p2p.p2pChainManager import P2PChainManager
 from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement
 from qrl.core.p2p.p2pfactory import P2PFactory
+from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
@@ -318,6 +319,38 @@ class QRLNode:
 
     def get_all_address_state(self) -> list:
         return self._chain_manager.get_all_address_state()
+
+    def get_transactions_by_address(self, address: bytes):
+        address_state = self._chain_manager.get_address_state(address)
+        mini_transactions = []
+        balance = 0
+        for tx_hash in address_state.transaction_hashes:
+            mini_transaction = qrl_pb2.MiniTransaction()
+            mini_transaction.transaction_hash = bin2hstr(tx_hash)
+            tx, _ = self._chain_manager.get_tx_metadata(tx_hash)
+            amount = 0
+            if tx.addr_from == address:
+                amount -= tx.fee
+            if isinstance(tx, TransferTransaction):
+                if tx.addr_from == address:
+                    amount -= tx.total_amount
+                try:
+                    for i in range(len(tx.addrs_to)):
+                        if tx.addrs_to[i] == address:
+                            amount += tx.amounts[i]
+                except ValueError:
+                    pass
+            elif isinstance(tx, CoinBase):
+                if tx.addr_to == address:
+                    amount += tx.amount
+
+            if amount < 0:
+                mini_transaction.out = True
+            mini_transaction.amount = abs(amount)
+            mini_transactions.append(mini_transaction)
+            balance += amount
+
+        return mini_transactions, balance
 
     def get_transaction(self, query_hash: bytes):
         """
