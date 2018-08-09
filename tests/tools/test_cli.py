@@ -49,19 +49,22 @@ class TestCLI_Wallet_Gen(TestCase):
         os.chdir(self.prev_dir)
         shutil.rmtree(self.temp_dir)
 
-    def test_wallet_gen_default_height(self):
-        self.runner.invoke(qrl_cli, ["wallet_gen"])
+    def wallet_gen_default_height(self):
+        result = self.runner.invoke(qrl_cli, ["wallet_gen"])
         wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
         self.assertEqual(wallet["addresses"][0]["height"], 12)
 
     def test_wallet_gen_different_height(self):
-        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
+        result = self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
         wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
         self.assertEqual(wallet["addresses"][0]["height"], 4)
 
     def test_wallet_gen_different_hash_function(self):
-        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--hash_function=sha2_256"])
+        result = self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--hash_function=sha2_256"])
         wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
         self.assertEqual(wallet["addresses"][0]["hashFunction"], "sha2_256")
 
     def test_wallet_gen_json(self):
@@ -69,8 +72,9 @@ class TestCLI_Wallet_Gen(TestCase):
         self.assertTrue(json.loads(result.output))  # Throws an exception if output is not valid JSON
 
     def test_wallet_gen_encrypt(self):
-        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4", "--encrypt"], input='password\npassword\n')
         wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
         self.assertTrue(wallet["encrypted"])
 
 
@@ -726,18 +730,29 @@ class TestCLI(TestCase):
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_token_list(self, mock_stub):
         m_address_state_resp = mock.MagicMock(name='this should be the addressStateResp')
-        m_address_state_resp.state.tokens = {qaddr_1: 10, qaddr_2: 100}
+        m_address_state_resp.state.tokens = {'aabb00': 10, 'ccbb11': 100}
+        transaction = mock.MagicMock()
+        transaction.token = mock.MagicMock()
+        transaction.token.name = b"NAME"
+        transaction.token.symbol = b"SYM"
+        tx_extended = mock.MagicMock(tx=transaction)
+        get_object_resp = mock.MagicMock(transaction=tx_extended)
 
         mock_stub_instance = mock.MagicMock(name='this should be qrl_pb2_grpc.PublicAPIStub(channel)')
         mock_stub_instance.GetAddressState.return_value = m_address_state_resp
+        mock_stub_instance.GetObject.return_value = get_object_resp
 
         mock_stub.name = 'this should be qrl_pb2_grpc.PublicAPIStub'
         mock_stub.return_value = mock_stub_instance
 
         result = self.runner.invoke(qrl_cli, ["token_list", "--owner={}".format(qaddr_1)])
 
-        self.assertIn('Hash: {}\nBalance: 10'.format(qaddr_1), result.output)
-        self.assertIn('Hash: {}\nBalance: 100'.format(qaddr_2), result.output)
+        self.assertIn('Hash: {}\nSymbol: {}\nName: {}\nBalance: 10'.format('aabb00',
+                                                                           transaction.token.symbol.decode(),
+                                                                           transaction.token.name.decode()), result.output)
+        self.assertIn('Hash: {}\nSymbol: {}\nName: {}\nBalance: 100'.format('ccbb11',
+                                                                            transaction.token.symbol.decode(),
+                                                                            transaction.token.name.decode()), result.output)
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_token_list_invalid_input(self, mock_stub):

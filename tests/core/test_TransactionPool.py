@@ -5,11 +5,14 @@ from unittest import TestCase
 from mock import Mock, patch
 
 from qrl.core.misc import logger
+from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
+from qrl.core.State import State
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.TransactionPool import TransactionPool
-from tests.misc.helper import replacement_getTime
+from tests.misc.helper import replacement_getTime, set_qrl_dir, get_alice_xmss, get_bob_xmss
+from tests.misc.MockHelper.mock_function import MockFunction
 
 logger.initialize_default()
 
@@ -239,17 +242,36 @@ class TestTransactionPool(TestCase):
 
         # Redefine at what point should txs be considered stale
         m_config.user.stale_transaction_threshold = 2
+        bob_xmss = get_bob_xmss(4)
+        alice_xmss = get_alice_xmss(4)
 
-        tx1 = make_tx(name='Mock TX 1')
-        tx2 = make_tx(name='Mock TX 2')
+        tx1 = TransferTransaction.create(addrs_to=[bob_xmss.address], amounts=[1000000], fee=1, xmss_pk=alice_xmss.pk)
+        tx1.sign(alice_xmss)
+        tx2 = TransferTransaction.create(addrs_to=[bob_xmss.address], amounts=[10000], fee=1, xmss_pk=alice_xmss.pk)
+        tx2.sign(alice_xmss)
         m_broadcast_tx = Mock(name='Mock Broadcast TX function (in P2PFactory)')
         self.txpool.add_tx_to_pool(tx1, 5)
         self.txpool.add_tx_to_pool(tx2, 5)
         self.txpool.set_broadcast_tx(m_broadcast_tx)
 
-        self.txpool.check_stale_txn(8)
+        with set_qrl_dir('no_data'):
+            state = State()
+            self.txpool.check_stale_txn(state, 8)
 
-        self.assertEqual(m_broadcast_tx.call_count, 2)
+            self.assertEqual(m_broadcast_tx.call_count, 0)
+
+            m = MockFunction()
+            bob_address_state = AddressState.get_default(bob_xmss.address)
+            bob_address_state.pbdata.balance = 1000000000000
+            m.put(bob_xmss.address, bob_address_state)
+            state.get_address_state = m.get
+            tx3 = TransferTransaction.create(addrs_to=[alice_xmss.address], amounts=[10000], fee=1,
+                                             xmss_pk=bob_xmss.pk)
+            tx3.sign(bob_xmss)
+            self.txpool.add_tx_to_pool(tx3, 5)
+            self.txpool.check_stale_txn(state, 8)
+
+            self.assertEqual(m_broadcast_tx.call_count, 1)
 
 
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)

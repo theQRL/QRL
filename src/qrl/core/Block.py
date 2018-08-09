@@ -67,10 +67,6 @@ class Block(object):
         return self.blockheader.mining_nonce
 
     @property
-    def PK(self):
-        return self.blockheader.PK
-
-    @property
     def block_reward(self):
         return self.blockheader.block_reward
 
@@ -118,6 +114,10 @@ class Block(object):
         return block
 
     @staticmethod
+    def _copy_tx_pbdata_into_block(block, tx):
+        block._data.transactions.extend([tx.pbdata])
+
+    @staticmethod
     def create(block_number: int,
                prev_headerhash: bytes,
                prev_timestamp: int,
@@ -137,11 +137,11 @@ class Block(object):
         total_reward_amount = BlockHeader.block_reward_calc(block_number) + fee_reward
         coinbase_tx = CoinBase.create(total_reward_amount, miner_address, block_number)
         hashedtransactions.append(coinbase_tx.txhash)
-        block._data.transactions.extend([coinbase_tx.pbdata])  # copy memory rather than sym link
+        Block._copy_tx_pbdata_into_block(block, coinbase_tx)  # copy memory rather than sym link
 
         for tx in transactions:
             hashedtransactions.append(tx.txhash)
-            block._data.transactions.extend([tx.pbdata])  # copy memory rather than sym link
+            Block._copy_tx_pbdata_into_block(block, tx)  # copy memory rather than sym link
 
         txs_hash = merkle_tx_hash(hashedtransactions)  # FIXME: Find a better name, type changes
 
@@ -195,10 +195,6 @@ class Block(object):
             logger.warning('Failed PoW Validation')
             return False
 
-        fee_reward = 0
-        for index in range(1, len(self.transactions)):
-            fee_reward += self.transactions[index].fee
-
         if len(self.transactions) == 0:
             return False
 
@@ -213,18 +209,23 @@ class Block(object):
             logger.warning('Exception %s', e)
             return False
 
+        # Build transaction merkle tree, calculate fee reward, and then see if BlockHeader also agrees.
         hashedtransactions = []
 
         for tx in self.transactions:
             tx = Transaction.from_pbdata(tx)
             hashedtransactions.append(tx.txhash)
 
+        fee_reward = 0
+        for index in range(1, len(self.transactions)):
+            fee_reward += self.transactions[index].fee
+
         if not self.blockheader.validate(fee_reward, coinbase_amount, merkle_tx_hash(hashedtransactions)):
             return False
 
         return True
 
-    def apply_state_changes(self, address_txn) -> bool:
+    def apply_state_changes(self, address_txn: dict) -> bool:
         coinbase_tx = Transaction.from_pbdata(self.transactions[0])
 
         if not coinbase_tx.validate_extended(self.block_number):
