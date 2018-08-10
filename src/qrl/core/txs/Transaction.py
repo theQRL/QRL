@@ -264,7 +264,7 @@ class Transaction(object, metaclass=ABCMeta):
         if verify_signature and self.txhash != expected_transaction_hash:
             logger.warning('Invalid Transaction hash')
             logger.warning('Expected Transaction hash %s', bin2hstr(expected_transaction_hash))
-            logger.warning('Found Transaction hash %s', expected_transaction_hash)
+            logger.warning('Found Transaction hash %s', bin2hstr(self.txhash))
             raise ValueError("Invalid Transaction Hash")
 
         if verify_signature and not XmssFast.verify(self.get_data_hash(),
