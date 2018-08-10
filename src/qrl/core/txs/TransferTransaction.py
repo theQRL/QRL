@@ -85,12 +85,12 @@ class TransferTransaction(Transaction):
             return False
 
         if not AddressState.address_is_valid(self.addr_from):
-            logger.warning('[TransferTransaction] Invalid address addr_from: %s', self.addr_from)
+            logger.warning('[TransferTransaction] Invalid address addr_from: %s', bin2hstr(self.addr_from))
             return False
 
         for addr_to in self.addrs_to:
             if not AddressState.address_is_valid(addr_to):
-                logger.warning('[TransferTransaction] Invalid address addr_to: %s', addr_to)
+                logger.warning('[TransferTransaction] Invalid address addr_to: %s', bin2hstr(addr_to))
                 return False
 
         return True
