@@ -118,6 +118,8 @@ class TestP2PTxManagementHandlers(TestCase):
     def setUp(self):
         self.channel = Mock(autospec=P2PProtocol)
         self.channel.factory = Mock(autospec=P2PFactory)
+        self.channel.factory.pow = Mock()
+        self.channel.factory.pow.suspend_mining_timestamp = 0
         self.channel.factory.master_mr = Mock(autospec=MessageReceipt)
 
     def tearDown(self):

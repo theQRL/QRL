@@ -126,6 +126,7 @@ class PublicAPIService(PublicAPIServicer):
                 answer.error_code = qrl_pb2.PushTransactionResp.SUBMITTED
                 answer.tx_hash = tx.txhash
             else:
+                answer.error_description = 'Signature too short'
                 answer.error_code = qrl_pb2.PushTransactionResp.VALIDATION_FAILED
 
         except Exception as e:

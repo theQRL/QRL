@@ -214,7 +214,7 @@ class P2PFactory(ServerFactory):
             logger.warning('Syncing Failed: Block Validation Failed')
             return
 
-        if self._chain_manager.add_block(block):
+        if self._chain_manager.add_block(block, check_stale=False):
             if self._chain_manager.last_block.headerhash == block.headerhash:
                 self.pow.suspend_mining_timestamp = ntp.getTime() + config.dev.sync_delay_mining
         else:

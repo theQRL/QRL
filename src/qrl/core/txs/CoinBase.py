@@ -68,11 +68,11 @@ class CoinBase(Transaction):
     def validate_extended(self, block_number: int):
         if self.master_addr != config.dev.coinbase_address:
             logger.warning('Master address doesnt match with coinbase_address')
-            logger.warning('%s %s', bin2hstr(self.master_addr), config.dev.coinbase_address)
+            logger.warning('%s %s', bin2hstr(self.master_addr), bin2hstr(config.dev.coinbase_address))
             return False
 
         if not AddressState.address_is_valid(self.addr_to):
-            logger.warning('Invalid address addr_from: %s addr_to: %s', self.master_addr, self.addr_to)
+            logger.warning('Invalid address addr_from: %s addr_to: %s', bin2hstr(self.master_addr), bin2hstr(self.addr_to))
             return False
 
         if self.nonce != block_number + 1:

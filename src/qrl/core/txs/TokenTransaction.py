@@ -132,16 +132,16 @@ class TokenTransaction(Transaction):
         tx_balance = addr_from_state.balance
 
         if not AddressState.address_is_valid(self.addr_from):
-            logger.warning('Invalid address addr_from: %s', self.addr_from)
+            logger.warning('Invalid address addr_from: %s', bin2hstr(self.addr_from))
             return False
 
         if not AddressState.address_is_valid(self.owner):
-            logger.warning('Invalid address owner_addr: %s', self.owner)
+            logger.warning('Invalid address owner_addr: %s', bin2hstr(self.owner))
             return False
 
         for address_balance in self.initial_balances:
             if not AddressState.address_is_valid(address_balance.address):
-                logger.warning('Invalid address address in initial_balances: %s', address_balance.address)
+                logger.warning('Invalid address in initial_balances: %s', bin2hstr(address_balance.address))
                 return False
 
         if tx_balance < self.fee:
