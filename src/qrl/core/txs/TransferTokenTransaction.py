@@ -98,12 +98,12 @@ class TransferTokenTransaction(Transaction):
             return False
 
         if not AddressState.address_is_valid(self.addr_from):
-            logger.warning('[TransferTokenTransaction] Invalid address addr_from: %s', self.addr_from)
+            logger.warning('[TransferTokenTransaction] Invalid address addr_from: %s', bin2hstr(self.addr_from))
             return False
 
         for addr_to in self.addrs_to:
             if not AddressState.address_is_valid(addr_to):
-                logger.warning('[TransferTokenTransaction] Invalid address addr_to: %s', addr_to)
+                logger.warning('[TransferTokenTransaction] Invalid address addr_to: %s', bin2hstr(addr_to))
                 return False
 
         return True
@@ -127,7 +127,7 @@ class TransferTokenTransaction(Transaction):
             return False
 
         if not addr_from_state.is_token_exists(self.token_txhash):
-            logger.info('%s doesnt own any such token %s ', self.addr_from, bin2hstr(self.token_txhash))
+            logger.info('%s doesnt own any such token %s ', bin2hstr(self.addr_from), bin2hstr(self.token_txhash))
             return False
 
         token_balance = addr_from_state.get_token_balance(self.token_txhash)
