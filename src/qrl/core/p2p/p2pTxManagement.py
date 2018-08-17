@@ -4,7 +4,7 @@ from qrl.core import config
 from qrl.core.ESyncState import ESyncState
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.messagereceipt import MessageReceipt
-from qrl.core.misc import logger
+from qrl.core.misc import logger, ntp
 from qrl.core.p2p.p2pObserver import P2PBaseObserver
 from qrl.generated import qrllegacy_pb2
 
@@ -46,6 +46,9 @@ class P2PTxManagement(P2PBaseObserver):
             return
 
         if mr_data.type == qrllegacy_pb2.LegacyMessage.TX:
+            if ntp.getTime() < source.factory.pow.suspend_mining_timestamp:
+                return
+
             if source.factory._chain_manager.tx_pool.is_full_pending_transaction_pool():
                 logger.warning('TX pool size full, incoming tx dropped. mr hash: %s', bin2hstr(msg_hash))
                 return

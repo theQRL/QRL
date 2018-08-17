@@ -282,7 +282,7 @@ class ChainManager:
         self._state.update_mainchain_height(block.block_number, batch)
         self._state.update_tx_metadata(block, batch)
 
-    def _try_branch_add_block(self, block, batch) -> (bool, bool):
+    def _try_branch_add_block(self, block, batch, check_stale=True) -> (bool, bool):
         """
         This function returns list of bool types. The first bool represent
         if the block has been added successfully and the second bool
@@ -316,7 +316,8 @@ class ChainManager:
                 return self._fork_recovery(block, fork_state), True
 
             self._update_chainstate(block, batch)
-            self.tx_pool.check_stale_txn(self._state, block.block_number)
+            if check_stale:
+                self.tx_pool.check_stale_txn(self._state, block.block_number)
             self.trigger_miner = True
 
         return True, False
@@ -457,7 +458,7 @@ class ChainManager:
         self.trigger_miner = True
         return True
 
-    def _add_block(self, block, batch=None) -> (bool, bool):
+    def _add_block(self, block, batch=None, check_stale=True) -> (bool, bool):
         self.trigger_miner = False
 
         block_size_limit = self.get_block_size_limit(block)
@@ -465,9 +466,9 @@ class ChainManager:
             logger.info('Block Size greater than threshold limit %s > %s', block.size, block_size_limit)
             return False, False
 
-        return self._try_branch_add_block(block, batch)
+        return self._try_branch_add_block(block, batch, check_stale)
 
-    def add_block(self, block: Block) -> bool:
+    def add_block(self, block: Block, check_stale=True) -> bool:
         with self.lock:
             if block.block_number < self.height - config.dev.reorg_limit:
                 logger.debug('Skipping block #%s as beyond re-org limit', block.block_number)
@@ -477,7 +478,7 @@ class ChainManager:
                 return False
 
             batch = self._state.batch
-            block_flag, fork_flag = self._add_block(block, batch=batch)
+            block_flag, fork_flag = self._add_block(block, batch=batch, check_stale=check_stale)
             if block_flag:
                 if not fork_flag:
                     self._state.write_batch(batch)
