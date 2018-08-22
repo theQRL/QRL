@@ -337,6 +337,8 @@ class PublicAPIService(PublicAPIServicer):
         if tx_blocknumber:
             response.tx.MergeFrom(tx_blocknumber[0].pbdata)
             response.confirmations = self.qrlnode.block_height - tx_blocknumber[1] + 1
+            response.block_number = tx_blocknumber[1]
+            response.block_header_hash = self.qrlnode.get_block_header_hash_by_number(tx_blocknumber[1])
         else:
             tx_timestamp = self.qrlnode.get_unconfirmed_transaction(request.tx_hash)
             if tx_timestamp:

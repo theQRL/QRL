@@ -240,6 +240,8 @@ message TransactionResp {
     string error = 2;
     PlainTransaction tx = 3;
     uint64 confirmations = 4;
+    uint64 block_number = 5;
+    string block_header_hash = 6;
 }
 
 message BalanceReq {

@@ -230,9 +230,12 @@ class WalletAPIService(WalletAPIServicer):
     def GetTransaction(self, request: qrlwallet_pb2.TransactionReq, context) -> qrlwallet_pb2.TransactionResp:
         resp = qrlwallet_pb2.TransactionResp()
         try:
-            tx, confirmations = self._walletd.get_transaction(request.tx_hash)
+            tx, confirmations, block_number, block_header_hash = self._walletd.get_transaction(request.tx_hash)
             resp.tx.MergeFrom(tx)
             resp.confirmations = confirmations
+            resp.block_number = block_number
+            if block_header_hash:
+                resp.block_header_hash = block_header_hash
         except Exception as e:
             resp.code = 1
             resp.error = str(e)

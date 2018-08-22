@@ -119,6 +119,12 @@ class State:
             return None
         return self.get_block(block_number_mapping.headerhash)
 
+    def get_block_header_hash_by_number(self, block_number: int):
+        block_number_mapping = self.get_block_number_mapping(block_number)
+        if not block_number_mapping:
+            return None
+        return block_number_mapping.headerhash
+
     @staticmethod
     def prepare_address_list(block) -> set:
         addresses = set()
