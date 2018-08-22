@@ -4,6 +4,7 @@
 from unittest import TestCase
 
 from mock import Mock, patch
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core.misc import logger
 from qrl.daemon.walletd import WalletD
@@ -374,6 +375,10 @@ class TestWalletAPI(TestCase):
             tx = qrl_pb2.Transaction()
             tx.fee = 10
             tx.transaction_hash = b'1234'
+            tx.message.message_hash = b'hello'
+            pk = '01020016ecb9f39b9f4275d5a49e232346a15ae2fa8c50a2927daeac189b8c5f2d1' \
+                 '8bc4e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e'
+            tx.public_key = bytes(hstr2bin(pk))
 
             walletd._public_stub.GetTransaction = Mock(
                 return_value=qrl_pb2.GetTransactionResp(tx=tx, confirmations=10))
@@ -382,7 +387,7 @@ class TestWalletAPI(TestCase):
 
             self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
-            self.assertEqual(tx.transaction_hash, resp.tx.transaction_hash)
+            self.assertEqual(bin2hstr(tx.transaction_hash), resp.tx.transaction_hash)
 
     def test_getBalance(self):
         with set_qrl_dir("wallet_ver1"):
@@ -439,7 +444,7 @@ class TestWalletAPI(TestCase):
             resp = service.GetBlock(qrlwallet_pb2.BlockReq(header_hash=b'001122'), context=None)
 
             self.assertEqual(resp.code, 0)
-            self.assertEqual(resp.block.header.hash_header, block.header.hash_header)
+            self.assertEqual(resp.block.header.hash_header, bin2hstr(block.header.hash_header))
             self.assertEqual(resp.block.header.block_number, block.header.block_number)
 
     def test_getBlockByNumber(self):
@@ -457,7 +462,7 @@ class TestWalletAPI(TestCase):
             resp = service.GetBlockByNumber(qrlwallet_pb2.BlockByNumberReq(block_number=1), context=None)
 
             self.assertEqual(resp.code, 0)
-            self.assertEqual(resp.block.header.hash_header, block.header.hash_header)
+            self.assertEqual(resp.block.header.hash_header, bin2hstr(block.header.hash_header))
             self.assertEqual(resp.block.header.block_number, block.header.block_number)
 
     def test_getAddressFromPK(self):
@@ -465,14 +470,8 @@ class TestWalletAPI(TestCase):
             walletd = WalletD()
             service = WalletAPIService(walletd)
 
-            pk = b'\x01\x02\x00\x16\xec\xb9\xf3\x9b\x9fBu\xd5\xa4\x9e##F\xa1Z\xe2\xfa\x8cP\xa2\x92}\xae' \
-                 b'\xac\x18\x9b\x8c_-\x18\xbcN9\x83\xbdVB\x98\xc4\x9a\xe2\xe7\xfan(\xd4\xb9T\xd8\xcdY9' \
-                 b'\x8f\x12%\xb0\x8daD\x85J\xee\x0e'
-
-            address = b'\x01\x02\x00g\x02F\xb0\x02d6\xb7\x17\xf1\x99\xe3\xecS \xbaj\xb6\x1d^\xdd\xff\x81' \
-                      b'\x1a\xc1\x99\xa9\xe9\xb8q\xd3(\x01x\xb3C'
-
-            walletd._public_stub.GetAddressFromPK = Mock(return_value=qrl_pb2.GetAddressFromPKResp(address=address))
+            pk = '01020016ecb9f39b9f4275d5a49e232346a15ae2fa8c50a2927daeac189b8c5f2d1' \
+                 '8bc4e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e'
 
             resp = service.GetAddressFromPK(qrlwallet_pb2.AddressFromPKReq(pk=pk), context=None)
 

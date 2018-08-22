@@ -8,12 +8,12 @@ import grpc
 from time import sleep
 from daemonize import Daemonize
 
-from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr
+from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr, QRLHelper
 
 from qrl.core import config
 from qrl.core.Wallet import WalletDecryptionError
 from qrl.services.WalletAPIService import WalletAPIService
-from qrl.generated import qrl_pb2, qrl_pb2_grpc
+from qrl.generated import qrl_pb2, qrl_pb2_grpc, qrlwallet_pb2
 from qrl.generated.qrlwallet_pb2_grpc import add_WalletAPIServicer_to_server
 from qrl.core.Wallet import Wallet
 from qrl.core.txs.TransferTransaction import TransferTransaction
@@ -36,8 +36,104 @@ class WalletD:
         self._passphrase = None
         self.load_wallet()
 
+    def to_plain_blocks(self, block):
+        pheader = qrlwallet_pb2.PlainBlockHeader()
+        pheader.hash_header = bin2hstr(block.header.hash_header)
+        pheader.block_number = block.header.block_number
+        pheader.timestamp_seconds = block.header.timestamp_seconds
+        pheader.hash_header_prev = bin2hstr(block.header.hash_header_prev)
+        pheader.reward_block = block.header.reward_block
+        pheader.reward_fee = block.header.reward_fee
+        pheader.merkle_root = bin2hstr(block.header.merkle_root)
+
+        pheader.mining_nonce = block.header.mining_nonce
+        pheader.extra_nonce = block.header.extra_nonce
+
+        pblock = qrlwallet_pb2.PlainBlock()
+        pblock.header.MergeFrom(pheader)
+
+        for tx in block.transactions:
+            pblock.transactions.extend([self.to_plain_transaction(tx)])
+
+        for genesis_balance in block.genesis_balance:
+            pgb = qrlwallet_pb2.PlainGenesisBalance()
+            pgb.address = self.address_to_qaddress(genesis_balance.address)
+            pgb.balance = genesis_balance.balance
+            pblock.genesis_balance.extend([pgb])
+
+        return pblock
+
+    @staticmethod
+    def to_plain_address_amount(address_amount):
+        am = qrlwallet_pb2.PlainAddressAmount()
+        am.address = bin2hstr(address_amount.address)
+        am.amount = address_amount.amount
+        return am
+
+    def to_plain_transaction(self, tx):
+        ptx = qrlwallet_pb2.PlainTransaction()
+        if not tx.WhichOneof('transactionType'):
+            return ptx
+        if tx.master_addr:
+            ptx.master_addr = self.address_to_qaddress(tx.master_addr)
+        ptx.fee = tx.fee
+        ptx.public_key = bin2hstr(tx.public_key)
+        ptx.signature = bin2hstr(tx.signature)
+        ptx.nonce = tx.nonce
+        ptx.transaction_hash = bin2hstr(tx.transaction_hash)
+        if tx.WhichOneof('transactionType') != 'coinbase':
+            ptx.signer_addr = self.get_address_from_pk(ptx.public_key)
+
+        if tx.WhichOneof('transactionType') == "transfer":
+            ptx.transfer.amounts.extend(tx.transfer.amounts)
+            for addr in tx.transfer.addrs_to:
+                ptx.transfer.addrs_to.extend([self.address_to_qaddress(addr)])
+
+        elif tx.WhichOneof('transactionType') == 'coinbase':
+            ptx.coinbase.addr_to = self.address_to_qaddress(tx.coinbase.addr_to)
+            ptx.coinbase.amount = tx.coinbase.amount
+
+        elif tx.WhichOneof('transactionType') == 'lattice_public_key':
+            ptx.lattice_public_key.MergeFrom(ptx.lattice_public_key())
+            ptx.lattice_public_key.kyber_pk = bin2hstr(tx.lattice_public_key.kyber_pk)
+            ptx.lattice_public_key.dilithium_pk = bin2hstr(tx.lattice_public_key.dilithium_pk)
+
+        elif tx.WhichOneof('transactionType') == 'message':
+            ptx.message.message_hash = tx.message.message_hash
+
+        elif tx.WhichOneof('transactionType') == 'token':
+            ptx.token.symbol = tx.token.symbol
+            ptx.token.name = tx.token.name
+            ptx.token.owner = self.address_to_qaddress(tx.token.owner)
+            ptx.token.decimals = tx.token.decimals
+            for initial_balance in tx.token.initial_balances:
+                ptx.token.initial_balances.extend([self.to_plain_address_amount(initial_balance)])
+
+        elif tx.WhichOneof('transactionType') == 'transfer_token':
+            ptx.transfer_token.token_txhash = bin2hstr(tx.transfer_token.token_txhash)
+            ptx.transfer_token.addrs_to.extend(self.addresses_to_qaddress(tx.transfer_token.addrs_to))
+            ptx.transfer_token.amounts.extend(tx.transfer_token.amounts)
+
+        elif tx.WhichOneof('transactionType') == 'slave':
+            for slave_pk in tx.slave.slave_pks:
+                ptx.slave.slave_pks.extend([bin2hstr(slave_pk)])
+            ptx.slave.access_types.extend(tx.slave.access_types)
+
+        return ptx
+
     def load_wallet(self):
         self._wallet = Wallet(self._wallet_path)
+
+    @staticmethod
+    def address_to_qaddress(address: bytes):
+        return 'Q' + bin2hstr(address)
+
+    @staticmethod
+    def addresses_to_qaddress(addresses: list):
+        qaddresses = []
+        for address in addresses:
+            qaddresses.append(WalletD.address_to_qaddress(address))
+        return qaddresses
 
     @staticmethod
     def qaddress_to_address(qaddress: str) -> bytes:
@@ -162,7 +258,7 @@ class WalletD:
         self._push_transaction(tx, xmss)
         self._wallet.set_ots_index(index, xmss.ots_index)
 
-        return tx.pbdata
+        return self.to_plain_transaction(tx.pbdata)
 
     def relay_message_txn(self,
                           message: str,
@@ -181,7 +277,7 @@ class WalletD:
         self._push_transaction(tx, xmss)
         self._wallet.set_ots_index(index, xmss.ots_index)
 
-        return tx.pbdata
+        return self.to_plain_transaction(tx.pbdata)
 
     def relay_token_txn(self,
                         symbol: str,
@@ -217,7 +313,7 @@ class WalletD:
         self._push_transaction(tx, xmss)
         self._wallet.set_ots_index(index, xmss.ots_index)
 
-        return tx.pbdata
+        return self.to_plain_transaction(tx.pbdata)
 
     def relay_transfer_token_txn(self,
                                  qaddresses_to: list,
@@ -240,7 +336,7 @@ class WalletD:
         self._push_transaction(tx, xmss)
         self._wallet.set_ots_index(index, xmss.ots_index)
 
-        return tx.pbdata
+        return self.to_plain_transaction(tx.pbdata)
 
     def relay_slave_txn(self,
                         slave_pks: list,
@@ -261,7 +357,7 @@ class WalletD:
         self._push_transaction(tx, xmss)
         self._wallet.set_ots_index(index, xmss.ots_index)
 
-        return tx.pbdata
+        return self.to_plain_transaction(tx.pbdata)
 
     def encrypt_wallet(self, passphrase: str):
         if self._wallet.is_encrypted():
@@ -312,7 +408,7 @@ class WalletD:
     def get_transaction(self, tx_hash: str):
         txhash = bytes(hstr2bin(tx_hash))
         response = self._public_stub.GetTransaction(qrl_pb2.GetTransactionReq(tx_hash=txhash))
-        return response.tx, response.confirmations
+        return self.to_plain_transaction(response.tx), response.confirmations
 
     def get_balance(self, qaddress: str) -> int:
         address = self.qaddress_to_address(qaddress)
@@ -331,15 +427,14 @@ class WalletD:
     def get_block(self, header_hash: str):
         headerhash = bytes(hstr2bin(header_hash))
         response = self._public_stub.GetBlock(qrl_pb2.GetBlockReq(header_hash=headerhash))
-        return response.block
+        return self.to_plain_blocks(response.block)
 
     def get_block_by_number(self, block_number: int):
         response = self._public_stub.GetBlockByNumber(qrl_pb2.GetBlockByNumberReq(block_number=block_number))
-        return response.block
+        return self.to_plain_blocks(response.block)
 
-    def get_address_from_pk(self, pk: bytes) -> str:
-        response = self._public_stub.GetAddressFromPK(qrl_pb2.GetAddressFromPKReq(pk=pk))
-        return 'Q' + bin2hstr(response.address)
+    def get_address_from_pk(self, pk: str) -> str:
+        return self.address_to_qaddress(QRLHelper.getAddress(bytes(hstr2bin(pk))))
 
 
 def run():

@@ -207,7 +207,7 @@ message RelaySlaveTxnReq {
 message RelayTxnResp {
     uint32 code = 1;
     string error = 2;
-    Transaction tx = 3;
+    PlainTransaction tx = 3;
 }
 
 message ChangePassphraseReq {
@@ -238,7 +238,7 @@ message TransactionReq {
 message TransactionResp {
     uint32 code = 1;
     string error = 2;
-    Transaction tx = 3;
+    PlainTransaction tx = 3;
     uint64 confirmations = 4;
 }
 
@@ -279,7 +279,7 @@ message BlockReq {
 message BlockResp {
     uint32 code = 1;
     string error = 2;
-    Block block = 3;
+    PlainBlock block = 3;
 }
 
 message BlockByNumberReq {
@@ -287,11 +287,102 @@ message BlockByNumberReq {
 }
 
 message AddressFromPKReq {
-    bytes pk = 1;
+    string pk = 1;
 }
 
 message AddressFromPKResp {
     uint32 code = 1;
     string error = 2;
     string address = 3;
+}
+
+message PlainGenesisBalance {
+    string address = 1;
+    uint64 balance = 2;
+}
+
+message PlainAddressAmount {
+    string address = 1;
+    uint64 amount = 2;
+}
+
+message PlainTransaction {
+    string master_addr = 1;
+    uint64 fee = 2;
+    string public_key = 3;
+    string signature = 4;
+    uint64 nonce = 5;
+    string transaction_hash = 6;
+    string signer_addr = 7;
+
+    oneof transactionType {
+        Transfer transfer = 8;
+        CoinBase coinbase = 9;
+        LatticePublicKey latticePK = 10;
+        Message message = 11;
+        Token token = 12;
+        TransferToken transfer_token = 13;
+        Slave slave = 14;
+    }
+
+    //////////
+    message Transfer {
+        repeated string addrs_to = 1;
+        repeated uint64 amounts = 2;
+    }
+
+    message CoinBase {
+        string addr_to = 1;
+        uint64 amount = 2;
+    }
+
+    message LatticePublicKey {
+        string kyber_pk = 1;
+        string dilithium_pk = 2;
+    }
+
+    message Message {
+        string message_hash = 1;
+    }
+
+    message Token {
+        string symbol = 1;
+        string name = 2;
+        string owner = 3;
+        uint64 decimals = 4;
+        repeated PlainAddressAmount initial_balances = 5;
+    }
+
+    message TransferToken {
+        string token_txhash = 1;
+        repeated string addrs_to = 2;
+        repeated uint64 amounts = 3;
+    }
+
+    message Slave {
+        repeated string slave_pks = 1;
+        repeated uint32 access_types = 2;
+    }
+}
+
+message PlainBlockHeader {
+    // Header
+    string hash_header = 1;
+
+    uint64 block_number = 2;
+    uint64 timestamp_seconds = 3;
+    string hash_header_prev = 4;
+    uint64 reward_block = 5;
+    uint64 reward_fee = 6;
+    string merkle_root = 7;
+
+    uint32 mining_nonce = 8;
+    uint64 extra_nonce = 9;
+}
+
+message PlainBlock {
+    PlainBlockHeader header = 1;
+    repeated PlainTransaction transactions = 2;
+
+    repeated PlainGenesisBalance genesis_balance = 3;
 }
