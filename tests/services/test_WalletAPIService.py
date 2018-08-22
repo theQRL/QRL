@@ -83,6 +83,19 @@ class TestWalletAPI(TestCase):
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
             self.assertEqual(len(resp.addresses), 0)
 
+    def test_validateAddress(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            qaddress = "Q010400ff39df1ba4d1d5b8753e6d04c51c34b95b01fc3650c10ca7b296a18bdc105412c59d0b3b"
+            resp = service.ValidateAddress(qrlwallet_pb2.ValidateAddressReq(address=qaddress), context=None)
+            self.assertTrue(resp.valid)
+
+            qaddress = "Q010400ff39df1ba4d1d5b8753e6d04c51c34b95b01fc3650c10ca7b296a18bdc105412c59d0b00"
+            resp = service.ValidateAddress(qrlwallet_pb2.ValidateAddressReq(address=qaddress), context=None)
+            self.assertFalse(resp.valid)
+
     def test_getRecoverySeeds(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()

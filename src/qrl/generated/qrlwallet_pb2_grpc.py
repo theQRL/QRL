@@ -42,6 +42,11 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.RemoveAddressReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.RemoveAddressResp.FromString,
         )
+    self.ValidateAddress = channel.unary_unary(
+        '/qrl.WalletAPI/ValidateAddress',
+        request_serializer=qrlwallet__pb2.ValidateAddressReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.ValidateAddressResp.FromString,
+        )
     self.EncryptWallet = channel.unary_unary(
         '/qrl.WalletAPI/EncryptWallet',
         request_serializer=qrlwallet__pb2.EncryptWalletReq.SerializeToString,
@@ -170,6 +175,12 @@ class WalletAPIServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def RemoveAddress(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def ValidateAddress(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -311,6 +322,11 @@ def add_WalletAPIServicer_to_server(servicer, server):
           servicer.RemoveAddress,
           request_deserializer=qrlwallet__pb2.RemoveAddressReq.FromString,
           response_serializer=qrlwallet__pb2.RemoveAddressResp.SerializeToString,
+      ),
+      'ValidateAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.ValidateAddress,
+          request_deserializer=qrlwallet__pb2.ValidateAddressReq.FromString,
+          response_serializer=qrlwallet__pb2.ValidateAddressResp.SerializeToString,
       ),
       'EncryptWallet': grpc.unary_unary_rpc_method_handler(
           servicer.EncryptWallet,

@@ -11,6 +11,7 @@ from daemonize import Daemonize
 from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr, QRLHelper
 
 from qrl.core import config
+from qrl.core.AddressState import AddressState
 from qrl.core.Wallet import WalletDecryptionError
 from qrl.services.WalletAPIService import WalletAPIService
 from qrl.generated import qrl_pb2, qrl_pb2_grpc, qrlwallet_pb2
@@ -214,6 +215,14 @@ class WalletD:
         self.authenticate()
 
         return self._wallet.remove(qaddress)
+
+    def validate_address(self, qaddress: str) -> bool:
+        self.authenticate()
+
+        try:
+            return AddressState.address_is_valid(hstr2bin(qaddress[1:]))
+        except Exception:
+            return False
 
     def get_recovery_seeds(self, qaddress: str):
         self.authenticate()

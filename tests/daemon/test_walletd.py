@@ -156,6 +156,16 @@ class TestWalletD(TestCase):
 
             self.assertEqual(len(walletd.list_address()), 0)
 
+    def test_validate_address(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+
+            qaddress = "Q010400ff39df1ba4d1d5b8753e6d04c51c34b95b01fc3650c10ca7b296a18bdc105412c59d0b3b"
+            self.assertTrue(walletd.validate_address(qaddress))
+
+            qaddress = "Q010400ff39df1ba4d1d5b8753e6d04c51c34b95b01fc3650c10ca7b296a18bdc105412c59d0b00"
+            self.assertFalse(walletd.validate_address(qaddress))
+
     def test_get_recovery_seeds(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()

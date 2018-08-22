@@ -26,6 +26,8 @@ service WalletAPI
 
     rpc RemoveAddress(RemoveAddressReq) returns (RemoveAddressResp);
 
+    rpc ValidateAddress(ValidateAddressReq) returns (ValidateAddressResp);
+
     rpc EncryptWallet(EncryptWalletReq) returns (EncryptWalletResp);
 
     rpc LockWallet(LockWalletReq) returns (LockWalletResp);
@@ -105,6 +107,17 @@ message RemoveAddressResp {
     uint32 code = 1;
     string error = 2;
 }
+
+message ValidateAddressReq {
+    string address = 1;
+}
+
+message ValidateAddressResp {
+    uint32 code = 1;
+    string error = 2;
+    bool valid = 3;
+}
+
 
 message EncryptWalletReq {
     string passphrase = 1;
