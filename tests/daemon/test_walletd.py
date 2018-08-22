@@ -4,7 +4,7 @@
 from unittest import TestCase
 
 from mock import Mock
-from pyqrllib.pyqrllib import bin2hstr
+from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.daemon.walletd import WalletD
 from qrl.generated import qrl_pb2
@@ -483,6 +483,10 @@ class TestWalletD(TestCase):
             tx = qrl_pb2.Transaction()
             tx.fee = 10
             tx.transaction_hash = b'1234'
+            tx.message.message_hash = b'hello'
+            pk = '01020016ecb9f39b9f4275d5a49e232346a15ae2fa8c50a2927daeac189b8c5f2d1' \
+                 '8bc4e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e'
+            tx.public_key = bytes(hstr2bin(pk))
 
             walletd._public_stub.GetTransaction = Mock(
                 return_value=qrl_pb2.GetTransactionResp(tx=tx, confirmations=10))
