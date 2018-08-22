@@ -83,7 +83,7 @@ class UserConfig(object):
         #        PUBLIC API CONFIGURATION
         # ======================================
         self.public_api_enabled = True
-        self.public_api_host = "0.0.0.0"
+        self.public_api_host = "127.0.0.1"
         self.public_api_port = 19009
         self.public_api_threads = 1
         self.public_api_max_concurrent_rpc = 100
