@@ -293,6 +293,8 @@ message GetTransactionReq {
 message GetTransactionResp {
     Transaction tx = 1;
     uint64 confirmations = 2;
+    uint64 block_number = 3;
+    bytes block_header_hash = 4;
 }
 
 message GetBalanceReq {

@@ -62,6 +62,10 @@ class ChainManager:
         with self.lock:
             return self._state.get_block_by_number(block_number)
 
+    def get_block_header_hash_by_number(self, block_number) -> Optional[bytes]:
+        with self.lock:
+            return self._state.get_block_header_hash_by_number(block_number)
+
     def get_block(self, header_hash: bytes) -> Optional[Block]:
         with self.lock:
             return self._state.get_block(header_hash)
