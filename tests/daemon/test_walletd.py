@@ -487,13 +487,18 @@ class TestWalletD(TestCase):
             pk = '01020016ecb9f39b9f4275d5a49e232346a15ae2fa8c50a2927daeac189b8c5f2d1' \
                  '8bc4e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e'
             tx.public_key = bytes(hstr2bin(pk))
-
+            header_hash = 'ab'
             walletd._public_stub.GetTransaction = Mock(
-                return_value=qrl_pb2.GetTransactionResp(tx=tx, confirmations=10))
-            tx, confirmations = walletd.get_transaction(tx_hash='1234')
+                return_value=qrl_pb2.GetTransactionResp(tx=tx,
+                                                        confirmations=10,
+                                                        block_number=5,
+                                                        block_header_hash=bytes(hstr2bin(header_hash))))
+            tx, confirmations, block_number, block_header_hash = walletd.get_transaction(tx_hash='1234')
             self.assertIsNotNone(tx)
             self.assertEqual(tx.transaction_hash, bin2hstr(b'1234'))
             self.assertEqual(confirmations, 10)
+            self.assertEqual(block_number, 5)
+            self.assertEqual(block_header_hash, header_hash)
 
     def test_get_balance(self):
         with set_qrl_dir("wallet_ver1"):

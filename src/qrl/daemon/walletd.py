@@ -408,7 +408,10 @@ class WalletD:
     def get_transaction(self, tx_hash: str):
         txhash = bytes(hstr2bin(tx_hash))
         response = self._public_stub.GetTransaction(qrl_pb2.GetTransactionReq(tx_hash=txhash))
-        return self.to_plain_transaction(response.tx), response.confirmations
+        block_header_hash = None
+        if response.block_header_hash:
+            block_header_hash = bin2hstr(response.block_header_hash)
+        return self.to_plain_transaction(response.tx), response.confirmations, response.block_number, block_header_hash
 
     def get_balance(self, qaddress: str) -> int:
         address = self.qaddress_to_address(qaddress)
