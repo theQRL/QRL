@@ -87,6 +87,16 @@ class AddressState(object):
 
         return address_state
 
+    def validate_slave_with_access_type(self, slave_pk: str, access_types: list):
+        if slave_pk not in self.slave_pks_access_type:
+            return False
+
+        access_type = self.slave_pks_access_type[slave_pk]
+        if access_type not in access_types:
+            return False
+
+        return True
+
     def update_token_balance(self, token_tx_hash: bytes, balance: int):
         str_token_tx_hash = bin2hstr(token_tx_hash)
         self._data.tokens[str_token_tx_hash] += balance
@@ -189,10 +199,15 @@ class AddressState(object):
                     self._data.ots_counter = tx.ots_key
                     break
 
-    def get_unused_ots_index(self):
+    def get_unused_ots_index(self, start_ots_index=0):
+        """
+        Finds the unused ots index above the given start_ots_index.
+        :param start_ots_index:
+        :return:
+        """
         ots_key_count = (2 ** self.height)
 
-        for i in range(0, min(ots_key_count, config.dev.max_ots_tracking_index) // 8):
+        for i in range(start_ots_index // 8, min(ots_key_count, config.dev.max_ots_tracking_index) // 8):
             if self.ots_bitfield[i][0] < 255:
                 offset = 8 * i
                 bitfield = bytearray(self.ots_bitfield[i])
@@ -200,11 +215,11 @@ class AddressState(object):
                     if ((bitfield[0] >> relative) & 1) != 1:
                         return offset + relative
 
-        if ots_key_count > config.dev.max_ots_tracking_index:
+        if ots_key_count >= config.dev.max_ots_tracking_index:
             if self.ots_counter + 1 < ots_key_count:
                 if self.ots_counter == 0:
-                    return config.dev.max_ots_tracking_index
-                return self.ots_counter + 1
+                    return max(config.dev.max_ots_tracking_index, start_ots_index)
+                return max(self.ots_counter + 1, start_ots_index)
 
         return None
 
