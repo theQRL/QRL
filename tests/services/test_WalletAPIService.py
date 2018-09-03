@@ -137,6 +137,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -194,6 +197,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
@@ -239,6 +245,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -304,6 +313,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -363,6 +375,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             alice_xmss = get_alice_xmss(4)
             slave_pks = [alice_xmss.pk]

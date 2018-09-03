@@ -63,6 +63,9 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address_with_slaves(height=10)
+            walletd.encrypt_wallet(self.passphrase)
+            walletd.unlock_wallet(self.passphrase)
+
             master_addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             m.put(qaddress, master_addr_state)
 
@@ -79,13 +82,13 @@ class TestWalletD(TestCase):
             slave02_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[0][2].qaddress))
 
             self.assertEqual(slaves[0][0].index, 21)
-            for i in range(21, 1000):
+            for i in range(21, 1020):
                 slave00_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 0, 0, 1020)
             m.put(slaves[0][0].qaddress, slave00_addr_state)
 
             self.assertEqual(slaves[0][1].index, 21)
-            for i in range(21, 1000):
+            for i in range(21, 1020):
                 slave01_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 0, 1, 1020)
             m.put(slaves[0][1].qaddress, slave01_addr_state)
@@ -108,13 +111,13 @@ class TestWalletD(TestCase):
             slave12_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[1][2].qaddress))
 
             self.assertEqual(slaves[1][0].index, 21)
-            for i in range(21, 1000):
+            for i in range(21, 1020):
                 slave10_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 1, 0, 1020)
             m.put(slaves[1][0].qaddress, slave10_addr_state)
 
             self.assertEqual(slaves[1][1].index, 21)
-            for i in range(21, 1000):
+            for i in range(21, 1020):
                 slave11_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 1, 1, 1020)
             m.put(slaves[1][1].qaddress, slave11_addr_state)
@@ -137,15 +140,15 @@ class TestWalletD(TestCase):
             slave22_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[2][2].qaddress))
 
             self.assertEqual(slaves[2][0].index, 21)
-            for i in range(21, 1000):
+            for i in range(21, 1020):
                 slave20_addr_state.set_ots_key(i)
-            walletd._wallet.set_slave_ots_index(0, 2, 0, 1000)
+            walletd._wallet.set_slave_ots_index(0, 2, 0, 1020)
             m.put(slaves[2][0].qaddress, slave20_addr_state)
 
             self.assertEqual(slaves[2][1].index, 21)
-            for i in range(21, 1000):
+            for i in range(21, 1020):
                 slave21_addr_state.set_ots_key(i)
-            walletd._wallet.set_slave_ots_index(0, 2, 1, 1000)
+            walletd._wallet.set_slave_ots_index(0, 2, 1, 1020)
             m.put(slaves[2][1].qaddress, slave21_addr_state)
 
             self.assertEqual(slaves[2][2].index, 21)
@@ -156,7 +159,7 @@ class TestWalletD(TestCase):
 
             walletd.get_slave(qaddress)
             slaves = walletd.get_slave_list(qaddress)
-            self.assertEqual(len(slaves), 3)
+            self.assertEqual(len(slaves), 4)
 
     def test_encrypt_last_item(self):
         with set_qrl_dir("wallet_ver1"):
@@ -355,6 +358,10 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
             qaddresses_to = [alice_xmss.qaddress, bob_xmss.qaddress]
@@ -371,6 +378,7 @@ class TestWalletD(TestCase):
     def test_relay_transfer_txn_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -400,6 +408,10 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
             walletd.encrypt_wallet(self.passphrase)
             walletd.unlock_wallet(self.passphrase)
             alice_xmss = get_alice_xmss(4)
@@ -465,6 +477,9 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             tx = walletd.relay_message_txn(message='Hello QRL!',
                                            fee=100000000,
@@ -499,6 +514,10 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
             walletd.encrypt_wallet(self.passphrase)
             walletd.unlock_wallet(self.passphrase)
 
@@ -551,6 +570,10 @@ class TestWalletD(TestCase):
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
             qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
             qaddresses = [alice_xmss.qaddress, bob_xmss.qaddress]
@@ -603,6 +626,10 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
             walletd.encrypt_wallet(self.passphrase)
             walletd.unlock_wallet(self.passphrase)
 
@@ -686,6 +713,10 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
             walletd.encrypt_wallet(self.passphrase)
             walletd.unlock_wallet(self.passphrase)
 
@@ -759,6 +790,10 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
             walletd.encrypt_wallet(self.passphrase)
             walletd.unlock_wallet(self.passphrase)
 

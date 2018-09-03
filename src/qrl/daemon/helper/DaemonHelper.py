@@ -344,6 +344,14 @@ class Wallet:
         tmp['encrypted'] = False
         self._address_items[index] = AddressItem(**tmp)
 
+    def encrypt_address_item(self, item: AddressItem, key: str):
+        cipher = AESHelper(key)
+        tmp = item._asdict()  # noqa
+        tmp['hexseed'] = cipher.encrypt(tmp['hexseed'].encode())
+        tmp['mnemonic'] = cipher.encrypt(tmp['mnemonic'].encode())
+        tmp['encrypted'] = True
+        return AddressItem(**tmp)
+
     def encrypt_item(self, index: int, key: str):
         cipher = AESHelper(key)
         tmp = self._address_items[index]._asdict()  # noqa
@@ -422,12 +430,14 @@ class Wallet:
         tmp_item = self._get_address_item_from_xmss(xmss)
         self._address_items.append(tmp_item)
 
-    def append_slave(self, slaves_xmss: list, index=-1):
+    def append_slave(self, slaves_xmss: list, passsphrase: str, index=-1):
         slaves_item = []
         for xmss in slaves_xmss:
-            slaves_item.append(self._get_address_item_from_xmss(xmss))
+            item = self._get_address_item_from_xmss(xmss)
+            if passsphrase:
+                item = self.encrypt_address_item(item, passsphrase)
+            slaves_item.append(item)
         self._address_items[index].slaves.append(slaves_item)
-        self._address_items[index].slaves[:] = self._address_items[index].slaves[-3:]  # Keep last 3 slave groups
 
     def add_new_address(self, height, hash_function="shake128", force=False):
         if not force:
@@ -439,7 +449,7 @@ class Wallet:
         self.append_xmss(tmp_xmss)
         return tmp_xmss
 
-    def add_slave(self, index, height, number_of_slaves=1, hash_function="shake128", force=False):
+    def add_slave(self, index, height, number_of_slaves=1, passphrase: str=None, hash_function="shake128", force=False):
         if not force:
             if self.encrypted or self.encrypted_partially:
                 raise WalletEncryptionError("Please decrypt all addresses in this wallet before adding a new address!")
@@ -451,7 +461,7 @@ class Wallet:
             tmp_xmss.set_ots_index(UNRESERVED_OTS_INDEX_START)  # Start from unreserved ots index
             slaves_xmss.append(tmp_xmss)
 
-        self.append_slave(slaves_xmss, index)
+        self.append_slave(slaves_xmss, passphrase, index)
         return slaves_xmss
 
     def remove(self, addr) -> bool:

@@ -344,6 +344,9 @@ class WalletD:
             if ots_index >= UNRESERVED_OTS_INDEX_START:
                 raise Exception('Fatal Error!!! No reserved OTS index found')
 
+            if self._passphrase:
+                target_address_item = self._wallet.decrypt_address_item(target_address_item, self._passphrase)
+
             xmss = self._wallet.get_xmss_by_item(target_address_item, ots_index)
 
             slaves_pk = [bytes(hstr2bin(slave_item.pk)) for slave_item in item.slaves[-1]]
@@ -378,14 +381,10 @@ class WalletD:
 
                     curr_slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
 
-                    if len(item.slaves) == 3:
-                        # Reduce group index by one, as we are adding new slave
-                        # which will change it position by one
-                        group_index -= 1
-
                     slave_xmss_list = self._wallet.add_slave(index=-1,
                                                              height=slave.height,
                                                              number_of_slaves=config.user.number_of_slaves,
+                                                             passphrase=self._passphrase,
                                                              force=True)
                     slave_pk_list = self.get_pk_list_from_xmss_list(slave_xmss_list)
 
@@ -421,6 +420,19 @@ class WalletD:
         _, addr_item = self._wallet.get_address_item(qaddress)
         return addr_item.slaves
 
+    def verify_ots(self, signer_address, xmss, user_ots_index):
+        addr_state = self.get_address_state(signer_address)
+        verified_ots_index = addr_state.get_unused_ots_index(xmss.ots_index)
+
+        if verified_ots_index == None:  # noqa
+            raise Exception("No Unused OTS key found")
+
+        if user_ots_index > 0:
+            if verified_ots_index != xmss.ots_index:
+                raise Exception("Used OTS Index %s", user_ots_index)
+        else:
+            xmss.set_ots_index(verified_ots_index)
+
     def relay_transfer_txn(self,
                            qaddresses_to: list,
                            amounts: list,
@@ -430,6 +442,7 @@ class WalletD:
                            ots_index: int):
         self.authenticate()
         index, xmss = self._get_wallet_index_xmss(signer_address, ots_index)
+        self.verify_ots(signer_address, xmss, user_ots_index=ots_index)
 
         tx = TransferTransaction.create(addrs_to=self.qaddresses_to_address(qaddresses_to),
                                         amounts=amounts,
@@ -469,6 +482,7 @@ class WalletD:
                           ots_index: int):
         self.authenticate()
         index, xmss = self._get_wallet_index_xmss(signer_address, ots_index)
+        self.verify_ots(signer_address, xmss, user_ots_index=ots_index)
 
         tx = MessageTransaction.create(message_hash=message.encode(),
                                        fee=fee,
@@ -514,6 +528,7 @@ class WalletD:
             raise Exception("Number of Addresses & Amounts Mismatch")
 
         index, xmss = self._get_wallet_index_xmss(signer_address, ots_index)
+        self.verify_ots(signer_address, xmss, user_ots_index=ots_index)
 
         initial_balances = []
         for idx, qaddress in enumerate(qaddresses):
@@ -577,6 +592,7 @@ class WalletD:
                                  ots_index: int):
         self.authenticate()
         index, xmss = self._get_wallet_index_xmss(signer_address, ots_index)
+        self.verify_ots(signer_address, xmss, user_ots_index=ots_index)
 
         tx = TransferTokenTransaction.create(token_txhash=bytes(hstr2bin(token_txhash)),
                                              addrs_to=self.qaddresses_to_address(qaddresses_to),
@@ -620,6 +636,7 @@ class WalletD:
                         ots_index: int):
         self.authenticate()
         index, xmss = self._get_wallet_index_xmss(signer_address, ots_index)
+        self.verify_ots(signer_address, xmss, user_ots_index=ots_index)
 
         tx = SlaveTransaction.create(slave_pks=slave_pks,
                                      access_types=access_types,
