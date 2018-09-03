@@ -401,7 +401,7 @@ class WalletD:
 
                 ots_index = slave_address_state.get_unused_ots_index(slave.index)
 
-                if ots_index == None:
+                if ots_index == None:  # noqa
                     self._wallet.set_slave_ots_index(index, group_index, slave_index, 2 ** slave.height - 1)
                     continue
 
@@ -442,10 +442,10 @@ class WalletD:
         return self.to_plain_transaction(tx.pbdata)
 
     def relay_transfer_txn_by_slave(self,
-                           qaddresses_to: list,
-                           amounts: list,
-                           fee: int,
-                           master_qaddress):
+                                    qaddresses_to: list,
+                                    amounts: list,
+                                    fee: int,
+                                    master_qaddress):
         self.authenticate()
         index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
         if slave_index == -1:
@@ -480,9 +480,9 @@ class WalletD:
         return self.to_plain_transaction(tx.pbdata)
 
     def relay_message_txn_by_slave(self,
-                          message: str,
-                          fee: int,
-                          master_qaddress):
+                                   message: str,
+                                   fee: int,
+                                   master_qaddress):
         self.authenticate()
         index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
         if slave_index == -1:
@@ -533,14 +533,14 @@ class WalletD:
         return self.to_plain_transaction(tx.pbdata)
 
     def relay_token_txn_by_slave(self,
-                        symbol: str,
-                        name: str,
-                        owner_qaddress: str,
-                        decimals: int,
-                        qaddresses: list,
-                        amounts: list,
-                        fee: int,
-                        master_qaddress):
+                                 symbol: str,
+                                 name: str,
+                                 owner_qaddress: str,
+                                 decimals: int,
+                                 qaddresses: list,
+                                 amounts: list,
+                                 fee: int,
+                                 master_qaddress):
         self.authenticate()
 
         if len(qaddresses) != len(amounts):
@@ -590,11 +590,11 @@ class WalletD:
         return self.to_plain_transaction(tx.pbdata)
 
     def relay_transfer_token_txn_by_slave(self,
-                                 qaddresses_to: list,
-                                 amounts: list,
-                                 token_txhash: str,
-                                 fee: int,
-                                 master_qaddress):
+                                          qaddresses_to: list,
+                                          amounts: list,
+                                          token_txhash: str,
+                                          fee: int,
+                                          master_qaddress):
         self.authenticate()
         index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
         if slave_index == -1:
@@ -632,10 +632,10 @@ class WalletD:
         return self.to_plain_transaction(tx.pbdata)
 
     def relay_slave_txn_by_slave(self,
-                        slave_pks: list,
-                        access_types: list,
-                        fee: int,
-                        master_qaddress):
+                                 slave_pks: list,
+                                 access_types: list,
+                                 fee: int,
+                                 master_qaddress):
         self.authenticate()
         index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
         if slave_index == -1:
