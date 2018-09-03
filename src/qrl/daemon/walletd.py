@@ -4,6 +4,7 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import os
+import logging
 import grpc
 from time import sleep
 from daemonize import Daemonize
@@ -11,11 +12,12 @@ from daemonize import Daemonize
 from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr, QRLHelper
 
 from qrl.core import config
-from qrl.core.Wallet import WalletDecryptionError
+from qrl.core.AddressState import AddressState
+from qrl.daemon.helper import logger
+from qrl.daemon.helper.DaemonHelper import WalletDecryptionError, Wallet, UNRESERVED_OTS_INDEX_START
 from qrl.services.WalletAPIService import WalletAPIService
 from qrl.generated import qrl_pb2, qrl_pb2_grpc, qrlwallet_pb2
 from qrl.generated.qrlwallet_pb2_grpc import add_WalletAPIServicer_to_server
-from qrl.core.Wallet import Wallet
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
@@ -23,7 +25,7 @@ from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from qrl.crypto.xmss import XMSS
 
-CONNECTION_TIMEOUT = 15
+CONNECTION_TIMEOUT = 30
 config.create_path(config.user.wallet_dir)
 pid = os.path.join(config.user.wallet_dir, 'qrl_walletd.pid')
 
@@ -121,6 +123,13 @@ class WalletD:
 
         return ptx
 
+    def generate_slave_tx(self, signer_pk: bytes, slave_pk_list: list, master_addr=None):
+        return SlaveTransaction.create(slave_pks=slave_pk_list,
+                                       access_types=[0] * len(slave_pk_list),
+                                       fee=0,
+                                       xmss_pk=signer_pk,
+                                       master_addr=master_addr)
+
     def load_wallet(self):
         self._wallet = Wallet(self._wallet_path)
 
@@ -167,6 +176,9 @@ class WalletD:
             xmss.set_ots_index(ots_index)
         return index, xmss
 
+    def get_pk_list_from_xmss_list(self, slave_xmss_list):
+        return [xmss.pk for xmss in slave_xmss_list]
+
     def add_new_address(self, height=10, hash_function='shake128') -> str:
         self.authenticate()
 
@@ -179,6 +191,44 @@ class WalletD:
         self._wallet.add_new_address(height, hash_function, True)
         self._encrypt_last_item()
         self._wallet.save()
+        logger.info("Added New Address")
+        return self._wallet.address_items[-1].qaddress
+
+    def add_new_address_with_slaves(self,
+                                    height=10,
+                                    number_of_slaves=config.user.number_of_slaves,
+                                    hash_function='shake128') -> str:
+        self.authenticate()
+
+        if not hash_function:
+            hash_function = 'shake128'
+
+        if not height:
+            height = 10
+
+        if height < 8:
+            raise Exception("Height cannot be less than 8")
+
+        if not number_of_slaves:
+            number_of_slaves = config.user.number_of_slaves
+
+        if number_of_slaves > 100:
+            raise Exception("Number of slaves cannot be more than 100")
+
+        xmss = self._wallet.add_new_address(height, hash_function, True)
+        slave_xmss_list = self._wallet.add_slave(index=-1,
+                                                 height=height,
+                                                 number_of_slaves=number_of_slaves,
+                                                 hash_function=hash_function,
+                                                 force=True)
+        self._encrypt_last_item()
+
+        slave_pk_list = self.get_pk_list_from_xmss_list(slave_xmss_list)
+        slave_tx = self.generate_slave_tx(xmss.pk, slave_pk_list)
+        self.sign_and_push_transaction(slave_tx, xmss, -1)
+
+        self._wallet.save()
+        logger.info("Added New Address With Slaves")
         return self._wallet.address_items[-1].qaddress
 
     def add_address_from_seed(self, seed=None) -> str:
@@ -212,14 +262,26 @@ class WalletD:
 
     def remove_address(self, qaddress: str) -> bool:
         self.authenticate()
+        if self._wallet.remove(qaddress):
+            logger.info("Removed Address %s", qaddress)
+            return True
 
-        return self._wallet.remove(qaddress)
+        return False
+
+    def validate_address(self, qaddress: str) -> bool:
+        self.authenticate()
+
+        try:
+            return AddressState.address_is_valid(bytes(hstr2bin(qaddress[1:])))
+        except Exception:
+            return False
 
     def get_recovery_seeds(self, qaddress: str):
         self.authenticate()
 
         xmss = self._wallet.get_xmss_by_qaddress(qaddress, self._passphrase)
         if xmss:
+            logger.info("Recovery seeds requested for %s", qaddress)
             return xmss.hexseed, xmss.mnemonic
 
         raise ValueError("No such address found in wallet")
@@ -229,15 +291,135 @@ class WalletD:
 
         return self._wallet.wallet_info()
 
-    def _push_transaction(self, tx, xmss):
+    def get_address_state(self, qaddress: str) -> AddressState:
+        request = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(qaddress[1:])))
+
+        resp = self._public_stub.GetAddressState(request=request)
+        return AddressState(resp.state)
+
+    def sign_and_push_transaction(self,
+                                  tx,
+                                  xmss,
+                                  index,
+                                  group_index=None,
+                                  slave_index=None,
+                                  enable_save=True):
+        logger.info("Signing transaction by %s", xmss.qaddress)
         tx.sign(xmss)
         if not tx.validate(True):
-            return None
+            raise Exception("Invalid Transaction")
+
+        if enable_save:
+            if slave_index == None:  # noqa
+                self._wallet.set_ots_index(index, xmss.ots_index)  # Move to next OTS index before broadcasting txn
+            else:
+                self._wallet.set_slave_ots_index(index, group_index, slave_index, xmss.ots_index)
 
         push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
         push_transaction_resp = self._public_stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
         if push_transaction_resp.error_code != qrl_pb2.PushTransactionResp.SUBMITTED:
             raise Exception(push_transaction_resp.error_description)
+
+    def get_slave(self, master_qaddress):
+        index, item = self._wallet.get_address_item(master_qaddress)
+
+        # Should we check available OTS for master
+        # Get slave list using address state
+        address_state = self.get_address_state(master_qaddress)
+
+        slave = item.slaves[-1][0]
+        if not address_state.validate_slave_with_access_type(str(bytes(hstr2bin(slave.pk))), [0]):
+            if len(item.slaves) == 1:
+                qaddress = item.qaddress
+                target_address_item = item
+                slave_index = None
+            else:
+                qaddress = item.slaves[-2][-1].qaddress
+                target_address_item = item.slaves[-2][-1]
+                slave_index = -2
+
+            address_state = self.get_address_state(qaddress)
+            ots_index = address_state.get_unused_ots_index()
+
+            if ots_index >= UNRESERVED_OTS_INDEX_START:
+                raise Exception('Fatal Error!!! No reserved OTS index found')
+
+            xmss = self._wallet.get_xmss_by_item(target_address_item, ots_index)
+
+            slaves_pk = [bytes(hstr2bin(slave_item.pk)) for slave_item in item.slaves[-1]]
+            tx = self.generate_slave_tx(xmss.pk,
+                                        slaves_pk,
+                                        self.qaddress_to_address(master_qaddress))
+
+            self.sign_and_push_transaction(tx,
+                                           xmss,
+                                           index,
+                                           slave_index,
+                                           enable_save=False)
+        else:
+            group_index = len(item.slaves) - 1
+            last_slaves = item.slaves[-1]
+            for slave_index in range(len(last_slaves)):
+                slave = last_slaves[slave_index]
+
+                if slave.index >= 2 ** slave.height - 5:
+                    continue
+
+                if self._passphrase:
+                    slave = self._wallet.decrypt_address_item(slave, self._passphrase)
+
+                slave_address_state = self.get_address_state(slave.qaddress)
+
+                if slave_index + 1 == len(last_slaves) and slave.index > 2 ** slave.height - 100:
+
+                    ots_index = slave_address_state.get_unused_ots_index(0)
+                    if ots_index >= UNRESERVED_OTS_INDEX_START:
+                        raise Exception("Fatal Error, no unused OTS index")
+
+                    curr_slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
+
+                    if len(item.slaves) == 3:
+                        # Reduce group index by one, as we are adding new slave
+                        # which will change it position by one
+                        group_index -= 1
+
+                    slave_xmss_list = self._wallet.add_slave(index=-1,
+                                                             height=slave.height,
+                                                             number_of_slaves=config.user.number_of_slaves,
+                                                             force=True)
+                    slave_pk_list = self.get_pk_list_from_xmss_list(slave_xmss_list)
+
+                    tx = self.generate_slave_tx(bytes(hstr2bin(slave.pk)),
+                                                slave_pk_list,
+                                                self.qaddress_to_address(item.qaddress))
+
+                    self.sign_and_push_transaction(tx,
+                                                   curr_slave_xmss,
+                                                   index,
+                                                   slave_index,
+                                                   enable_save=False)
+
+                ots_index = slave_address_state.get_unused_ots_index(slave.index)
+
+                if ots_index == None:  # noqa
+                    self._wallet.set_slave_ots_index(index, group_index, slave_index, 2 ** slave.height - 1)
+                    continue
+
+                slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
+
+                return index, group_index, slave_index, slave_xmss
+
+        return index, -1, -1, None
+
+    def get_slave_xmss(self, master_qaddress):
+        index, group_index, slave_index, slave_xmss = self.get_slave(master_qaddress)
+
+        return index, group_index, slave_index, slave_xmss
+
+    def get_slave_list(self, qaddress) -> list:
+        self.authenticate()
+        _, addr_item = self._wallet.get_address_item(qaddress)
+        return addr_item.slaves
 
     def relay_transfer_txn(self,
                            qaddresses_to: list,
@@ -255,8 +437,27 @@ class WalletD:
                                         xmss_pk=xmss.pk,
                                         master_addr=self.qaddress_to_address(master_qaddress))
 
-        self._push_transaction(tx, xmss)
-        self._wallet.set_ots_index(index, xmss.ots_index)
+        self.sign_and_push_transaction(tx, xmss, index)
+
+        return self.to_plain_transaction(tx.pbdata)
+
+    def relay_transfer_txn_by_slave(self,
+                                    qaddresses_to: list,
+                                    amounts: list,
+                                    fee: int,
+                                    master_qaddress):
+        self.authenticate()
+        index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
+        if slave_index == -1:
+            raise Exception("No Slave Found")
+
+        tx = TransferTransaction.create(addrs_to=self.qaddresses_to_address(qaddresses_to),
+                                        amounts=amounts,
+                                        fee=fee,
+                                        xmss_pk=slave_xmss.pk,
+                                        master_addr=self.qaddress_to_address(master_qaddress))
+
+        self.sign_and_push_transaction(tx, slave_xmss, index, group_index, slave_index)
 
         return self.to_plain_transaction(tx.pbdata)
 
@@ -274,8 +475,25 @@ class WalletD:
                                        xmss_pk=xmss.pk,
                                        master_addr=self.qaddress_to_address(master_qaddress))
 
-        self._push_transaction(tx, xmss)
-        self._wallet.set_ots_index(index, xmss.ots_index)
+        self.sign_and_push_transaction(tx, xmss, index)
+
+        return self.to_plain_transaction(tx.pbdata)
+
+    def relay_message_txn_by_slave(self,
+                                   message: str,
+                                   fee: int,
+                                   master_qaddress):
+        self.authenticate()
+        index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
+        if slave_index == -1:
+            raise Exception("No Slave Found")
+
+        tx = MessageTransaction.create(message_hash=message.encode(),
+                                       fee=fee,
+                                       xmss_pk=slave_xmss.pk,
+                                       master_addr=self.qaddress_to_address(master_qaddress))
+
+        self.sign_and_push_transaction(tx, slave_xmss, index, group_index, slave_index)
 
         return self.to_plain_transaction(tx.pbdata)
 
@@ -310,8 +528,42 @@ class WalletD:
                                      xmss_pk=xmss.pk,
                                      master_addr=self.qaddress_to_address(master_qaddress))
 
-        self._push_transaction(tx, xmss)
-        self._wallet.set_ots_index(index, xmss.ots_index)
+        self.sign_and_push_transaction(tx, xmss, index)
+
+        return self.to_plain_transaction(tx.pbdata)
+
+    def relay_token_txn_by_slave(self,
+                                 symbol: str,
+                                 name: str,
+                                 owner_qaddress: str,
+                                 decimals: int,
+                                 qaddresses: list,
+                                 amounts: list,
+                                 fee: int,
+                                 master_qaddress):
+        self.authenticate()
+
+        if len(qaddresses) != len(amounts):
+            raise Exception("Number of Addresses & Amounts Mismatch")
+
+        index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
+        if slave_index == -1:
+            raise Exception("No Slave Found")
+
+        initial_balances = []
+        for idx, qaddress in enumerate(qaddresses):
+            initial_balances.append(qrl_pb2.AddressAmount(address=self.qaddress_to_address(qaddress),
+                                                          amount=amounts[idx]))
+        tx = TokenTransaction.create(symbol=symbol.encode(),
+                                     name=name.encode(),
+                                     owner=self.qaddress_to_address(owner_qaddress),
+                                     decimals=decimals,
+                                     initial_balances=initial_balances,
+                                     fee=fee,
+                                     xmss_pk=slave_xmss.pk,
+                                     master_addr=self.qaddress_to_address(master_qaddress))
+
+        self.sign_and_push_transaction(tx, slave_xmss, index, group_index, slave_index)
 
         return self.to_plain_transaction(tx.pbdata)
 
@@ -333,8 +585,29 @@ class WalletD:
                                              xmss_pk=xmss.pk,
                                              master_addr=self.qaddress_to_address(master_qaddress))
 
-        self._push_transaction(tx, xmss)
-        self._wallet.set_ots_index(index, xmss.ots_index)
+        self.sign_and_push_transaction(tx, xmss, index)
+
+        return self.to_plain_transaction(tx.pbdata)
+
+    def relay_transfer_token_txn_by_slave(self,
+                                          qaddresses_to: list,
+                                          amounts: list,
+                                          token_txhash: str,
+                                          fee: int,
+                                          master_qaddress):
+        self.authenticate()
+        index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
+        if slave_index == -1:
+            raise Exception("No Slave Found")
+
+        tx = TransferTokenTransaction.create(token_txhash=bytes(hstr2bin(token_txhash)),
+                                             addrs_to=self.qaddresses_to_address(qaddresses_to),
+                                             amounts=amounts,
+                                             fee=fee,
+                                             xmss_pk=slave_xmss.pk,
+                                             master_addr=self.qaddress_to_address(master_qaddress))
+
+        self.sign_and_push_transaction(tx, slave_xmss, index, group_index, slave_index)
 
         return self.to_plain_transaction(tx.pbdata)
 
@@ -354,8 +627,27 @@ class WalletD:
                                      xmss_pk=xmss.pk,
                                      master_addr=self.qaddress_to_address(master_qaddress))
 
-        self._push_transaction(tx, xmss)
-        self._wallet.set_ots_index(index, xmss.ots_index)
+        self.sign_and_push_transaction(tx, xmss, index)
+
+        return self.to_plain_transaction(tx.pbdata)
+
+    def relay_slave_txn_by_slave(self,
+                                 slave_pks: list,
+                                 access_types: list,
+                                 fee: int,
+                                 master_qaddress):
+        self.authenticate()
+        index, group_index, slave_index, slave_xmss = self.get_slave_xmss(master_qaddress)
+        if slave_index == -1:
+            raise Exception("No Slave Found")
+
+        tx = SlaveTransaction.create(slave_pks=slave_pks,
+                                     access_types=access_types,
+                                     fee=fee,
+                                     xmss_pk=slave_xmss.pk,
+                                     master_addr=self.qaddress_to_address(master_qaddress))
+
+        self.sign_and_push_transaction(tx, slave_xmss, index, group_index, slave_index)
 
         return self.to_plain_transaction(tx.pbdata)
 
@@ -368,14 +660,17 @@ class WalletD:
             raise ValueError('Cannot be encrypted as wallet does not have any address.')
         self._wallet.encrypt(passphrase)
         self._wallet.save()
+        logger.info("Wallet Encrypted")
 
     def lock_wallet(self):
         self._passphrase = None
+        logger.info("Wallet Locked")
 
     def unlock_wallet(self, passphrase: str):
         self._passphrase = passphrase
-        self._wallet.decrypt(passphrase, first_address_only=True)
-        self.load_wallet()
+        self._wallet.decrypt(passphrase, first_address_only=True)  # Check if Password Correct
+        self._wallet.encrypt_item(0, passphrase)  # Re-Encrypt first address item
+        logger.info("Wallet Unlocked")
 
     def change_passphrase(self, old_passphrase: str, new_passphrase: str):
         if len(old_passphrase) == 0:
@@ -399,6 +694,7 @@ class WalletD:
         self._wallet.encrypt(new_passphrase)
         self._wallet.save()
         self.lock_wallet()
+        logger.info("Passphrase Changed")
 
     def get_transactions_by_address(self, qaddress: str) -> tuple:
         address = self.qaddress_to_address(qaddress)
@@ -441,7 +737,16 @@ class WalletD:
 
 
 def run():
-    walletd = WalletD()
+    logger.initialize_default(force_console_output=True).setLevel(logging.INFO)
+    file_handler = logger.log_to_file()
+    file_handler.setLevel(logging.INFO)
+
+    LOG_FORMAT_CUSTOM = '%(asctime)s| %(levelname)s : %(message)s'  # noqa
+
+    logger.set_colors(False, LOG_FORMAT_CUSTOM)
+    logger.set_unhandled_exception_handler()
+
+    walletd = WalletD()  # noqa
     wallet_server = grpc.server(ThreadPoolExecutor(max_workers=config.user.wallet_api_threads),
                                 maximum_concurrent_rpcs=config.user.wallet_api_max_concurrent_rpc)
     add_WalletAPIServicer_to_server(WalletAPIService(walletd), wallet_server)
@@ -450,10 +755,12 @@ def run():
                                                      config.user.wallet_api_port))
     wallet_server.start()
 
+    logger.info("WalletAPIService Started")
+
     try:
         while True:
             sleep(60)
-    except Exception:
+    except Exception:  # noqa
         wallet_server.stop(0)
 
 

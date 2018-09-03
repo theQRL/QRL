@@ -19,8 +19,9 @@
 
 We recommend exploring our [Documentation](https://docs.theqrl.org/) 
 
-For instructions on how to install a node, please refer to [Install Node](https://docs.theqrl.org/mining/full-node/) 
+For instructions on how to install a node, please refer to [Install Node](https://docs.theqrl.org/node/QRLnode/) 
 
+API documentation can be found at [api.theqrl.org](https://api.theqrl.org)
 
 # More information
 
