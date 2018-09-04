@@ -7,6 +7,7 @@ from mock import Mock, patch
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core.misc import logger
+from qrl.core.AddressState import AddressState
 from qrl.daemon.walletd import WalletD
 from qrl.generated import qrlwallet_pb2, qrl_pb2
 from qrl.services.WalletAPIService import WalletAPIService
@@ -33,6 +34,17 @@ class TestWalletAPI(TestCase):
             walletd = WalletD()
             service = WalletAPIService(walletd)
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
+            self.assertEqual(resp.code, 0)
+            self.assertEqual(resp.address[0], 'Q')
+
+    def test_addNewAddressWithSlaves(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            service = WalletAPIService(walletd)
+            resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             self.assertEqual(resp.code, 0)
             self.assertEqual(resp.address[0], 'Q')
 
@@ -83,6 +95,19 @@ class TestWalletAPI(TestCase):
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
             self.assertEqual(len(resp.addresses), 0)
 
+    def test_validateAddress(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            qaddress = "Q010400ff39df1ba4d1d5b8753e6d04c51c34b95b01fc3650c10ca7b296a18bdc105412c59d0b3b"
+            resp = service.ValidateAddress(qrlwallet_pb2.ValidateAddressReq(address=qaddress), context=None)
+            self.assertTrue(resp.valid)
+
+            qaddress = "Q010400ff39df1ba4d1d5b8753e6d04c51c34b95b01fc3650c10ca7b296a18bdc105412c59d0b00"
+            resp = service.ValidateAddress(qrlwallet_pb2.ValidateAddressReq(address=qaddress), context=None)
+            self.assertFalse(resp.valid)
+
     def test_getRecoverySeeds(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
@@ -112,6 +137,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -131,6 +159,37 @@ class TestWalletAPI(TestCase):
             self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
+    def test_relayTransferTxnBySlave(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            service = WalletAPIService(walletd)
+
+            resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
+            qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            slaves = walletd.get_slave_list(qaddress)
+
+            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            alice_xmss = get_alice_xmss(4)
+            bob_xmss = get_bob_xmss(4)
+            qaddresses_to = [alice_xmss.qaddress, bob_xmss.qaddress]
+            amounts = [1000000000, 1000000000]
+
+            resp = service.RelayTransferTxnBySlave(
+                qrlwallet_pb2.RelayTransferTxnBySlaveReq(addresses_to=qaddresses_to,
+                                                         amounts=amounts,
+                                                         fee=100000000,
+                                                         master_address=qaddress), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertIsNotNone(resp.tx)
+
     def test_relayMessageTxn(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
@@ -138,6 +197,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
@@ -151,6 +213,31 @@ class TestWalletAPI(TestCase):
             self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
+    def test_relayMessageTxnBySlave(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            service = WalletAPIService(walletd)
+
+            resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
+            qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            slaves = walletd.get_slave_list(qaddress)
+
+            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            resp = service.RelayMessageTxnBySlave(
+                qrlwallet_pb2.RelayMessageTxnReq(message=b'Hello QRL!',
+                                                 fee=100000000,
+                                                 master_address=qaddress), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertIsNotNone(resp.tx)
+
     def test_relayTokenTxn(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
@@ -158,6 +245,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -181,6 +271,41 @@ class TestWalletAPI(TestCase):
             self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
+    def test_relayTokenTxnBySlave(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            service = WalletAPIService(walletd)
+
+            resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
+            qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            slaves = walletd.get_slave_list(qaddress)
+
+            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            alice_xmss = get_alice_xmss(4)
+            bob_xmss = get_bob_xmss(4)
+            qaddresses = [alice_xmss.qaddress, bob_xmss.qaddress]
+            amounts = [1000000000, 1000000000]
+
+            resp = service.RelayTokenTxnBySlave(
+                qrlwallet_pb2.RelayTokenTxnBySlaveReq(symbol=b'QRL',
+                                                      name=b'Quantum Resistant Ledger',
+                                                      owner=alice_xmss.qaddress,
+                                                      decimals=5,
+                                                      addresses=qaddresses,
+                                                      amounts=amounts,
+                                                      fee=100000000,
+                                                      master_address=qaddress), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertIsNotNone(resp.tx)
+
     def test_relayTransferTokenTxn(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
@@ -188,6 +313,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -208,6 +336,38 @@ class TestWalletAPI(TestCase):
             self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
 
+    def test_relayTransferTokenTxnBySlave(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            service = WalletAPIService(walletd)
+
+            resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
+            qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            slaves = walletd.get_slave_list(qaddress)
+
+            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            alice_xmss = get_alice_xmss(4)
+            bob_xmss = get_bob_xmss(4)
+            qaddresses_to = [alice_xmss.qaddress, bob_xmss.qaddress]
+            amounts = [1000000000, 1000000000]
+
+            resp = service.RelayTransferTokenTxnBySlave(
+                qrlwallet_pb2.RelayTransferTokenTxnBySlaveReq(addresses_to=qaddresses_to,
+                                                              amounts=amounts,
+                                                              token_txhash='',
+                                                              fee=100000000,
+                                                              master_address=qaddress), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertIsNotNone(resp.tx)
+
     def test_relaySlaveTxn(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
@@ -215,6 +375,9 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
             alice_xmss = get_alice_xmss(4)
             slave_pks = [alice_xmss.pk]
@@ -229,6 +392,36 @@ class TestWalletAPI(TestCase):
                                                                         master_address=None,
                                                                         signer_address=qaddress,
                                                                         ots_index=0), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertIsNotNone(resp.tx)
+
+    def test_relaySlaveTxnBySlave(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            service = WalletAPIService(walletd)
+
+            resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
+            qaddress = resp.address
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            slaves = walletd.get_slave_list(qaddress)
+
+            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            alice_xmss = get_alice_xmss(4)
+            slave_pks = [alice_xmss.pk]
+            access_types = [0]
+
+            resp = service.RelaySlaveTxnBySlave(
+                qrlwallet_pb2.RelaySlaveTxnBySlaveReq(slave_pks=slave_pks,
+                                                      access_types=access_types,
+                                                      fee=100000000,
+                                                      master_address=qaddress), context=None)
 
             self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
@@ -340,9 +533,9 @@ class TestWalletAPI(TestCase):
             self.assertEqual(resp.code, 0)
 
             new_passphrase = "Hello World"
-            resp = service.ChangePassphrase(qrlwallet_pb2.ChangePassphraseReq(oldPassphrase=self.passphrase,
-                                                                              newPassphrase=new_passphrase),
-                                            context=None)
+            resp = service.ChangePassphrase(
+                qrlwallet_pb2.ChangePassphraseReq(oldPassphrase=self.passphrase,
+                                                  newPassphrase=new_passphrase), context=None)
             self.assertEqual(resp.code, 0)
 
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=self.passphrase), context=None)

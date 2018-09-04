@@ -27,10 +27,10 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.AddNewAddressReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.AddNewAddressResp.FromString,
         )
-    self.AddAddressFromSeed = channel.unary_unary(
-        '/qrl.WalletAPI/AddAddressFromSeed',
-        request_serializer=qrlwallet__pb2.AddAddressFromSeedReq.SerializeToString,
-        response_deserializer=qrlwallet__pb2.AddAddressFromSeedResp.FromString,
+    self.AddNewAddressWithSlaves = channel.unary_unary(
+        '/qrl.WalletAPI/AddNewAddressWithSlaves',
+        request_serializer=qrlwallet__pb2.AddNewAddressWithSlavesReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.AddNewAddressResp.FromString,
         )
     self.ListAddresses = channel.unary_unary(
         '/qrl.WalletAPI/ListAddresses',
@@ -41,6 +41,11 @@ class WalletAPIStub(object):
         '/qrl.WalletAPI/RemoveAddress',
         request_serializer=qrlwallet__pb2.RemoveAddressReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.RemoveAddressResp.FromString,
+        )
+    self.ValidateAddress = channel.unary_unary(
+        '/qrl.WalletAPI/ValidateAddress',
+        request_serializer=qrlwallet__pb2.ValidateAddressReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.ValidateAddressResp.FromString,
         )
     self.EncryptWallet = channel.unary_unary(
         '/qrl.WalletAPI/EncryptWallet',
@@ -72,9 +77,19 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.RelayTransferTxnReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
         )
+    self.RelayTransferTxnBySlave = channel.unary_unary(
+        '/qrl.WalletAPI/RelayTransferTxnBySlave',
+        request_serializer=qrlwallet__pb2.RelayTransferTxnBySlaveReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
     self.RelayMessageTxn = channel.unary_unary(
         '/qrl.WalletAPI/RelayMessageTxn',
         request_serializer=qrlwallet__pb2.RelayMessageTxnReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
+    self.RelayMessageTxnBySlave = channel.unary_unary(
+        '/qrl.WalletAPI/RelayMessageTxnBySlave',
+        request_serializer=qrlwallet__pb2.RelayMessageTxnBySlaveReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
         )
     self.RelayTokenTxn = channel.unary_unary(
@@ -82,14 +97,29 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.RelayTokenTxnReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
         )
+    self.RelayTokenTxnBySlave = channel.unary_unary(
+        '/qrl.WalletAPI/RelayTokenTxnBySlave',
+        request_serializer=qrlwallet__pb2.RelayTokenTxnBySlaveReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
     self.RelayTransferTokenTxn = channel.unary_unary(
         '/qrl.WalletAPI/RelayTransferTokenTxn',
         request_serializer=qrlwallet__pb2.RelayTransferTokenTxnReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
         )
+    self.RelayTransferTokenTxnBySlave = channel.unary_unary(
+        '/qrl.WalletAPI/RelayTransferTokenTxnBySlave',
+        request_serializer=qrlwallet__pb2.RelayTransferTokenTxnBySlaveReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
     self.RelaySlaveTxn = channel.unary_unary(
         '/qrl.WalletAPI/RelaySlaveTxn',
         request_serializer=qrlwallet__pb2.RelaySlaveTxnReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
+    self.RelaySlaveTxnBySlave = channel.unary_unary(
+        '/qrl.WalletAPI/RelaySlaveTxnBySlave',
+        request_serializer=qrlwallet__pb2.RelaySlaveTxnBySlaveReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
         )
     self.ChangePassphrase = channel.unary_unary(
@@ -157,19 +187,27 @@ class WalletAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def AddAddressFromSeed(self, request, context):
+  def AddNewAddressWithSlaves(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def ListAddresses(self, request, context):
-    # missing associated documentation comment in .proto file
+    """rpc AddAddressFromSeed(AddAddressFromSeedReq) returns (AddAddressFromSeedResp);
+
+    """
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def RemoveAddress(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def ValidateAddress(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -211,7 +249,19 @@ class WalletAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def RelayTransferTxnBySlave(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def RelayMessageTxn(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def RelayMessageTxnBySlave(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -223,13 +273,31 @@ class WalletAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def RelayTokenTxnBySlave(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def RelayTransferTokenTxn(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def RelayTransferTokenTxnBySlave(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def RelaySlaveTxn(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def RelaySlaveTxnBySlave(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -297,10 +365,10 @@ def add_WalletAPIServicer_to_server(servicer, server):
           request_deserializer=qrlwallet__pb2.AddNewAddressReq.FromString,
           response_serializer=qrlwallet__pb2.AddNewAddressResp.SerializeToString,
       ),
-      'AddAddressFromSeed': grpc.unary_unary_rpc_method_handler(
-          servicer.AddAddressFromSeed,
-          request_deserializer=qrlwallet__pb2.AddAddressFromSeedReq.FromString,
-          response_serializer=qrlwallet__pb2.AddAddressFromSeedResp.SerializeToString,
+      'AddNewAddressWithSlaves': grpc.unary_unary_rpc_method_handler(
+          servicer.AddNewAddressWithSlaves,
+          request_deserializer=qrlwallet__pb2.AddNewAddressWithSlavesReq.FromString,
+          response_serializer=qrlwallet__pb2.AddNewAddressResp.SerializeToString,
       ),
       'ListAddresses': grpc.unary_unary_rpc_method_handler(
           servicer.ListAddresses,
@@ -311,6 +379,11 @@ def add_WalletAPIServicer_to_server(servicer, server):
           servicer.RemoveAddress,
           request_deserializer=qrlwallet__pb2.RemoveAddressReq.FromString,
           response_serializer=qrlwallet__pb2.RemoveAddressResp.SerializeToString,
+      ),
+      'ValidateAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.ValidateAddress,
+          request_deserializer=qrlwallet__pb2.ValidateAddressReq.FromString,
+          response_serializer=qrlwallet__pb2.ValidateAddressResp.SerializeToString,
       ),
       'EncryptWallet': grpc.unary_unary_rpc_method_handler(
           servicer.EncryptWallet,
@@ -342,9 +415,19 @@ def add_WalletAPIServicer_to_server(servicer, server):
           request_deserializer=qrlwallet__pb2.RelayTransferTxnReq.FromString,
           response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
       ),
+      'RelayTransferTxnBySlave': grpc.unary_unary_rpc_method_handler(
+          servicer.RelayTransferTxnBySlave,
+          request_deserializer=qrlwallet__pb2.RelayTransferTxnBySlaveReq.FromString,
+          response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+      ),
       'RelayMessageTxn': grpc.unary_unary_rpc_method_handler(
           servicer.RelayMessageTxn,
           request_deserializer=qrlwallet__pb2.RelayMessageTxnReq.FromString,
+          response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+      ),
+      'RelayMessageTxnBySlave': grpc.unary_unary_rpc_method_handler(
+          servicer.RelayMessageTxnBySlave,
+          request_deserializer=qrlwallet__pb2.RelayMessageTxnBySlaveReq.FromString,
           response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
       ),
       'RelayTokenTxn': grpc.unary_unary_rpc_method_handler(
@@ -352,14 +435,29 @@ def add_WalletAPIServicer_to_server(servicer, server):
           request_deserializer=qrlwallet__pb2.RelayTokenTxnReq.FromString,
           response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
       ),
+      'RelayTokenTxnBySlave': grpc.unary_unary_rpc_method_handler(
+          servicer.RelayTokenTxnBySlave,
+          request_deserializer=qrlwallet__pb2.RelayTokenTxnBySlaveReq.FromString,
+          response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+      ),
       'RelayTransferTokenTxn': grpc.unary_unary_rpc_method_handler(
           servicer.RelayTransferTokenTxn,
           request_deserializer=qrlwallet__pb2.RelayTransferTokenTxnReq.FromString,
           response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
       ),
+      'RelayTransferTokenTxnBySlave': grpc.unary_unary_rpc_method_handler(
+          servicer.RelayTransferTokenTxnBySlave,
+          request_deserializer=qrlwallet__pb2.RelayTransferTokenTxnBySlaveReq.FromString,
+          response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+      ),
       'RelaySlaveTxn': grpc.unary_unary_rpc_method_handler(
           servicer.RelaySlaveTxn,
           request_deserializer=qrlwallet__pb2.RelaySlaveTxnReq.FromString,
+          response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+      ),
+      'RelaySlaveTxnBySlave': grpc.unary_unary_rpc_method_handler(
+          servicer.RelaySlaveTxnBySlave,
+          request_deserializer=qrlwallet__pb2.RelaySlaveTxnBySlaveReq.FromString,
           response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
       ),
       'ChangePassphrase': grpc.unary_unary_rpc_method_handler(

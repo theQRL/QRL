@@ -118,6 +118,7 @@ class UserConfig(object):
         self.public_api_server = "127.0.0.1:19009"
         self.wallet_daemon_host = "127.0.0.1"
         self.wallet_daemon_port = 18091
+        self.number_of_slaves = 3
 
         # ======================================
         #        WALLET API CONFIGURATION
@@ -155,6 +156,10 @@ class UserConfig(object):
     @property
     def log_path(self):
         return expanduser(os.path.join(self.qrl_dir, "qrl.log"))
+
+    @property
+    def walletd_log_path(self):
+        return expanduser(os.path.join(self.qrl_dir, "walletd.log"))
 
     @property
     def mining_pool_payment_wallet_path(self):

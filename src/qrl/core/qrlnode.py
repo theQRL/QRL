@@ -363,6 +363,9 @@ class QRLNode:
         result = self._chain_manager.get_tx_metadata(query_hash)
         return result
 
+    def get_block_header_hash_by_number(self, query_block_number: int):
+        return self._chain_manager.get_block_header_hash_by_number(query_block_number)
+
     def get_unconfirmed_transaction(self, query_hash: bytes):
         result = self._chain_manager.get_unconfirmed_transaction(query_hash)
         return result

@@ -24,6 +24,19 @@ class WalletAPIService(WalletAPIServicer):
 
         return resp
 
+    @GrpcExceptionWrapper(qrlwallet_pb2.AddNewAddressResp)
+    def AddNewAddressWithSlaves(self, request: qrlwallet_pb2.AddNewAddressWithSlavesReq, context) -> qrlwallet_pb2.AddNewAddressResp:
+        resp = qrlwallet_pb2.AddNewAddressResp()
+        try:
+            resp.address = self._walletd.add_new_address_with_slaves(request.height,
+                                                                     request.number_of_slaves,
+                                                                     request.hash_function.lower())
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
     @GrpcExceptionWrapper(qrlwallet_pb2.AddAddressFromSeedResp)
     def AddAddressFromSeed(self, request: qrlwallet_pb2.AddAddressFromSeedReq, context) -> qrlwallet_pb2.AddAddressFromSeedResp:
         resp = qrlwallet_pb2.AddAddressFromSeedResp()
@@ -53,6 +66,22 @@ class WalletAPIService(WalletAPIServicer):
             if not self._walletd.remove_address(request.address):
                 resp.code = 1
                 resp.error = "No such address found"
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.ValidateAddressResp)
+    def ValidateAddress(self, request: qrlwallet_pb2.ValidateAddressReq, context) -> qrlwallet_pb2.ValidateAddressResp:
+        resp = qrlwallet_pb2.ValidateAddressResp()
+        try:
+            if not self._walletd.validate_address(request.address):
+                resp.code = 1
+                resp.error = "Invalid QRL Address"
+                resp.valid = False
+            else:
+                resp.valid = True
         except Exception as e:
             resp.code = 1
             resp.error = str(e)
@@ -98,6 +127,22 @@ class WalletAPIService(WalletAPIServicer):
         return resp
 
     @GrpcExceptionWrapper(qrlwallet_pb2.RelayTxnResp)
+    def RelayTransferTxnBySlave(self,
+                                request: qrlwallet_pb2.RelayTransferTxnBySlaveReq,
+                                context) -> qrlwallet_pb2.RelayTxnResp:
+        resp = qrlwallet_pb2.RelayTxnResp()
+        try:
+            resp.tx.MergeFrom(self._walletd.relay_transfer_txn_by_slave(request.addresses_to,
+                                                                        request.amounts,
+                                                                        request.fee,
+                                                                        request.master_address))
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.RelayTxnResp)
     def RelayMessageTxn(self, request: qrlwallet_pb2.RelayMessageTxnReq, context) -> qrlwallet_pb2.RelayTxnResp:
         resp = qrlwallet_pb2.RelayTxnResp()
         try:
@@ -106,6 +151,21 @@ class WalletAPIService(WalletAPIServicer):
                                                               request.master_address,
                                                               request.signer_address,
                                                               request.ots_index))
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.RelayTxnResp)
+    def RelayMessageTxnBySlave(self,
+                               request: qrlwallet_pb2.RelayMessageTxnBySlaveReq,
+                               context) -> qrlwallet_pb2.RelayTxnResp:
+        resp = qrlwallet_pb2.RelayTxnResp()
+        try:
+            resp.tx.MergeFrom(self._walletd.relay_message_txn_by_slave(request.message,
+                                                                       request.fee,
+                                                                       request.master_address))
         except Exception as e:
             resp.code = 1
             resp.error = str(e)
@@ -133,6 +193,26 @@ class WalletAPIService(WalletAPIServicer):
         return resp
 
     @GrpcExceptionWrapper(qrlwallet_pb2.RelayTxnResp)
+    def RelayTokenTxnBySlave(self,
+                             request: qrlwallet_pb2.RelayTokenTxnBySlaveReq,
+                             context) -> qrlwallet_pb2.RelayTxnResp:
+        resp = qrlwallet_pb2.RelayTxnResp()
+        try:
+            resp.tx.MergeFrom(self._walletd.relay_token_txn_by_slave(request.symbol,
+                                                                     request.name,
+                                                                     request.owner,
+                                                                     request.decimals,
+                                                                     request.addresses,
+                                                                     request.amounts,
+                                                                     request.fee,
+                                                                     request.master_address))
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.RelayTxnResp)
     def RelayTransferTokenTxn(self, request: qrlwallet_pb2.RelayTransferTokenTxnReq, context) -> qrlwallet_pb2.RelayTxnResp:
         resp = qrlwallet_pb2.RelayTxnResp()
         try:
@@ -150,6 +230,23 @@ class WalletAPIService(WalletAPIServicer):
         return resp
 
     @GrpcExceptionWrapper(qrlwallet_pb2.RelayTxnResp)
+    def RelayTransferTokenTxnBySlave(self,
+                                     request: qrlwallet_pb2.RelayTransferTokenTxnBySlaveReq,
+                                     context) -> qrlwallet_pb2.RelayTxnResp:
+        resp = qrlwallet_pb2.RelayTxnResp()
+        try:
+            resp.tx.MergeFrom(self._walletd.relay_transfer_token_txn_by_slave(request.addresses_to,
+                                                                              request.amounts,
+                                                                              request.token_txhash,
+                                                                              request.fee,
+                                                                              request.master_address))
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.RelayTxnResp)
     def RelaySlaveTxn(self, request: qrlwallet_pb2.RelaySlaveTxnReq, context) -> qrlwallet_pb2.RelayTxnResp:
         resp = qrlwallet_pb2.RelayTxnResp()
         try:
@@ -159,6 +256,20 @@ class WalletAPIService(WalletAPIServicer):
                                                             request.master_address,
                                                             request.signer_address,
                                                             request.ots_index))
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.RelayTxnResp)
+    def RelaySlaveTxnBySlave(self, request: qrlwallet_pb2.RelaySlaveTxnBySlaveReq, context) -> qrlwallet_pb2.RelayTxnResp:
+        resp = qrlwallet_pb2.RelayTxnResp()
+        try:
+            resp.tx.MergeFrom(self._walletd.relay_slave_txn_by_slave(request.slave_pks,
+                                                                     request.access_types,
+                                                                     request.fee,
+                                                                     request.master_address))
         except Exception as e:
             resp.code = 1
             resp.error = str(e)
@@ -230,9 +341,12 @@ class WalletAPIService(WalletAPIServicer):
     def GetTransaction(self, request: qrlwallet_pb2.TransactionReq, context) -> qrlwallet_pb2.TransactionResp:
         resp = qrlwallet_pb2.TransactionResp()
         try:
-            tx, confirmations = self._walletd.get_transaction(request.tx_hash)
+            tx, confirmations, block_number, block_header_hash = self._walletd.get_transaction(request.tx_hash)
             resp.tx.MergeFrom(tx)
             resp.confirmations = confirmations
+            resp.block_number = block_number
+            if block_header_hash:
+                resp.block_header_hash = block_header_hash
         except Exception as e:
             resp.code = 1
             resp.error = str(e)

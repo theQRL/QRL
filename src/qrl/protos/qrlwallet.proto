@@ -20,11 +20,15 @@ service WalletAPI
 {
     rpc AddNewAddress(AddNewAddressReq) returns (AddNewAddressResp);
 
-    rpc AddAddressFromSeed(AddAddressFromSeedReq) returns (AddAddressFromSeedResp);
+    rpc AddNewAddressWithSlaves(AddNewAddressWithSlavesReq) returns (AddNewAddressResp);
+
+    //rpc AddAddressFromSeed(AddAddressFromSeedReq) returns (AddAddressFromSeedResp);
 
     rpc ListAddresses(ListAddressesReq) returns(ListAddressesResp);
 
     rpc RemoveAddress(RemoveAddressReq) returns (RemoveAddressResp);
+
+    rpc ValidateAddress(ValidateAddressReq) returns (ValidateAddressResp);
 
     rpc EncryptWallet(EncryptWalletReq) returns (EncryptWalletResp);
 
@@ -38,13 +42,23 @@ service WalletAPI
 
     rpc RelayTransferTxn(RelayTransferTxnReq) returns (RelayTxnResp);
 
+    rpc RelayTransferTxnBySlave(RelayTransferTxnBySlaveReq) returns (RelayTxnResp);
+
     rpc RelayMessageTxn(RelayMessageTxnReq) returns (RelayTxnResp);
+
+    rpc RelayMessageTxnBySlave(RelayMessageTxnBySlaveReq) returns (RelayTxnResp);
 
     rpc RelayTokenTxn(RelayTokenTxnReq) returns (RelayTxnResp);
 
+    rpc RelayTokenTxnBySlave(RelayTokenTxnBySlaveReq) returns (RelayTxnResp);
+
     rpc RelayTransferTokenTxn(RelayTransferTokenTxnReq) returns (RelayTxnResp);
 
+    rpc RelayTransferTokenTxnBySlave(RelayTransferTokenTxnBySlaveReq) returns (RelayTxnResp);
+
     rpc RelaySlaveTxn(RelaySlaveTxnReq) returns (RelayTxnResp);
+
+    rpc RelaySlaveTxnBySlave(RelaySlaveTxnBySlaveReq) returns (RelayTxnResp);
 
     rpc ChangePassphrase(ChangePassphraseReq) returns (ChangePassphraseResp);
 
@@ -67,7 +81,7 @@ service WalletAPI
 }
 
 message AddNewAddressReq {
-    uint64 height = 1;  // Seed can be either hexseed or mnemonic
+    uint64 height = 1;
     string hash_function = 2;
 }
 
@@ -77,8 +91,14 @@ message AddNewAddressResp {
     string address = 3;
 }
 
+message AddNewAddressWithSlavesReq {
+    uint64 height = 1;  // Height of Master Address
+    uint64 number_of_slaves = 2;
+    string hash_function = 3;
+}
+
 message AddAddressFromSeedReq {
-    string seed = 1;
+    string seed = 1;  // Seed can be either hexseed or mnemonic
 }
 
 message AddAddressFromSeedResp {
@@ -105,6 +125,17 @@ message RemoveAddressResp {
     uint32 code = 1;
     string error = 2;
 }
+
+message ValidateAddressReq {
+    string address = 1;
+}
+
+message ValidateAddressResp {
+    uint32 code = 1;
+    string error = 2;
+    bool valid = 3;
+}
+
 
 message EncryptWalletReq {
     string passphrase = 1;
@@ -164,12 +195,25 @@ message RelayTransferTxnReq {
     uint64 ots_index = 6;
 }
 
+message RelayTransferTxnBySlaveReq {
+    repeated string addresses_to = 1;
+    repeated uint64 amounts = 2;
+    uint64 fee = 3;
+    string master_address = 4;
+}
+
 message RelayMessageTxnReq {
     string message = 1;
     uint64 fee = 2;
     string master_address = 3;
     string signer_address = 4;
     uint64 ots_index = 5;
+}
+
+message RelayMessageTxnBySlaveReq {
+    string message = 1;
+    uint64 fee = 2;
+    string master_address = 3;
 }
 
 message RelayTokenTxnReq {
@@ -185,6 +229,17 @@ message RelayTokenTxnReq {
     uint64 ots_index = 10;
 }
 
+message RelayTokenTxnBySlaveReq {
+    string symbol = 1;
+    string name = 2;
+    string owner = 3;
+    uint64 decimals = 4;
+    repeated string addresses = 5;
+    repeated uint64 amounts = 6;
+    uint64 fee = 7;
+    string master_address = 8;
+}
+
 message RelayTransferTokenTxnReq {
     repeated string addresses_to = 1;
     string token_txhash = 2;
@@ -195,6 +250,14 @@ message RelayTransferTokenTxnReq {
     uint64 ots_index = 7;
 }
 
+message RelayTransferTokenTxnBySlaveReq {
+    repeated string addresses_to = 1;
+    string token_txhash = 2;
+    repeated uint64 amounts = 3;
+    uint64 fee = 4;
+    string master_address = 5;
+}
+
 message RelaySlaveTxnReq {
     repeated bytes slave_pks = 1;
     repeated uint32 access_types = 2;
@@ -202,6 +265,13 @@ message RelaySlaveTxnReq {
     string master_address = 4;
     string signer_address = 5;
     uint64 ots_index = 6;
+}
+
+message RelaySlaveTxnBySlaveReq {
+    repeated bytes slave_pks = 1;
+    repeated uint32 access_types = 2;
+    uint64 fee = 3;
+    string master_address = 4;
 }
 
 message RelayTxnResp {
@@ -240,6 +310,8 @@ message TransactionResp {
     string error = 2;
     PlainTransaction tx = 3;
     uint64 confirmations = 4;
+    uint64 block_number = 5;
+    string block_header_hash = 6;
 }
 
 message BalanceReq {
