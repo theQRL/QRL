@@ -76,6 +76,7 @@ def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -
         msg['wallets'].append({
             'number': pos,
             'address': item.qaddress,
+            'address_b32': item.b32address,
             'balance': balance,
             'hash_function': item.hashFunction
         })
@@ -104,28 +105,35 @@ def get_item_from_wallet(wallet, wallet_idx):
 
 def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
     def _normal(wallet):
-        return "{:<8}{:<83}{:<13}".format(wallet['number'], wallet['address'], wallet['balance'])
+        output = "{:<8}{:<83}{:<13}\n{:<8}{:<83}".format(wallet['number'], wallet['address'], wallet['balance'], "",
+                                                         wallet['address_b32'])
+        return output
 
     def _verbose(wallet):
-        return "{:<8}{:<83}{:<13}{}".format(
-            wallet['number'], wallet['address'], wallet['balance'], wallet['hash_function']
+        output = "{:<8}{:<83}{:<13}{:<8}\n{:<8}{:<83}".format(
+            wallet['number'], wallet['address'], wallet['balance'], wallet['hash_function'], "", wallet['address_b32']
         )
+        return output
+
+    def _generate_header_and_divider():
+        if ctx.obj.verbose:
+            header = "{:<8}{:<83}{:<13}{:<8}".format('Number', 'Address', 'Balance', 'Hash')
+            divider = ('-' * 112)
+        else:
+            header = "{:<8}{:<83}{:<13}".format('Number', 'Address', 'Balance')
+            divider = ('-' * 101)
+        return header, divider
 
     output = _serialize_output(ctx, addresses, source_description)
     if ctx.obj.output_json:
         output["location"] = source_description
         click.echo(json.dumps(output))
     else:
-        if output['error'] and output['wallets'] == []:
+        if output['error'] and not output['wallets']:
             click.echo(output['error'])
         else:
             click.echo("Wallet at          : {}".format(source_description))
-            if ctx.obj.verbose:
-                header = "{:<8}{:<83}{:<13}{:<8}".format('Number', 'Address', 'Balance', 'Hash')
-                divider = ('-' * 112)
-            else:
-                header = "{:<8}{:<83}{:<13}".format('Number', 'Address', 'Balance')
-                divider = ('-' * 101)
+            header, divider = _generate_header_and_divider()
             click.echo(header)
             click.echo(divider)
 
