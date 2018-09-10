@@ -12,7 +12,7 @@ from qrl.core import config
 from qrl.core.misc import logger
 from qrl.crypto.AESHelper import AESHelper
 from qrl.crypto.xmss import XMSS
-from qrl.core.AddressHelper import hex_to_b32address, raw_to_hexaddress
+from qrl.core.AddressHelper import hex_to_b32address, hex_to_rawaddress, any_to_rawaddress
 
 
 class AddressItem:
@@ -43,6 +43,10 @@ class AddressItem:
                   )
         return result
 
+    @property
+    def address_raw(self):
+        return hex_to_rawaddress(self.qaddress)
+
     def set_xmss(self, xmss):
         self.xmss = xmss
 
@@ -57,6 +61,28 @@ class AddressItem:
         self.index = xmss.ots_index
 
         self.encrypted = False
+
+    def generate_xmss(self):
+        """
+        Generates an XMSS tree based on the information contained in the AddressItem
+        """
+        extended_seed = mnemonic2bin(self.mnemonic.strip())
+        tmp_xmss = XMSS.from_extended_seed(extended_seed)
+        tmp_xmss.set_ots_index(self.index)
+
+        if self.qaddress != 'Q' + bin2hstr(tmp_xmss.address):
+            raise Exception("Mnemonic and address do not match.")
+
+        if self.hexseed != tmp_xmss.hexseed:
+            raise Exception("hexseed does not match.")
+
+        if self.mnemonic != tmp_xmss.mnemonic:
+            raise Exception("mnemonic does not match.")
+
+        if self.height != tmp_xmss.height:
+            raise Exception("height does not match.")
+
+        self.set_xmss(tmp_xmss)
 
     def serialize(self):
         serialized = {
@@ -197,22 +223,14 @@ class Wallet:
         return any([item.encrypted for item in self.address_items]) and not self.encrypted
 
     @functools.lru_cache(maxsize=20)
-    def get_xmss_by_index(self, idx, passphrase=None) -> Optional[XMSS]:
+    def get_xmss_by_index(self, idx) -> Optional[XMSS]:
         """
-        Generates an XMSS tree based on the information contained in the wallet
-        :param idx: The index of the address item
-        :param passphrase: passphrase to decrypt
+        Tells the underlying AddressItem to generate the XMSS tree (it should have enough info at this point)
+        The AddressItem needs to be decrypted first.
         :return: An XMSS tree object
         """
-        if passphrase:
-            self.decrypt_item(idx, passphrase)
-
-        xmss = self._get_xmss_by_index_no_cache(idx)
-
-        if passphrase:
-            self.encrypt_item(idx, passphrase)
-
-        return xmss
+        self.address_items[idx].generate_xmss()
+        return self.address_items[idx].xmss
 
     def is_encrypted(self) -> bool:
         if len(self.address_items) == 0:
@@ -225,54 +243,29 @@ class Wallet:
         Provides Wallet Info
         :return:
         """
-
         return self.version, len(self._address_items), self.encrypted
 
-    def _get_xmss_by_index_no_cache(self, idx) -> Optional[XMSS]:
-        """
-        Generates an XMSS tree based on the information contained in the wallet
-        :param idx: The index of the address item
-        :return: An XMSS tree object
-        """
-        if idx >= len(self._address_items):
-            return None
-
-        item = self._address_items[idx]
-        extended_seed = mnemonic2bin(item.mnemonic.strip())
-        tmp_xmss = XMSS.from_extended_seed(extended_seed)
-        tmp_xmss.set_ots_index(item.index)
-
-        if item.qaddress != 'Q' + bin2hstr(tmp_xmss.address):
-            raise Exception("Mnemonic and address do not match.")
-
-        if item.hexseed != tmp_xmss.hexseed:
-            raise Exception("hexseed does not match.")
-
-        if item.mnemonic != tmp_xmss.mnemonic:
-            raise Exception("mnemonic does not match.")
-
-        if item.height != tmp_xmss.height:
-            raise Exception("height does not match.")
-
-        return tmp_xmss
-
-    def get_address_item(self, qaddress) -> [int, AddressItem]:
+    def get_address_item(self, address_str: str) -> [int, AddressItem]:
+        address_raw = any_to_rawaddress(address_str)
         for idx, item in enumerate(self._address_items):
-            if item.qaddress == qaddress:
+            if item.address_raw == address_raw:
                 return idx, item
         return -1, None
 
-    def get_xmss_by_address(self, search_addr: bytes) -> Optional[XMSS]:
-        search_addr_str = raw_to_hexaddress(search_addr)
-        return self.get_xmss_by_qaddress(search_addr_str)
+    def get_xmss_by_address(self, address_raw: bytes) -> Optional[XMSS]:
+        for idx, item in enumerate(self._address_items):
+            if item.address_raw == address_raw:
+                return self.get_xmss_by_index(idx)
 
-    def get_xmss_by_qaddress(self, search_addr_str, passphrase: str = None) -> Optional[XMSS]:
-        idx, _ = self.get_address_item(search_addr_str)
+        return None
+
+    def get_xmss_by_qaddress(self, address_str) -> Optional[XMSS]:
+        idx, _ = self.get_address_item(address_str)
 
         if idx == -1:
             return None
 
-        return self.get_xmss_by_index(idx, passphrase)
+        return self.get_xmss_by_index(idx)
 
     def set_ots_index(self, i, ots_index):
         self._address_items[i].index = ots_index
@@ -285,16 +278,13 @@ class Wallet:
         is time consuming
         :return: True if valid
         """
-        num_items = len(self._address_items)
-
         if not self.encrypted:
-            try:
-                for i in range(num_items):
-                    self._get_xmss_by_index_no_cache(i)
-            except Exception as e:
-                logger.warning(e)
-                return False
-
+            for address_item in self.address_items:
+                try:
+                    address_item.generate_xmss()
+                except Exception as e:
+                    logger.warning(e)
+                    return False
         return True
 
     def _read_wallet_ver0(self, filename) -> None:
