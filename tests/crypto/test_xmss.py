@@ -8,6 +8,7 @@ from pyqrllib.pyqrllib import str2bin, XmssFast, bin2hstr, SHAKE_128, SHAKE_256,
 from qrl.core.misc import logger
 from qrl.crypto.xmss import XMSS
 from tests.misc.helper import get_alice_xmss
+from qrl.core.AddressHelper import pk_to_b32address, b32_to_hexaddress, raw_to_hexaddress
 
 logger.initialize_default()
 
@@ -93,3 +94,10 @@ class TestXMSS(TestCase):
             XMSS.validate_signature(signature, None)
 
         self.assertFalse(XMSS.validate_signature(signature, xmss2.pk))
+
+    def test_qaddress_b32address_equivalence(self):
+        xmss_height = 4
+        xmss = XMSS.from_height(xmss_height, "shake128")
+        self.assertEqual(xmss.b32address, pk_to_b32address(xmss.pk))
+        self.assertEqual(xmss.qaddress, b32_to_hexaddress(xmss.b32address))
+        self.assertEqual(xmss.qaddress, raw_to_hexaddress(xmss.address))

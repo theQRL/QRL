@@ -5,6 +5,8 @@ from pyqrllib import pyqrllib
 from pyqrllib.pyqrllib import bin2hstr, getRandomSeed, str2bin, bin2mnemonic, mnemonic2bin  # noqa
 from pyqrllib.pyqrllib import XmssFast, QRLDescriptor
 
+from qrl.core.AddressHelper import pk_to_b32address
+
 hash_functions = {
     "shake128": pyqrllib.SHAKE_128,
     "shake256": pyqrllib.SHAKE_256,
@@ -221,6 +223,10 @@ class XMSS(object):
     @property
     def qaddress(self) -> str:
         return 'Q' + bin2hstr(self.address)
+
+    @property
+    def b32address(self) -> str:
+        return pk_to_b32address(self.pk)
 
     @property
     def ots_index(self) -> int:
