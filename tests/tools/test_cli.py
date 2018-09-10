@@ -769,4 +769,4 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli, ["token_list", "--owner={}".format(qaddr_1[:-1])])
 
         self.assertEqual(1, result.exit_code)
-        self.assertIn('hex string is expected to have an even number of characters', result.output.strip())
+        self.assertIn('Error validating arguments', result.output.strip())

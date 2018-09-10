@@ -12,8 +12,9 @@ from google.protobuf.json_format import MessageToJson
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
+from qrl.core.AddressHelper import any_to_rawaddress
 from qrl.core.Wallet import Wallet, WalletDecryptionError
-from qrl.core.misc.helper import parse_hexblob, parse_qaddress
+from qrl.core.misc.helper import parse_hexblob
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
@@ -146,7 +147,7 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
 
 def _public_get_address_balance(ctx, address):
     stub = ctx.obj.get_stub_public_api()
-    get_address_state_req = qrl_pb2.GetAddressStateReq(address=parse_qaddress(address))
+    get_address_state_req = qrl_pb2.GetAddressStateReq(address=any_to_rawaddress(address))
     get_address_state_resp = stub.GetAddressState(get_address_state_req, timeout=CONNECTION_TIMEOUT)
     return get_address_state_resp.state.balance
 
@@ -178,7 +179,7 @@ def _select_wallet(ctx, address_or_index):
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
-        return parse_qaddress(address_or_index), None
+        return any_to_rawaddress(address_or_index), None
     except Exception as e:
         click.echo("Error selecting wallet")
         click.echo(str(e))
@@ -197,7 +198,7 @@ def _parse_dsts_amounts(addresses: str, amounts: str, token_decimals: int = 0):
     :param amounts:
     :return:
     """
-    addresses_split = [parse_qaddress(addr) for addr in addresses.split(' ')]
+    addresses_split = [any_to_rawaddress(addr) for addr in addresses.split(' ')]
 
     if token_decimals != 0:
         multiplier = Decimal(10 ** int(token_decimals))
@@ -502,7 +503,7 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
 
         master_addr = None
         if master:
-            master_addr = parse_qaddress(master)
+            master_addr = any_to_rawaddress(master)
         fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -580,7 +581,7 @@ def tx_transfer(ctx, src, master, dsts, amounts, fee, ots_key_index):
 
         # Get and validate other inputs
         if master:
-            master_addr = parse_qaddress(master)
+            master_addr = any_to_rawaddress(master)
 
         addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts)
         fee_shor = _quanta_to_shor(fee)
@@ -651,7 +652,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         if address == '':
             break
         amount = int(click.prompt('Amount ')) * (10 ** int(decimals))
-        initial_balances.append(qrl_pb2.AddressAmount(address=parse_qaddress(address),
+        initial_balances.append(qrl_pb2.AddressAmount(address=any_to_rawaddress(address),
                                                       amount=amount))
 
     try:
@@ -665,10 +666,10 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
         src_xmss.set_ots_index(ots_key_index)
 
-        address_owner = parse_qaddress(owner)
+        address_owner = any_to_rawaddress(owner)
         master_addr = None
         if master_addr:
-            master_addr = parse_qaddress(master)
+            master_addr = any_to_rawaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _quanta_to_shor(fee)
 
@@ -729,7 +730,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dsts, amounts, decimals, fe
         bin_token_txhash = parse_hexblob(token_txhash)
         master_addr = None
         if master:
-            master_addr = parse_qaddress(master)
+            master_addr = any_to_rawaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _quanta_to_shor(fee)
 
@@ -794,7 +795,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
 
         master_addr = None
         if master_addr:
-            master_addr = parse_qaddress(master)
+            master_addr = any_to_rawaddress(master)
         fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -841,7 +842,7 @@ def token_list(ctx, owner):
     Fetch the list of tokens owned by an address.
     """
     try:
-        owner_address = parse_qaddress(owner)
+        owner_address = any_to_rawaddress(owner)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
         quit(1)
