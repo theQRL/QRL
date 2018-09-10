@@ -12,7 +12,7 @@ from qrl.core import config
 from qrl.core.misc import logger
 from qrl.crypto.AESHelper import AESHelper
 from qrl.crypto.xmss import XMSS
-from qrl.core.AddressHelper import hex_to_b32address
+from qrl.core.AddressHelper import hex_to_b32address, raw_to_hexaddress
 
 
 class AddressItem:
@@ -256,23 +256,14 @@ class Wallet:
 
         return tmp_xmss
 
-    @staticmethod
-    def _get_Qaddress(addr: bytes) -> str:
-        """
-        Gets an address in QHex format
-        :param addr:
-        :return:
-        """
-        return 'Q' + bin2hstr(addr)
-
     def get_address_item(self, qaddress) -> [int, AddressItem]:
         for idx, item in enumerate(self._address_items):
             if item.qaddress == qaddress:
                 return idx, item
         return -1, None
 
-    def get_xmss_by_address(self, search_addr) -> Optional[XMSS]:
-        search_addr_str = self._get_Qaddress(search_addr)
+    def get_xmss_by_address(self, search_addr: bytes) -> Optional[XMSS]:
+        search_addr_str = raw_to_hexaddress(search_addr)
         return self.get_xmss_by_qaddress(search_addr_str)
 
     def get_xmss_by_qaddress(self, search_addr_str, passphrase: str = None) -> Optional[XMSS]:
