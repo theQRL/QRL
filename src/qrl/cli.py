@@ -289,7 +289,7 @@ def wallet_add(ctx, height, hash_function):
 
     wallet.add_new_address(height, hash_function)
 
-    _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+    _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
 
     if wallet_was_encrypted:
         wallet.encrypt(secret)
@@ -335,7 +335,7 @@ def wallet_recover(ctx, seed_type):
         wallet.append_xmss(recovered_xmss)
         wallet.save()
         click.echo('Done')
-        _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+        _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
 
 
 @qrl.command()
@@ -386,7 +386,7 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
             click.confirm('Do you want to continue?', abort=True)
         wallet.remove(address_item.qaddress)
 
-        _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
+        _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
 
 
 @qrl.command()

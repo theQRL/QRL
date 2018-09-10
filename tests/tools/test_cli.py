@@ -130,6 +130,7 @@ class TestCLI(TestCase):
         self.assertIn(wallet["addresses"][1]["address"], result.output)
         self.assertIn(wallet["addresses"][1]["address_b32"], result.output)
         self.assertEqual(wallet["addresses"][1]["height"], 4)
+        self.assertIn(self.temp_dir, result.output)
 
     def test_wallet_add_inherit_encryption_status(self):
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
@@ -146,8 +147,9 @@ class TestCLI(TestCase):
     def test_wallet_recover_hexseed(self):
         os.rename("wallet.json", "wallet_orig.json")
         wallet_orig = open_wallet("wallet_orig.json")
-        self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=hexseed"],
-                           input='\n'.join([wallet_orig["addresses"][0]["hexseed"], 'y']))
+        result = self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=hexseed"],
+                                    input='\n'.join([wallet_orig["addresses"][0]["hexseed"], 'y']))
+        self.assertIn(self.temp_dir, result.output)
         wallet_recovered = open_wallet()
         self.assertEqual(wallet_recovered, wallet_orig)
 
@@ -170,8 +172,9 @@ class TestCLI(TestCase):
     def test_wallet_recover_mnemonic(self):
         os.rename("wallet.json", "wallet_orig.json")
         wallet_orig = open_wallet("wallet_orig.json")
-        self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=mnemonic"],
-                           input='\n'.join([wallet_orig["addresses"][0]["mnemonic"], 'y']))
+        result = self.runner.invoke(qrl_cli, ["wallet_recover", "--seed-type=mnemonic"],
+                                    input='\n'.join([wallet_orig["addresses"][0]["mnemonic"], 'y']))
+        self.assertIn(self.temp_dir, result.output)
         wallet_recovered = open_wallet()
         self.assertEqual(wallet_recovered, wallet_orig)
 
@@ -229,6 +232,7 @@ class TestCLI(TestCase):
         self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"])
         wallet = open_wallet()
         result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=1", "--skip-confirmation"], input='y\n')
+        self.assertIn(self.temp_dir, result.output)
         self.assertNotIn(wallet["addresses"][1]["address"], result.output)
         result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=0"], input='y\n')
         self.assertIn("No wallet found", result.output)
