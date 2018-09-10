@@ -355,6 +355,7 @@ def wallet_secret(ctx, wallet_idx):
     address_item = get_item_from_wallet(wallet, wallet_idx)
     if address_item:
         click.echo('Wallet Address  : {}'.format(address_item.qaddress))
+        click.echo('Wallet Address (BECH32): {}'.format(address_item.b32address))
         click.echo('Mnemonic        : {}'.format(address_item.mnemonic))
         click.echo('Hexseed         : {}'.format(address_item.hexseed))
 

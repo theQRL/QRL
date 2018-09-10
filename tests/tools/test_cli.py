@@ -187,6 +187,7 @@ class TestCLI(TestCase):
         wallet = open_wallet()
         result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"])
         self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
 
@@ -195,6 +196,7 @@ class TestCLI(TestCase):
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
         result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"], input='password\npassword\n')
         self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
 
@@ -203,6 +205,7 @@ class TestCLI(TestCase):
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
         result = self.runner.invoke(qrl_cli, ["wallet_secret", "--wallet-idx=0"], input='password\npassword\n')
         self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
         self.assertIn(wallet["addresses"][0]["mnemonic"], result.output)
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
 
