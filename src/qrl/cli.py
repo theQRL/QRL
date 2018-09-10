@@ -164,12 +164,12 @@ def _select_wallet(ctx, address_or_index) -> (bytes, XMSS):
             wallet.decrypt(secret)
 
         if address_or_index.isdigit():
-            address_or_index = int(address_or_index)
-            addr_item = get_item_from_wallet(wallet, address_or_index)
+            index = int(address_or_index)
+            addr_item = get_item_from_wallet(wallet, index)
             if addr_item:
                 # FIXME: This should only return pk and index
-                xmss = wallet.get_xmss_by_index(address_or_index)
-                return wallet.addresses[address_or_index], xmss
+                xmss = wallet.get_xmss_by_index(index)
+                return wallet.addresses[index], xmss
 
         elif address_or_index.startswith('Q') or address_or_index.startswith('q'):
             xmss = wallet.get_xmss_by_address_any(address_or_index)

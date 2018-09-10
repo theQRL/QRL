@@ -102,12 +102,14 @@ class TestCLI(TestCase):
         result = self.runner.invoke(qrl_cli, ["wallet_ls"])
         wallet = open_wallet()
         self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
         self.assertIn(self.temp_dir, result.output)  # You should know which wallet you've opened.
 
     def test_wallet_ls_verbose(self):
         result = self.runner.invoke(qrl_cli, ["-v", "wallet_ls"])
         wallet = open_wallet()
         self.assertIn(wallet["addresses"][0]["hashFunction"], result.output)
+        self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
 
     def test_wallet_ls_empty(self):
         os.remove("wallet.json")
@@ -119,12 +121,14 @@ class TestCLI(TestCase):
         wallet = open_wallet()
         self.assertTrue(json.loads(result.output))  # Throws an exception if output is not valid JSON
         self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
         self.assertIn(self.temp_dir, result.output)  # You should know which wallet you've opened.
 
     def test_wallet_add(self):
         result = self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"])
         wallet = open_wallet()
         self.assertIn(wallet["addresses"][1]["address"], result.output)
+        self.assertIn(wallet["addresses"][1]["address_b32"], result.output)
         self.assertEqual(wallet["addresses"][1]["height"], 4)
 
     def test_wallet_add_inherit_encryption_status(self):
@@ -296,6 +300,7 @@ class TestCLI(TestCase):
 
         wallet = open_wallet()
         master_address = wallet["addresses"][0]["address"]
+        master_address_b32 = wallet["addresses"][0]["address_b32"]
 
         # Simplest use case
         result = self.runner.invoke(qrl_cli, [
@@ -307,10 +312,27 @@ class TestCLI(TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertTrue(os.path.exists('slaves.json'))
 
+        # Simplest use case, with BECH32
+        result = self.runner.invoke(qrl_cli, [
+            "slave_tx_generate", "--src=0", "--master={}".format(master_address_b32),
+            "--number_of_slaves=1", "--access_type=0", "--fee=0"
+        ])
+        self.assertEqual(result.exit_code, 0)
+        self.assertTrue(os.path.exists('slaves.json'))
+
         # Does it work with 5 slaves?
         os.remove('slaves.json')
         result = self.runner.invoke(qrl_cli, [
             "slave_tx_generate", "--src=0", "--master={}".format(master_address),
+            "--number_of_slaves=5", "--access_type=0", "--fee=0"
+        ])
+        self.assertEqual(result.exit_code, 0)
+        self.assertTrue(os.path.exists('slaves.json'))
+
+        # Does it work with 5 slaves? with BECH32
+        os.remove('slaves.json')
+        result = self.runner.invoke(qrl_cli, [
+            "slave_tx_generate", "--src=0", "--master={}".format(master_address_b32),
             "--number_of_slaves=5", "--access_type=0", "--fee=0"
         ])
         self.assertEqual(result.exit_code, 0)
@@ -497,8 +519,36 @@ class TestCLI(TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
+        # Master should also work with a bech32 address. Hell, it should work with mixed address formats...
+        result = self.runner.invoke(qrl_cli, [
+            "tx_transfer",
+            "--src={}".format(wallet["addresses"][0]["address_b32"]),
+            "--master={}".format(addr_b32_2),
+            "--dsts={}".format(addr_hex_1),
+            "--amounts=1",
+            "--fee=0",
+            "--ots_key_index=0"
+        ])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('a fake pushTransactionResp', result.output.strip())
+
         # Multiple dsts should work too
         dsts = [addr_hex_1, addr_hex_2, addr_hex_3]
+        amounts = ["1", "2", "3"]
+        result = self.runner.invoke(qrl_cli, [
+            "tx_transfer",
+            "--src=0",
+            "--master=",
+            "--dsts={}".format(" ".join(dsts)),
+            "--amounts={}".format(" ".join(amounts)),
+            "--fee=0",
+            "--ots_key_index=0"
+        ])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('a fake pushTransactionResp', result.output.strip())
+
+        # Multiple dsts with different address formats should work too
+        dsts = [addr_b32_1, addr_hex_2, addr_b32_3]
         amounts = ["1", "2", "3"]
         result = self.runner.invoke(qrl_cli, [
             "tx_transfer",
@@ -536,6 +586,14 @@ class TestCLI(TestCase):
         # Simplest use case
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
         result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(addr_hex_1),
+                                              "--amounts=1", "--fee=0", "--ots_key_index=0"],
+                                    input='password\n')
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('a fake pushTransactionResp', result.output.strip())
+
+        # Simplest use case, BECH32 input
+        self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
+        result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(addr_b32_1),
                                               "--amounts=1", "--fee=0", "--ots_key_index=0"],
                                     input='password\n')
         self.assertEqual(result.exit_code, 0)
@@ -603,6 +661,7 @@ class TestCLI(TestCase):
 
         wallet = open_wallet()
         owner_address = wallet["addresses"][0]["address"]
+        owner_address_b32 = wallet["addresses"][0]["address_b32"]
         typed_in_input = '\n'.join([owner_address, '100']) + '\n'
         result = self.runner.invoke(qrl_cli, [
             "tx_token",
@@ -611,6 +670,20 @@ class TestCLI(TestCase):
             "--symbol=TST",
             "--name=TEST",
             "--owner={}".format(owner_address),
+            "--decimals=1",
+            "--fee=0",
+            "--ots_key_index=0"
+        ], input=typed_in_input)
+        self.assertIn('This was a test', result.output)
+
+        # Verify that it works with BECH32 owner address
+        result = self.runner.invoke(qrl_cli, [
+            "tx_token",
+            "--src=0",
+            "--master=",
+            "--symbol=TST",
+            "--name=TEST",
+            "--owner={}".format(owner_address_b32),
             "--decimals=1",
             "--fee=0",
             "--ots_key_index=0"
@@ -700,8 +773,22 @@ class TestCLI(TestCase):
                                         "--fee=0",
                                         "--ots_key_index=0"
                                     ])
+        self.assertEqual(result.exit_code, 0)
+        self.assertEqual(result.output.strip(), 'This was a test')
 
-        print(result.output)
+        # Verify that it works with BECH32
+        result = self.runner.invoke(qrl_cli,
+                                    [
+                                        "tx_transfertoken",
+                                        "--src=0",
+                                        "--master=",
+                                        "--token_txhash={}".format(txhash),
+                                        "--dsts={}".format(addr_b32_1),
+                                        "--amounts=10",
+                                        "--decimals=10",
+                                        "--fee=0",
+                                        "--ots_key_index=0"
+                                    ])
         self.assertEqual(result.exit_code, 0)
         self.assertEqual(result.output.strip(), 'This was a test')
 
@@ -766,13 +853,26 @@ class TestCLI(TestCase):
         mock_stub.return_value = mock_stub_instance
 
         result = self.runner.invoke(qrl_cli, ["token_list", "--owner={}".format(addr_hex_1)])
+        result_b32 = self.runner.invoke(qrl_cli, ["token_list", "--owner={}".format(addr_b32_1)])
 
         self.assertIn('Hash: {}\nSymbol: {}\nName: {}\nBalance: 10'.format('aabb00',
                                                                            transaction.token.symbol.decode(),
-                                                                           transaction.token.name.decode()), result.output)
+                                                                           transaction.token.name.decode()),
+                      result.output)
         self.assertIn('Hash: {}\nSymbol: {}\nName: {}\nBalance: 100'.format('ccbb11',
                                                                             transaction.token.symbol.decode(),
-                                                                            transaction.token.name.decode()), result.output)
+                                                                            transaction.token.name.decode()),
+                      result.output)
+
+        # Verify BECH32 input response
+        self.assertIn('Hash: {}\nSymbol: {}\nName: {}\nBalance: 10'.format('aabb00',
+                                                                           transaction.token.symbol.decode(),
+                                                                           transaction.token.name.decode()),
+                      result_b32.output)
+        self.assertIn('Hash: {}\nSymbol: {}\nName: {}\nBalance: 100'.format('ccbb11',
+                                                                            transaction.token.symbol.decode(),
+                                                                            transaction.token.name.decode()),
+                      result_b32.output)
 
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_token_list_invalid_input(self, mock_stub):
