@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import json
 from unittest import TestCase
 
 from pyqrllib.pyqrllib import bin2hstr
@@ -49,7 +50,7 @@ class TestWalletVer0(TestCase):
 
             self.assertTrue(wallet.address_items[0].encrypted)
 
-            wallet.decrypt_item_ver0(0, 'test1234')
+            wallet.address_items[0].decrypt_ver0('test1234')
             addr_item = wallet.address_items[0]
 
             self.assertEqual('Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
@@ -147,7 +148,7 @@ class TestWallet(TestCase):
             self.assertEqual('Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              addr_item.qaddress)
 
-            wallet.decrypt_item(0, 'test1234')
+            wallet.address_items[0].decrypt('test1234')
             xmss0 = wallet.get_xmss_by_index(0)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0.address))
@@ -155,6 +156,27 @@ class TestWallet(TestCase):
             xmss0b = wallet.get_xmss_by_address(xmss0.address)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0b.address))
+
+    def test_read_wallet_wo_b32address_saves_wallet_w_b32address(self):
+        with set_qrl_dir("wallet_ver1"):
+            wallet = Wallet()
+            with open(wallet.wallet_path) as f:
+                before_saving = json.load(f)
+                with self.assertRaises(KeyError):
+                    before_saving['addresses'][0].pop("address_b32")
+
+            wallet.save()
+            with open(wallet.wallet_path) as f:
+                after_saving = json.load(f)
+                xmss = wallet.get_xmss_by_index(0)
+                self.assertEqual(xmss.b32address, after_saving['addresses'][0].pop("address_b32"))
+
+    def test_read_wallet_w_b32address_works(self):
+        with set_qrl_dir("wallet_ver1_address_b32"):
+            wallet = Wallet()
+
+            xmss = wallet.get_xmss_by_index(0)
+            self.assertEqual(xmss.b32address, wallet.address_items[0].b32address)
 
     def test_create(self):
         with set_qrl_dir("no_data"):
@@ -214,7 +236,7 @@ class TestWallet(TestCase):
             # You can save it.
             wallet.save()
 
-            wallet.decrypt_item(1, TEST_KEY)
+            wallet.address_items[1].decrypt(TEST_KEY)
             # A partially encrypted wallet is not editable.
             with self.assertRaises(WalletEncryptionError):
                 wallet.add_new_address(4)
@@ -228,7 +250,7 @@ class TestWallet(TestCase):
             with self.assertRaises(WalletEncryptionError):
                 wallet.save()
 
-            wallet.decrypt_item(0, TEST_KEY)
+            wallet.address_items[0].decrypt(TEST_KEY)
             # A fully decrypted wallet is editable.
             wallet.add_new_address(4)
             # You may not re-decrypt it.

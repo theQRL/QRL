@@ -3,7 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import functools
 import os
-from collections import namedtuple
 from typing import List, Optional
 
 import simplejson
@@ -13,9 +12,128 @@ from qrl.core import config
 from qrl.core.misc import logger
 from qrl.crypto.AESHelper import AESHelper
 from qrl.crypto.xmss import XMSS
+from qrl.core.AddressHelper import hex_to_b32address
 
-AddressItem = namedtuple('AddressItem',
-                         'qaddress pk hexseed mnemonic height hashFunction signatureType index encrypted')
+
+class AddressItem:
+    def __init__(self):
+        self.qaddress = None
+        self.b32address = None
+        self.pk = None
+        self.hexseed = None
+        self.mnemonic = None
+        self.height = None
+        self.hashFunction = None
+        self.signatureType = None
+        self.index = None
+        self.encrypted = None
+
+        self.xmss = None
+
+    def __eq__(self, other):
+        result = (self.qaddress == other.qaddress and
+                  self.b32address == other.b32address and
+                  self.hexseed == other.hexseed and
+                  self.mnemonic == other.mnemonic and
+                  self.height == other.height and
+                  self.hashFunction == other.hashFunction and
+                  self.signatureType == other.signatureType and
+                  self.index == other.index and
+                  self.encrypted == other.encrypted
+                  )
+        return result
+
+    def set_xmss(self, xmss):
+        self.xmss = xmss
+
+        self.qaddress = xmss.qaddress
+        self.b32address = xmss.b32address
+        self.pk = bin2hstr(xmss.pk)
+        self.hexseed = xmss.hexseed
+        self.mnemonic = xmss.mnemonic
+        self.height = xmss.height
+        self.hashFunction = xmss.hash_function
+        self.signatureType = xmss.signature_type
+        self.index = xmss.ots_index
+
+        self.encrypted = False
+
+    def serialize(self):
+        serialized = {
+            "address": self.qaddress,
+            "address_b32": self.b32address,
+            "pk": self.pk,
+            "hexseed": self.hexseed,
+            "mnemonic": self.mnemonic,
+            "height": self.height,
+            "hashFunction": self.hashFunction,
+            "signatureType": self.signatureType,
+            "index": self.index,
+        }
+        return serialized
+
+    def deserialize(self, addr_json: dict, encrypted: bool):
+        """
+        webwallet uses 'address', but the node uses 'qaddress'. Translate address -> qaddress.
+        Since version 1, encrypted = True/False is at the Wallet level. Thus without inspecting the hexseed/mnemonic,
+        AddressItem cannot know itself if it is encrypted. Therefore the Wallet has to tell the AddressItem that it is
+        encrypted.
+        :param addr_json:
+        :param encrypted:
+        :return:
+        """
+        self.qaddress = addr_json.get("address")
+        self.b32address = addr_json.get("address_b32", hex_to_b32address(self.qaddress))
+        self.pk = addr_json.get("pk")
+        self.hexseed = addr_json.get("hexseed")
+        self.mnemonic = addr_json.get("mnemonic")
+        self.height = addr_json.get("height")
+        self.hashFunction = addr_json.get("hashFunction")
+        self.signatureType = addr_json.get("signatureType")
+        self.index = addr_json.get("index")
+
+        self.encrypted = encrypted
+
+    def deserialize_ver0(self, addr_json: dict):
+        """
+        webwallet uses 'address', but the node uses 'qaddress'. Translate address -> qaddress.
+        :param addr_json:
+        :return:
+        """
+        self.qaddress = addr_json.get("address")
+        try:
+            self.b32address = hex_to_b32address(self.qaddress)
+        except ValueError:
+            pass  # qaddress could be encrypted in version 0. Move on.
+        self.pk = addr_json.get("pk")
+        self.hexseed = addr_json.get("hexseed")
+        self.mnemonic = addr_json.get("mnemonic")
+        self.height = addr_json.get("height")
+        self.hashFunction = addr_json.get("hashFunction")
+        self.signatureType = addr_json.get("signatureType")
+        self.index = addr_json.get("index")
+        self.encrypted = addr_json.get("encrypted")
+
+    def encrypt(self, key: str):
+        cipher = AESHelper(key)
+        self.hexseed = cipher.encrypt(self.hexseed.encode())
+        self.mnemonic = cipher.encrypt(self.mnemonic.encode())
+        self.encrypted = True
+
+    def decrypt(self, key: str):
+        cipher = AESHelper(key)
+        self.hexseed = cipher.decrypt(self.hexseed).decode()
+        self.mnemonic = cipher.decrypt(self.mnemonic).decode()
+        self.encrypted = False
+
+    def decrypt_ver0(self, key: str):
+        cipher = AESHelper(key)
+        self.qaddress = cipher.decrypt(self.qaddress).decode()
+        self.hexseed = cipher.decrypt(self.hexseed).decode()
+        self.mnemonic = cipher.decrypt(self.mnemonic).decode()
+        self.encrypted = False
+
+        self.b32address = hex_to_b32address(self.qaddress)
 
 
 class WalletException(Exception):
@@ -147,20 +265,6 @@ class Wallet:
         """
         return 'Q' + bin2hstr(addr)
 
-    @staticmethod
-    def _get_address_item_from_xmss(xmss: XMSS) -> AddressItem:
-        return AddressItem(
-            qaddress=Wallet._get_Qaddress(xmss.address),
-            pk=None,
-            hexseed=xmss.hexseed,
-            mnemonic=xmss.mnemonic,
-            height=xmss.height,
-            hashFunction=xmss.hash_function,
-            signatureType=xmss.signature_type,
-            index=xmss.ots_index,
-            encrypted=False
-        )
-
     def get_address_item(self, qaddress) -> [int, AddressItem]:
         for idx, item in enumerate(self._address_items):
             if item.qaddress == qaddress:
@@ -171,7 +275,7 @@ class Wallet:
         search_addr_str = self._get_Qaddress(search_addr)
         return self.get_xmss_by_qaddress(search_addr_str)
 
-    def get_xmss_by_qaddress(self, search_addr_str, passphrase: str=None) -> Optional[XMSS]:
+    def get_xmss_by_qaddress(self, search_addr_str, passphrase: str = None) -> Optional[XMSS]:
         idx, _ = self.get_address_item(search_addr_str)
 
         if idx == -1:
@@ -179,19 +283,8 @@ class Wallet:
 
         return self.get_xmss_by_index(idx, passphrase)
 
-    def set_ots_index(self, index, ots_index):
-        item = self._address_items[index]
-        self._address_items[index] = AddressItem(
-            qaddress=item.qaddress,
-            pk=item.pk,
-            hexseed=item.hexseed,
-            mnemonic=item.mnemonic,
-            height=item.height,
-            hashFunction=item.hashFunction,
-            signatureType=item.signatureType,
-            index=ots_index,
-            encrypted=item.encrypted
-        )
+    def set_ots_index(self, i, ots_index):
+        self._address_items[i].index = ots_index
         self.save()
 
     def verify_wallet(self):
@@ -215,9 +308,9 @@ class Wallet:
 
     def _read_wallet_ver0(self, filename) -> None:
         def get_address_item_from_json(addr_json: dict) -> AddressItem:
-            # address -> qaddress for webwallet compatibility
-            addr_json["qaddress"] = addr_json.pop("address")
-            return AddressItem(**addr_json)
+            address_item = AddressItem()
+            address_item.deserialize_ver0(addr_json)
+            return address_item
 
         try:
             with open(filename, "rb") as infile:
@@ -230,9 +323,9 @@ class Wallet:
 
     def _read_wallet_ver1(self, filename) -> None:
         def get_address_item_from_json(addr_json: dict, encrypted: bool) -> AddressItem:
-            # address -> qaddress for webwallet compatibility
-            addr_json["qaddress"] = addr_json.pop("address")
-            return AddressItem(encrypted=encrypted, **addr_json)
+            address_item = AddressItem()
+            address_item.deserialize(addr_json, encrypted)
+            return address_item
 
         try:
             with open(filename, "rb") as infile:
@@ -248,10 +341,7 @@ class Wallet:
             raise WalletException("Could not be saved. Invalid wallet.")
 
         with open(filename, "wb") as outfile:
-            address_items_asdict = [a._asdict() for a in self._address_items]
-            for a in address_items_asdict:
-                a["address"] = a.pop("qaddress")  # for backwards compatibility with webwallet
-                a.pop('encrypted')  # ver1 wallet AddressItems do not have encrypted field.
+            address_items_asdict = [a.serialize() for a in self._address_items]
 
             output = {
                 "addresses": address_items_asdict,
@@ -261,48 +351,22 @@ class Wallet:
             data_out = simplejson.dumps(output).encode('ascii')
             outfile.write(data_out)
 
-    def decrypt_item(self, index: int, key: str):
-        cipher = AESHelper(key)
-        tmp = self._address_items[index]._asdict()  # noqa
-        tmp['hexseed'] = cipher.decrypt(tmp['hexseed']).decode()
-        tmp['mnemonic'] = cipher.decrypt(tmp['mnemonic']).decode()
-        tmp['encrypted'] = False
-        self._address_items[index] = AddressItem(**tmp)
-
-    def decrypt_item_ver0(self, index: int, key: str):
-        cipher = AESHelper(key)
-        tmp = self._address_items[index]._asdict()  # noqa
-        tmp['qaddress'] = cipher.decrypt(tmp['qaddress']).decode()
-        tmp['hexseed'] = cipher.decrypt(tmp['hexseed']).decode()
-        tmp['mnemonic'] = cipher.decrypt(tmp['mnemonic']).decode()
-        tmp['encrypted'] = False
-        self._address_items[index] = AddressItem(**tmp)
-
-    def encrypt_item(self, index: int, key: str):
-        cipher = AESHelper(key)
-        tmp = self._address_items[index]._asdict()  # noqa
-        tmp['hexseed'] = cipher.encrypt(tmp['hexseed'].encode())
-        tmp['mnemonic'] = cipher.encrypt(tmp['mnemonic'].encode())
-        tmp['encrypted'] = True
-        self._address_items[index] = AddressItem(**tmp)
-
-    def decrypt(self, password: str, first_address_only: bool=False):
+    def decrypt(self, password: str, first_address_only: bool = False):
         if self.encrypted_partially:
             raise WalletEncryptionError("Some addresses are already decrypted. Please re-encrypt all addresses before"
                                         "running decrypt().")
         elif not self.encrypted:
             raise WalletEncryptionError("Wallet is already unencrypted.")
 
-        if self.version == 0:
-            decryptor = self.decrypt_item_ver0
-        elif self.version == 1:
-            decryptor = self.decrypt_item
-        else:
-            raise WalletVersionError("Wallet.decrypt() can only decrypt wallet.jsons of version 0/1")
-
         try:
-            for i in range(len(self._address_items)):
-                decryptor(i, password)
+            for address_item in self._address_items:
+                if self.version == 0:
+                    address_item.decrypt_ver0(password)
+                elif self.version == 1:
+                    address_item.decrypt(password)
+                else:
+                    raise WalletVersionError("Wallet.decrypt() can only decrypt wallet.jsons of version 0/1")
+
                 if first_address_only:
                     return
         except Exception as e:
@@ -318,8 +382,8 @@ class Wallet:
         elif self.encrypted:
             raise WalletEncryptionError("Wallet is already encrypted.")
 
-        for i in range(len(self._address_items)):
-            self.encrypt_item(i, key)
+        for address_item in self._address_items:
+            address_item.encrypt(key)
 
     def save(self):
         if self.version == 0:
@@ -340,8 +404,9 @@ class Wallet:
             self._read_wallet_ver0(self.wallet_path)
 
     def append_xmss(self, xmss):
-        tmp_item = self._get_address_item_from_xmss(xmss)
-        self._address_items.append(tmp_item)
+        address_item = AddressItem()
+        address_item.set_xmss(xmss)
+        self._address_items.append(address_item)
 
     def add_new_address(self, height, hash_function="shake128", force=False):
         if not force:
