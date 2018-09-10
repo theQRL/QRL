@@ -152,7 +152,7 @@ def _public_get_address_balance(ctx, address):
     return get_address_state_resp.state.balance
 
 
-def _select_wallet(ctx, address_or_index):
+def _select_wallet(ctx, address_or_index) -> (bytes, XMSS):
     try:
         wallet = Wallet(wallet_path=ctx.obj.wallet_path)
         if not wallet.addresses:
@@ -171,15 +171,13 @@ def _select_wallet(ctx, address_or_index):
                 xmss = wallet.get_xmss_by_index(address_or_index)
                 return wallet.addresses[address_or_index], xmss
 
-        elif address_or_index.startswith('Q'):
-            for i, addr_item in enumerate(wallet.address_items):
-                if address_or_index == addr_item.qaddress:
-                    xmss = wallet.get_xmss_by_address(wallet.addresses[i])
-                    return wallet.addresses[i], xmss
+        elif address_or_index.startswith('Q') or address_or_index.startswith('q'):
+            xmss = wallet.get_xmss_by_address_any(address_or_index)
+            return xmss.address, xmss
+        else:
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
 
-        return any_to_rawaddress(address_or_index), None
     except Exception as e:
         click.echo("Error selecting wallet")
         click.echo(str(e))

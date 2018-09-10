@@ -38,7 +38,7 @@ class TestWalletVer0(TestCase):
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0.address))
 
-            xmss0b = wallet.get_xmss_by_address(xmss0.address)
+            xmss0b = wallet.get_xmss_by_address_raw(xmss0.address)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0b.address))
 
@@ -60,7 +60,7 @@ class TestWalletVer0(TestCase):
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0.address))
 
-            xmss0b = wallet.get_xmss_by_address(xmss0.address)
+            xmss0b = wallet.get_xmss_by_address_raw(xmss0.address)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0b.address))
 
@@ -107,7 +107,7 @@ class TestWalletVer0(TestCase):
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0.address))
 
-            xmss0b = wallet_reloaded.get_xmss_by_address(xmss0.address)
+            xmss0b = wallet_reloaded.get_xmss_by_address_raw(xmss0.address)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0b.address))
 
@@ -132,7 +132,7 @@ class TestWallet(TestCase):
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0.address))
 
-            xmss0b = wallet.get_xmss_by_address(xmss0.address)
+            xmss0b = wallet.get_xmss_by_address_raw(xmss0.address)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0b.address))
 
@@ -153,7 +153,7 @@ class TestWallet(TestCase):
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0.address))
 
-            xmss0b = wallet.get_xmss_by_address(xmss0.address)
+            xmss0b = wallet.get_xmss_by_address_raw(xmss0.address)
             self.assertEqual('010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f',
                              bin2hstr(xmss0b.address))
 
