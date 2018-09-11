@@ -167,17 +167,24 @@ class WalletD:
     def _encrypt_last_item(self):
         if not self._passphrase:
             return
-        self._wallet.encrypt_item(len(self._wallet.address_items) - 1, self._passphrase)
+        self._wallet.address_items[-1].encrypt(self._passphrase)
 
     def _get_wallet_index_xmss(self, signer_address: str, ots_index: int):
         index, _ = self._wallet.get_address_item(signer_address)
-        xmss = self._wallet.get_xmss_by_index(index, self._passphrase)
+
+        if self._passphrase:
+            self._wallet.address_items[index].decrypt(self._passphrase)
+            xmss = self._wallet.get_xmss_by_index(index)
+            self._wallet.address_items[index].encrypt(self._passphrase)
+        else:
+            xmss = self._wallet.get_xmss_by_index(index)
+
         if ots_index > 0:
             xmss.set_ots_index(ots_index)
         return index, xmss
 
-    def get_pk_list_from_xmss_list(self, slave_xmss_list):
-        return [xmss.pk for xmss in slave_xmss_list]
+    def get_pk_list_from_xmss_list(self, slave_list):
+        return [slave.xmss.pk for slave in slave_list]
 
     def add_new_address(self, height=10, hash_function='shake128') -> str:
         self.authenticate()
@@ -216,14 +223,14 @@ class WalletD:
             raise Exception("Number of slaves cannot be more than 100")
 
         xmss = self._wallet.add_new_address(height, hash_function, True)
-        slave_xmss_list = self._wallet.add_slave(index=-1,
-                                                 height=height,
-                                                 number_of_slaves=number_of_slaves,
-                                                 hash_function=hash_function,
-                                                 force=True)
+        slave_list = self._wallet.add_slave(index=-1,
+                                            height=height,
+                                            number_of_slaves=number_of_slaves,
+                                            hash_function=hash_function,
+                                            force=True)
         self._encrypt_last_item()
 
-        slave_pk_list = self.get_pk_list_from_xmss_list(slave_xmss_list)
+        slave_pk_list = self.get_pk_list_from_xmss_list(slave_list)
         slave_tx = self.generate_slave_tx(xmss.pk, slave_pk_list)
         self.sign_and_push_transaction(slave_tx, xmss, -1)
 
@@ -243,7 +250,7 @@ class WalletD:
             raise ValueError("Invalid Seed")
 
         address_from_seed = XMSS.from_extended_seed(bin_seed)
-        if self._wallet.get_xmss_by_qaddress(address_from_seed.qaddress, self._passphrase):
+        if self._wallet.get_xmss_by_qaddress(address_from_seed.qaddress):
             raise Exception("Address is already in the wallet")
         self._wallet.append_xmss(address_from_seed)
         self._encrypt_last_item()
@@ -277,7 +284,7 @@ class WalletD:
     def get_recovery_seeds(self, qaddress: str):
         self.authenticate()
 
-        xmss = self._wallet.get_xmss_by_qaddress(qaddress, self._passphrase)
+        xmss = self._wallet.get_xmss_by_qaddress(qaddress)
         if xmss:
             logger.info("Recovery seeds requested for %s", qaddress)
             return xmss.hexseed, xmss.mnemonic
@@ -371,9 +378,11 @@ class WalletD:
                 raise Exception('Fatal Error!!! No reserved OTS index found')
 
             if self._passphrase:
-                target_address_item = self._wallet.decrypt_address_item(target_address_item, self._passphrase)
+                target_address_item.decrypt(self._passphrase)
 
-            xmss = self._wallet.get_xmss_by_item(target_address_item, ots_index)
+            target_address_item.index = ots_index
+            target_address_item.generate_xmss()
+            xmss = target_address_item.xmss
 
             slaves_pk = [bytes(hstr2bin(slave_item.pk)) for slave_item in item.slaves[-1]]
             tx = self.generate_slave_tx(xmss.pk,
@@ -409,7 +418,7 @@ class WalletD:
                     continue
 
                 if self._passphrase:
-                    slave = self._wallet.decrypt_address_item(slave, self._passphrase)
+                    slave.decrypt(self._passphrase)
 
                 slave_address_state = self.get_address_state(slave.qaddress)
 
@@ -419,14 +428,16 @@ class WalletD:
                     if ots_index >= UNRESERVED_OTS_INDEX_START:
                         raise Exception("Fatal Error, no unused reserved OTS index")
 
-                    curr_slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
+                    slave.index = ots_index
+                    slave.generate_xmss()
+                    curr_slave_xmss = slave.xmss
 
-                    slave_xmss_list = self._wallet.add_slave(index=index,
-                                                             height=slave.height,
-                                                             number_of_slaves=config.user.number_of_slaves,
-                                                             passphrase=self._passphrase,
-                                                             force=True)
-                    slave_pk_list = self.get_pk_list_from_xmss_list(slave_xmss_list)
+                    slave_list = self._wallet.add_slave(index=index,
+                                                        height=slave.height,
+                                                        number_of_slaves=config.user.number_of_slaves,
+                                                        passphrase=self._passphrase,
+                                                        force=True)
+                    slave_pk_list = self.get_pk_list_from_xmss_list(slave_list)
 
                     tx = self.generate_slave_tx(bytes(hstr2bin(slave.pk)),
                                                 slave_pk_list,
@@ -446,9 +457,7 @@ class WalletD:
                                                      2 ** slave.height)
                     continue
 
-                slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
-
-                return index, group_index, slave_index, slave_xmss
+                return index, group_index, slave_index, slave.xmss
 
         return index, -1, -1, None
 
@@ -734,7 +743,7 @@ class WalletD:
 
         self._passphrase = passphrase
         self._wallet.decrypt(passphrase, first_address_only=True)  # Check if Password Correct
-        self._wallet.encrypt_item(0, passphrase)  # Re-Encrypt first address item
+        self._wallet.address_items[0].encrypt(passphrase)  # Re-Encrypt first address item
         logger.info("Wallet Unlocked")
 
     def change_passphrase(self, old_passphrase: str, new_passphrase: str):
