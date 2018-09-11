@@ -297,14 +297,14 @@ class Wallet:
                 return idx, item
         return -1, None
 
-    def get_xmss_by_address(self, address_raw: bytes) -> Optional[XMSS]:
+    def get_xmss_by_address_raw(self, address_raw: bytes) -> Optional[XMSS]:
         for idx, item in enumerate(self._address_items):
             if item.address_raw == address_raw:
                 return self.get_xmss_by_index(idx)
 
         return None
 
-    def get_xmss_by_qaddress(self, address_str) -> Optional[XMSS]:
+    def get_xmss_by_address_any(self, address_str) -> Optional[XMSS]:
         idx, _ = self.get_address_item(address_str)
 
         if idx == -1:

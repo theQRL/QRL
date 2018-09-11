@@ -250,7 +250,7 @@ class WalletD:
             raise ValueError("Invalid Seed")
 
         address_from_seed = XMSS.from_extended_seed(bin_seed)
-        if self._wallet.get_xmss_by_qaddress(address_from_seed.qaddress):
+        if self._wallet.get_xmss_by_address_any(address_from_seed.qaddress):
             raise Exception("Address is already in the wallet")
         self._wallet.append_xmss(address_from_seed)
         self._encrypt_last_item()
@@ -284,7 +284,7 @@ class WalletD:
     def get_recovery_seeds(self, qaddress: str):
         self.authenticate()
 
-        xmss = self._wallet.get_xmss_by_qaddress(qaddress)
+        xmss = self._wallet.get_xmss_by_address_any(qaddress)
         if xmss:
             logger.info("Recovery seeds requested for %s", qaddress)
             return xmss.hexseed, xmss.mnemonic
