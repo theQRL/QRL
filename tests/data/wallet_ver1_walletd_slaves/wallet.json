@@ -1,0 +1,56 @@
+{
+  "addresses": [
+    {
+      "pk": "010400d98eee1da5263775dae6245b9c483429217905089f4aad94b12da22b1d9677bc845713cc990ce9f631fbe7257613cfc5bd9dcfe83b06b6c86b1700eb6c091320",
+      "hexseed": "010400e853bb9ab456d53cf82728042a6d2136776c7560ac0a1bdb8c83d84cdaba352fa0e3bff7f43a7b76fe977103205e1afe",
+      "mnemonic": "absorb drank toxic device open elbow static sonata chaos liver civil spin daisy kept july arm apron sail mill dispel far proven cure width though zenith vision polish key treaty insist crab gloria raid",
+      "height": 8,
+      "hashFunction": "shake128",
+      "signatureType": 0,
+      "index": 1,
+      "slaves": [
+        [
+          {
+            "pk": "010400023bf6d95946bef3aff38ac452ddf958054cdb204f7719dfc8cd8ccb1f6170e69ee0076b8358f596e0d101b49c24a603703369348b0707b7140cd006413ff4f5",
+            "hexseed": "010400fbc3e7ec8993068843edb886ec94141f9e66b65fb9b0171ba473f1c1fb78b901dee4d203d13b5ca95452971b89e7aec1",
+            "mnemonic": "absorb drank woke dolly tutor offer ally lusory under mature tweed drown bullet tokyo return within rainy invite pipe dose sector rid roar briton tick burial spate resist pound eight not risky tort tunnel",
+            "height": 8,
+            "hashFunction": "shake128",
+            "signatureType": 0,
+            "index": 21,
+            "encrypted": false,
+            "slaves": [],
+            "address": "Q010400adceec3e02ffff76e486391dd048e58ebe1607aa7f88e2635b63fefc2778dc2a18a0aaaa"
+          },
+          {
+            "pk": "0104004a640be444f88dfed429ef19042c4f2396d42441e39adc1ee44f045b0d926ba0f385e6f78c10089f86a9c830e5080a7c34f16feb671422ffbe58e9f553e20e9a",
+            "hexseed": "010400c8f5159f2ce198b2e29287bf262268b1cca42278b18e3856d1d849d4d4917b6ee91d5c4b04361ab33f950cba51d24b37",
+            "mnemonic": "absorb drank since fix park sock occult collar mutual learn cellar cervix reader skirt calf metal modern maiden spicy lyric starch europe lead until bride shaky agent grind refer who assure placid spinus regal",
+            "height": 8,
+            "hashFunction": "shake128",
+            "signatureType": 0,
+            "index": 21,
+            "encrypted": false,
+            "slaves": [],
+            "address": "Q01040098c5a6acfa7e7aae13ec78d67af6a256520bd694835874bfdcc2d2fb358dc4c9b5f3ceeb"
+          },
+          {
+            "pk": "010400a87e8bc63c3893efbaff43eea0131776310e5dc1f0e0fed194a45f966896f52f2aae7495edbb8f04072af6dd365429af5b7ec3c55cc748dff512a78f42e3bc5d",
+            "hexseed": "0104007a891ba30277f0c3036b1be020a4a2487316d3be18ad3383fef50a2aafd0ad02113c6ad8474cb250033b8b0236e81e7e",
+            "mnemonic": "absorb drank latter munich picket chart vanish corner hollow salary bury excise errant coupon squat tenth purify debit york finish clan worth pure butler diesel pushy entail sleepy filled crook met candle toward touch",
+            "height": 8,
+            "hashFunction": "shake128",
+            "signatureType": 0,
+            "index": 21,
+            "encrypted": false,
+            "slaves": [],
+            "address": "Q010400877881736e49155a3b0394035168e0220926809c93ecd5b26257c41fa8e3c665f93ccc9d"
+          }
+        ]
+      ],
+      "address": "Q01040064e2dd9409026a7b1122ce9e7553c2a64ef601657b7fd153a6084dc0e5307f0875cd0e29"
+    }
+  ],
+  "encrypted": false,
+  "version": 1
+}
