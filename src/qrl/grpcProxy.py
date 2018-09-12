@@ -6,6 +6,7 @@ import grpc
 from google.protobuf.json_format import MessageToJson
 from qrl.core import config
 from qrl.core.AddressState import AddressState
+from qrl.core.AddressHelper import any_to_rawaddress
 from qrl.crypto.xmss import XMSS
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
@@ -194,7 +195,7 @@ def transfer(destinations, fee, mixin, unlock_time):
     amounts = []
 
     for tx in destinations:
-        addrs_to.append(bytes(hstr2bin(tx['address'][1:])))  # Skipping 'Q'
+        addrs_to.append(any_to_rawaddress(tx['address']))  # Skipping 'Q'
         amounts.append(tx['amount'])
 
     stub = get_public_stub()

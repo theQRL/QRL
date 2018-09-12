@@ -12,6 +12,7 @@ from daemonize import Daemonize
 from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr, QRLHelper
 
 from qrl.core import config
+from qrl.core.AddressHelper import any_to_rawaddress, hex_to_rawaddress
 from qrl.core.AddressState import AddressState
 from qrl.daemon.helper import logger
 from qrl.daemon.helper.DaemonHelper import WalletDecryptionError, Wallet, UNRESERVED_OTS_INDEX_START
@@ -148,7 +149,7 @@ class WalletD:
     def qaddress_to_address(qaddress: str) -> bytes:
         if not qaddress:
             return qaddress
-        return bytes(hstr2bin(qaddress[1:]))
+        return hex_to_rawaddress(qaddress)
 
     @staticmethod
     def qaddresses_to_address(qaddresses: list) -> list:
@@ -277,7 +278,7 @@ class WalletD:
 
     def validate_address(self, qaddress: str) -> bool:
         try:
-            return AddressState.address_is_valid(bytes(hstr2bin(qaddress[1:])))
+            return AddressState.address_is_valid(any_to_rawaddress(qaddress))
         except Exception:
             return False
 
@@ -297,7 +298,7 @@ class WalletD:
         return self._wallet.wallet_info()
 
     def get_address_state(self, qaddress: str) -> AddressState:
-        request = qrl_pb2.GetAddressStateReq(address=bytes(hstr2bin(qaddress[1:])))
+        request = qrl_pb2.GetAddressStateReq(address=any_to_rawaddress(qaddress))
 
         resp = self._public_stub.GetAddressState(request=request)
         return AddressState(resp.state)

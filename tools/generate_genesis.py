@@ -7,6 +7,7 @@ from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.generated import qrl_pb2
 from qrl.core import config
+from qrl.core.AddressHelper import any_to_rawaddress
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.Block import Block
 from qrl.crypto.xmss import XMSS
@@ -35,7 +36,7 @@ def get_migration_transactions(signing_xmss):
     # output_limit = 100  # Overriding output limit to 4, to get multiple txns and better testing scenario
     for addr in json_data:
         try:
-            addrs_to.append(bytes(hstr2bin(addr[1:])))
+            addrs_to.append(any_to_rawaddress(addr))
         except: # noqa
             print("Invalid Address ", addr)
             raise Exception

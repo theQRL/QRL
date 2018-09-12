@@ -6,7 +6,7 @@ import os
 from typing import List, Optional
 
 import simplejson
-from pyqrllib.pyqrllib import mnemonic2bin, bin2hstr, hstr2bin
+from pyqrllib.pyqrllib import mnemonic2bin, bin2hstr
 
 from qrl.core import config
 from qrl.core.misc import logger
@@ -209,7 +209,7 @@ class Wallet:
         Returns all address items in the wallet
         :return:
         """
-        return [bytes(hstr2bin(item.qaddress[1:])) for item in self._address_items]
+        return [item.address_raw for item in self._address_items]
 
     @property
     def encrypted(self) -> bool:

@@ -9,8 +9,9 @@ from os.path import expanduser
 
 from mock import MagicMock
 from twisted.internet import reactor
-from pyqrllib.pyqrllib import hstr2bin, bin2hstr
+from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core.AddressHelper import any_to_rawaddress
 from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
@@ -78,9 +79,9 @@ def set_logger(args, sync_state):
 def get_mining_address(mining_address: str):
     try:
         if not mining_address:
-            mining_address = bytes(hstr2bin(config.user.mining_address[1:]))
+            mining_address = any_to_rawaddress(config.user.mining_address)
         else:
-            mining_address = bytes(hstr2bin(mining_address[1:]))
+            mining_address = any_to_rawaddress(mining_address)
 
         if not AddressState.address_is_valid(mining_address):
             raise ValueError('Mining Address Validation Failed')
