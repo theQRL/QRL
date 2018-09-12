@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import os
 from binascii import hexlify, a2b_base64
-from collections import namedtuple
 from decimal import Decimal
 from typing import List
 
@@ -13,7 +12,7 @@ from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
 from qrl.core.AddressHelper import any_to_rawaddress
-from qrl.core.Wallet import Wallet, WalletDecryptionError
+from qrl.core.Wallet import Wallet, WalletDecryptionError, AddressItem
 from qrl.core.misc.helper import parse_hexblob
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
@@ -25,9 +24,6 @@ from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
 ENV_QRL_WALLET_DIR = 'ENV_QRL_WALLET_DIR'
-
-OutputMessage = namedtuple('OutputMessage', 'error address_items balance_items')
-BalanceItem = namedtuple('BalanceItem', 'address balance')
 
 CONNECTION_TIMEOUT = 5
 
@@ -59,7 +55,7 @@ def _print_error(ctx, error_descr, wallets=None):
         print("ERROR: {}".format(error_descr))
 
 
-def _serialize_output(ctx, addresses: List[OutputMessage], source_description) -> dict:
+def _serialize_output(ctx, addresses: List[AddressItem], source_description) -> dict:
     if len(addresses) == 0:
         msg = {'error': 'No wallet found at {}'.format(source_description), 'wallets': []}
         return msg
@@ -104,7 +100,7 @@ def get_item_from_wallet(wallet, wallet_idx):
     return None
 
 
-def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
+def _print_addresses(ctx, addresses: List[AddressItem], source_description):
     def _normal(wallet):
         output = "{:<8}{:<83}{:<13}\n{:<8}{:<83}".format(wallet['number'], wallet['address'], wallet['balance'], "",
                                                          wallet['address_b32'])
@@ -152,13 +148,24 @@ def _public_get_address_balance(ctx, address):
     return get_address_state_resp.state.balance
 
 
-def _select_wallet(ctx, address_or_index) -> (bytes, XMSS):
+def _create_wallet_in_pwd(ctx) -> Wallet:
+    return Wallet(wallet_path=ctx.obj.wallet_path)
+
+
+def _find_wallet_in_pwd_or_config_dir(ctx) -> Wallet:
     try:
         wallet = Wallet(wallet_path=ctx.obj.wallet_path)
         if not wallet.addresses:
-            click.echo('This command requires a local wallet')
-            return
+            wallet = Wallet(wallet_path=Wallet.get_default_wallet_path())
+        return wallet
 
+    except Exception as e:
+        click.echo("An exception happened while finding a wallet.json")
+        click.echo(str(e))
+
+
+def _get_xmss_by_address_or_index(ctx, wallet, address_or_index) -> XMSS:
+    try:
         if wallet.encrypted:
             secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
             wallet.decrypt(secret)
@@ -169,11 +176,11 @@ def _select_wallet(ctx, address_or_index) -> (bytes, XMSS):
             if addr_item:
                 # FIXME: This should only return pk and index
                 xmss = wallet.get_xmss_by_index(index)
-                return wallet.addresses[index], xmss
+                return xmss
 
         elif address_or_index.startswith('Q') or address_or_index.startswith('q'):
             xmss = wallet.get_xmss_by_address_any(address_or_index)
-            return xmss.address, xmss
+            return xmss
         else:
             click.echo('Source address not found in your wallet', color='yellow')
             quit(1)
@@ -240,8 +247,8 @@ def wallet_ls(ctx):
     """
     Lists available wallets
     """
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
-    _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
+    wallet = _find_wallet_in_pwd_or_config_dir(ctx)
+    _print_addresses(ctx, wallet.address_items, wallet.wallet_path)
 
 
 @qrl.command()
@@ -255,14 +262,14 @@ def wallet_gen(ctx, height, hash_function, encrypt):
     """
     Generates a new wallet with one address
     """
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet = _create_wallet_in_pwd(ctx)
     if len(wallet.address_items) > 0:
         click.echo("Wallet already exists")
         return
 
     wallet.add_new_address(height, hash_function)
 
-    _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_path)
+    _print_addresses(ctx, wallet.address_items, wallet.wallet_path)
 
     if encrypt:
         secret = click.prompt('Enter password to encrypt wallet with', hide_input=True, confirmation_prompt=True)
@@ -281,7 +288,7 @@ def wallet_add(ctx, height, hash_function):
     Adds an address or generates a new wallet (working directory)
     """
     secret = None
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet = _find_wallet_in_pwd_or_config_dir(ctx)
     wallet_was_encrypted = wallet.encrypted
     if wallet.encrypted:
         secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
@@ -289,7 +296,7 @@ def wallet_add(ctx, height, hash_function):
 
     wallet.add_new_address(height, hash_function)
 
-    _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
+    _print_addresses(ctx, wallet.address_items, wallet.wallet_path)
 
     if wallet_was_encrypted:
         wallet.encrypt(secret)
@@ -321,7 +328,7 @@ def wallet_recover(ctx, seed_type):
             return
         bin_seed = hstr2bin(seed)
 
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet = _create_wallet_in_pwd(ctx)
 
     recovered_xmss = XMSS.from_extended_seed(bin_seed)
     print('Recovered Wallet Address : %s' % (recovered_xmss.qaddress,))
@@ -335,7 +342,7 @@ def wallet_recover(ctx, seed_type):
         wallet.append_xmss(recovered_xmss)
         wallet.save()
         click.echo('Done')
-        _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
+        _print_addresses(ctx, wallet.address_items, wallet.wallet_path)
 
 
 @qrl.command()
@@ -345,7 +352,7 @@ def wallet_secret(ctx, wallet_idx):
     """
     Provides the mnemonic/hexseed of the given address index
     """
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet = _find_wallet_in_pwd_or_config_dir(ctx)
     if wallet.encrypted:
         secret = click.prompt('The wallet is encrypted. Enter password', hide_input=True)
         wallet.decrypt(secret)
@@ -372,7 +379,7 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
     Use the wallet_secret command for obtaining the recovery Mnemonic/Hexseed and
     the wallet_recover command for restoring an address.
     """
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet = _create_wallet_in_pwd(ctx)
 
     address_item = get_item_from_wallet(wallet, wallet_idx)
 
@@ -386,13 +393,13 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
             click.confirm('Do you want to continue?', abort=True)
         wallet.remove(address_item.qaddress)
 
-        _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
+        _print_addresses(ctx, wallet.address_items, wallet.wallet_path)
 
 
 @qrl.command()
 @click.pass_context
 def wallet_encrypt(ctx):
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet = _find_wallet_in_pwd_or_config_dir(ctx)
     click.echo('Encrypting wallet at {}'.format(wallet.wallet_path))
 
     secret = click.prompt('Enter password', hide_input=True, confirmation_prompt=True)
@@ -403,7 +410,7 @@ def wallet_encrypt(ctx):
 @qrl.command()
 @click.pass_context
 def wallet_decrypt(ctx):
-    wallet = Wallet(wallet_path=ctx.obj.wallet_path)
+    wallet = _find_wallet_in_pwd_or_config_dir(ctx)
     click.echo('Decrypting wallet at {}'.format(wallet.wallet_path))
 
     secret = click.prompt('Enter password', hide_input=True)
@@ -488,10 +495,8 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
     Message Transaction
     """
     try:
-        _, src_xmss = _select_wallet(ctx, src)
-        if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
-            quit(1)
+        wallet = _find_wallet_in_pwd_or_config_dir(ctx)
+        src_xmss = _get_xmss_by_address_or_index(ctx, wallet, src)
 
         address_src_pk = src_xmss.pk
 
@@ -560,16 +565,8 @@ def tx_transfer(ctx, src, master, dsts, amounts, fee, ots_key_index):
 
     try:
         # Retrieve signing object
-        selected_wallet = _select_wallet(ctx, src)
-        if selected_wallet is None or len(selected_wallet) != 2:
-            click.echo("A wallet was not found")
-            quit(1)
-
-        _, src_xmss = selected_wallet
-
-        if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
-            quit(1)
+        wallet = _find_wallet_in_pwd_or_config_dir(ctx)
+        src_xmss = _get_xmss_by_address_or_index(ctx, wallet, src)
 
         address_src_pk = src_xmss.pk
 
@@ -655,10 +652,8 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
                                                       amount=amount))
 
     try:
-        _, src_xmss = _select_wallet(ctx, src)
-        if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
-            quit(1)
+        wallet = _find_wallet_in_pwd_or_config_dir(ctx)
+        src_xmss = _get_xmss_by_address_or_index(ctx, wallet, src)
 
         address_src_pk = src_xmss.pk
 
@@ -733,10 +728,8 @@ def tx_transfertoken(ctx, src, master, token_txhash, dsts, amounts, decimals, fe
         # FIXME: This could be problematic. Check
         fee_shor = _quanta_to_shor(fee)
 
-        _, src_xmss = _select_wallet(ctx, src)
-        if not src_xmss:
-            click.echo("A local wallet is required to sign the transaction")
-            quit(1)
+        wallet = _find_wallet_in_pwd_or_config_dir(ctx)
+        src_xmss = _get_xmss_by_address_or_index(ctx, wallet, src)
 
         address_src_pk = src_xmss.pk
 
@@ -782,7 +775,8 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
     Generates Slave Transaction for the wallet
     """
     try:
-        _, src_xmss = _select_wallet(ctx, src)
+        wallet = _find_wallet_in_pwd_or_config_dir(ctx)
+        src_xmss = _get_xmss_by_address_or_index(ctx, wallet, src)
 
         ots_key_index = validate_ots_index(ots_key_index, src_xmss)
         src_xmss.set_ots_index(ots_key_index)

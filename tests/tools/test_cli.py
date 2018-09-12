@@ -83,6 +83,70 @@ class TestCLI_Wallet_Gen(TestCase):
 
 
 @mock.patch('qrl.cli.grpc.insecure_channel', new=mock.MagicMock())
+class TestCLI_Wallet_Directory_Behaviour(TestCase):
+    """
+    The following commands will only create/read from ./wallet.json
+    wallet_gen, wallet_recover, wallet_rm
+    All other commands will try to read from ./wallet.json - if empty, fallback to ~/.qrl/wallet.json
+    """
+
+    def setUp(self):
+        self.runner = CliRunner(env={"LC_ALL": "C.UTF-8", "LANG": "C.UTF-8"})
+        self.prev_dir = os.getcwd()
+        self.temp_dir = tempfile.mkdtemp()
+        self.mock_config_dir = tempfile.mkdtemp()
+
+        os.chdir(self.temp_dir)
+
+    def test_wallet_gen_only_touches_pwd(self):
+        with mock.patch('qrl.core.config.user', wallet_dir=self.mock_config_dir):
+            result = self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
+        wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertFalse(os.listdir(self.mock_config_dir))
+
+    def test_wallet_recover_only_touches_pwd(self):
+        with mock.patch('qrl.core.config.user', wallet_dir=self.mock_config_dir):
+            result = self.runner.invoke(qrl_cli,
+                                        ["wallet_recover", "--seed-type=hexseed"],
+                                        input='\n'.join(
+                                            ['010400589c3e0bf438bcdc5575c9cb367e9dbb96c7182c9ed5fd6711f832b94d1d5782b345f77d71c1f2f4fa4aa609f040b69f', 'y']
+                                        ))
+        wallet = open_wallet()
+        self.assertIn(self.temp_dir, result.output)
+        self.assertIn(wallet["addresses"][0]["address"], result.output)
+        self.assertFalse(os.listdir(self.mock_config_dir))
+
+    def test_wallet_rm_only_touches_pwd(self):
+        os.chdir(self.mock_config_dir)
+        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
+        self.assertTrue(os.listdir(self.mock_config_dir))
+        os.chdir(self.temp_dir)
+
+        self.assertFalse(os.listdir(self.temp_dir))
+        result = self.runner.invoke(qrl_cli, ["wallet_rm", "--wallet-idx=0", "--skip-confirmation"], input='y\n')
+        self.assertIn('Wallet index not found 0', result.output)
+
+    def test_wallet_ls_looks_in_pwd_first_then_config_dir(self):
+        os.chdir(self.mock_config_dir)
+        self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
+        wallet_in_config_dir = open_wallet()
+        os.chdir(self.temp_dir)
+
+        with mock.patch('qrl.core.config.user', wallet_dir=self.mock_config_dir):
+            result = self.runner.invoke(qrl_cli, ["wallet_ls"])
+            self.assertIn(self.mock_config_dir, result.output)
+            self.assertIn(wallet_in_config_dir["addresses"][0]["address"], result.output)
+
+            self.runner.invoke(qrl_cli, ["wallet_gen", "--height=4"])
+            wallet_in_pwd = open_wallet()
+            result = self.runner.invoke(qrl_cli, ["wallet_ls"])
+            self.assertIn(self.temp_dir, result.output)
+            self.assertIn(wallet_in_pwd["addresses"][0]["address"], result.output)
+
+
+@mock.patch('qrl.cli.grpc.insecure_channel', new=mock.MagicMock())
 class TestCLI(TestCase):
     def __init__(self, *args, **kwargs):
         super(TestCLI, self).__init__(*args, **kwargs)
@@ -110,11 +174,6 @@ class TestCLI(TestCase):
         wallet = open_wallet()
         self.assertIn(wallet["addresses"][0]["hashFunction"], result.output)
         self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
-
-    def test_wallet_ls_empty(self):
-        os.remove("wallet.json")
-        result = self.runner.invoke(qrl_cli, ["wallet_ls"])
-        self.assertIn("No wallet found", result.output)
 
     def test_wallet_ls_json(self):
         result = self.runner.invoke(qrl_cli, ["--json", "wallet_ls"])
