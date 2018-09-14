@@ -206,8 +206,8 @@ class WalletD:
         if not height:
             height = 10
 
-        if height < 8:
-            raise Exception("Height cannot be less than 8")
+        if height < 6:
+            raise Exception("Height cannot be less than 6")
 
         if not number_of_slaves:
             number_of_slaves = config.user.number_of_slaves
@@ -304,7 +304,7 @@ class WalletD:
                                   group_index=None,
                                   slave_index=None,
                                   enable_save=True):
-        logger.info("Signing transaction by %s", xmss.qaddress)
+        logger.info("Signing %s transaction by %s | OTS index %s", tx.type, xmss.qaddress, xmss.ots_index)
         tx.sign(xmss)
         if not tx.validate(True):
             raise Exception("Invalid Transaction")
@@ -320,6 +320,34 @@ class WalletD:
         if push_transaction_resp.error_code != qrl_pb2.PushTransactionResp.SUBMITTED:
             raise Exception(push_transaction_resp.error_description)
 
+    def try_txn_with_last_slave(self, item, index, group_index, xmss=None):
+        slave = item.slaves[group_index][-1]
+
+        # Ignore usage of last 5 ots indexes for the last slave in slave group
+        if slave.index >= 2 ** slave.height - 5:
+            return None
+
+        slave_index = len(item.slaves[group_index]) - 1
+        slave_address_state = self.get_address_state(slave.qaddress)
+
+        ots_index = slave_address_state.get_unused_ots_index(slave.index)
+
+        if ots_index == None:  # noqa
+            self._wallet.set_slave_ots_index(index,
+                                             group_index,
+                                             slave_index,
+                                             2 ** slave.height)
+            return None
+        if not xmss:
+            target_address_item = slave
+            if self._passphrase:
+                target_address_item = self._wallet.decrypt_address_item(slave, self._passphrase)
+            xmss = self._wallet.get_xmss_by_item(target_address_item, ots_index)
+        else:
+            xmss.set_ots_index(ots_index)
+
+        return xmss
+
     def get_slave(self, master_qaddress):
         index, item = self._wallet.get_address_item(master_qaddress)
 
@@ -332,11 +360,11 @@ class WalletD:
             if len(item.slaves) == 1:
                 qaddress = item.qaddress
                 target_address_item = item
-                slave_index = None
+                group_index = None
             else:
                 qaddress = item.slaves[-2][-1].qaddress
                 target_address_item = item.slaves[-2][-1]
-                slave_index = -2
+                group_index = -2
 
             address_state = self.get_address_state(qaddress)
             ots_index = address_state.get_unused_ots_index()
@@ -357,15 +385,29 @@ class WalletD:
             self.sign_and_push_transaction(tx,
                                            xmss,
                                            index,
-                                           slave_index,
                                            enable_save=False)
+
+            if len(item.slaves) > 1:
+                if self.try_txn_with_last_slave(item, index, group_index, xmss):
+                    return index, len(item.slaves) - 2, len(item.slaves[group_index]) - 1, xmss
+
         else:
+            if len(item.slaves) > 1:
+                group_index = len(item.slaves) - 2
+                xmss = self.try_txn_with_last_slave(item, index, group_index)
+                if xmss:
+                    return index, group_index, len(item.slaves[group_index]) - 1, xmss
             group_index = len(item.slaves) - 1
             last_slaves = item.slaves[-1]
             for slave_index in range(len(last_slaves)):
                 slave = last_slaves[slave_index]
 
-                if slave.index >= 2 ** slave.height - 5:
+                # Check if all ots index has been marked as used
+                if slave.index > 2 ** slave.height - 1:
+                    continue
+
+                # Ignore usage of last 5 ots indexes for the last slave in slave group
+                if slave_index + 1 == len(last_slaves) and slave.index >= 2 ** slave.height - 5:
                     continue
 
                 if self._passphrase:
@@ -377,11 +419,11 @@ class WalletD:
 
                     ots_index = slave_address_state.get_unused_ots_index(0)
                     if ots_index >= UNRESERVED_OTS_INDEX_START:
-                        raise Exception("Fatal Error, no unused OTS index")
+                        raise Exception("Fatal Error, no unused reserved OTS index")
 
                     curr_slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
 
-                    slave_xmss_list = self._wallet.add_slave(index=-1,
+                    slave_xmss_list = self._wallet.add_slave(index=index,
                                                              height=slave.height,
                                                              number_of_slaves=config.user.number_of_slaves,
                                                              passphrase=self._passphrase,
@@ -401,7 +443,10 @@ class WalletD:
                 ots_index = slave_address_state.get_unused_ots_index(slave.index)
 
                 if ots_index == None:  # noqa
-                    self._wallet.set_slave_ots_index(index, group_index, slave_index, 2 ** slave.height - 1)
+                    self._wallet.set_slave_ots_index(index,
+                                                     group_index,
+                                                     slave_index,
+                                                     2 ** slave.height)
                     continue
 
                 slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
@@ -680,10 +725,16 @@ class WalletD:
         logger.info("Wallet Encrypted")
 
     def lock_wallet(self):
+        if not self._wallet.is_encrypted():
+            raise Exception('You cannot lock an unencrypted Wallet')
+
         self._passphrase = None
         logger.info("Wallet Locked")
 
     def unlock_wallet(self, passphrase: str):
+        if not self._wallet.is_encrypted():
+            raise Exception('You cannot unlock an unencrypted Wallet')
+
         self._passphrase = passphrase
         self._wallet.decrypt(passphrase, first_address_only=True)  # Check if Password Correct
         self._wallet.encrypt_item(0, passphrase)  # Re-Encrypt first address item

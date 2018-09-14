@@ -18,7 +18,7 @@ AddressItem = namedtuple('AddressItem',
                          'qaddress pk hexseed mnemonic height hashFunction signatureType index encrypted slaves')
 
 
-UNRESERVED_OTS_INDEX_START = 21
+UNRESERVED_OTS_INDEX_START = 5
 
 
 class WalletException(Exception):
@@ -458,7 +458,8 @@ class Wallet:
 
         for i in range(number_of_slaves):
             tmp_xmss = XMSS.from_height(height, hash_function)
-            tmp_xmss.set_ots_index(UNRESERVED_OTS_INDEX_START)  # Start from unreserved ots index
+            if i == number_of_slaves - 1:
+                tmp_xmss.set_ots_index(UNRESERVED_OTS_INDEX_START)  # Start from unreserved ots index
             slaves_xmss.append(tmp_xmss)
 
         self.append_slave(slaves_xmss, passphrase, index)
