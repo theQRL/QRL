@@ -800,6 +800,9 @@ class WalletD:
     def get_address_from_pk(self, pk: str) -> str:
         return self.address_to_qaddress(QRLHelper.getAddress(bytes(hstr2bin(pk))))
 
+    def get_node_info(self):
+        return self._public_stub.GetNodeState(qrl_pb2.GetNodeStateReq())
+
 
 def run():
     logger.initialize_default(force_console_output=True).setLevel(logging.INFO)

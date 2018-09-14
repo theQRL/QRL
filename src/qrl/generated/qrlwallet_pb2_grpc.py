@@ -167,6 +167,11 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.AddressFromPKReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.AddressFromPKResp.FromString,
         )
+    self.GetNodeInfo = channel.unary_unary(
+        '/qrl.WalletAPI/GetNodeInfo',
+        request_serializer=qrlwallet__pb2.NodeInfoReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.NodeInfoResp.FromString,
+        )
 
 
 class WalletAPIServicer(object):
@@ -357,6 +362,12 @@ class WalletAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetNodeInfo(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
 
 def add_WalletAPIServicer_to_server(servicer, server):
   rpc_method_handlers = {
@@ -504,6 +515,11 @@ def add_WalletAPIServicer_to_server(servicer, server):
           servicer.GetAddressFromPK,
           request_deserializer=qrlwallet__pb2.AddressFromPKReq.FromString,
           response_serializer=qrlwallet__pb2.AddressFromPKResp.SerializeToString,
+      ),
+      'GetNodeInfo': grpc.unary_unary_rpc_method_handler(
+          servicer.GetNodeInfo,
+          request_deserializer=qrlwallet__pb2.NodeInfoReq.FromString,
+          response_serializer=qrlwallet__pb2.NodeInfoResp.SerializeToString,
       ),
   }
   generic_handler = grpc.method_handlers_generic_handler(
