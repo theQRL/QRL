@@ -357,7 +357,7 @@ class WalletAPIService(WalletAPIServicer):
     def GetBalance(self, request: qrlwallet_pb2.BalanceReq, context) -> qrlwallet_pb2.BalanceResp:
         resp = qrlwallet_pb2.BalanceResp()
         try:
-            resp.balance = self._walletd.get_balance(request.address)
+            resp.balance = str(self._walletd.get_balance(request.address))
         except Exception as e:
             resp.code = 1
             resp.error = str(e)

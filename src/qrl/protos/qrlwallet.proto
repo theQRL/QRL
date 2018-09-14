@@ -321,7 +321,7 @@ message BalanceReq {
 message BalanceResp {
     uint32 code = 1;
     string error = 2;
-    uint64 balance = 3;
+    string balance = 3;
 }
 
 message OTSReq {

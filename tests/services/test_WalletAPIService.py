@@ -593,7 +593,7 @@ class TestWalletAPI(TestCase):
             resp = service.GetBalance(qrlwallet_pb2.BalanceReq(address=self.qaddress), context=None)
 
             self.assertEqual(resp.code, 0)
-            self.assertEqual(resp.balance, 1000)
+            self.assertEqual(resp.balance, "1000")
 
     def test_getOTS(self):
         with set_qrl_dir("wallet_ver1"):
