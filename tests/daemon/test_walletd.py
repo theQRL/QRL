@@ -81,27 +81,28 @@ class TestWalletD(TestCase):
             slave01_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[0][1].qaddress))
             slave02_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[0][2].qaddress))
 
-            self.assertEqual(slaves[0][0].index, 21)
-            for i in range(21, 1020):
+            self.assertEqual(slaves[0][0].index, 0)
+            for i in range(0, 1024):
                 slave00_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 0, 0, 1020)
             m.put(slaves[0][0].qaddress, slave00_addr_state)
 
-            self.assertEqual(slaves[0][1].index, 21)
-            for i in range(21, 1020):
+            self.assertEqual(slaves[0][1].index, 0)
+            for i in range(0, 1024):
                 slave01_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 0, 1, 1020)
             m.put(slaves[0][1].qaddress, slave01_addr_state)
 
-            self.assertEqual(slaves[0][2].index, 21)
-            for i in range(21, 1000):
+            self.assertEqual(slaves[0][2].index, 5)
+            for i in range(5, 1000):
                 slave02_addr_state.set_ots_key(i)
-            walletd._wallet.set_slave_ots_index(0, 0, 2, 1000)
+            walletd._wallet.set_slave_ots_index(0, 0, 2, 1018)
             m.put(slaves[0][2].qaddress, slave02_addr_state)
 
             walletd.get_slave(qaddress)
             slaves = walletd.get_slave_list(qaddress)
             self.assertEqual(len(slaves), 2)
+            walletd._wallet.set_slave_ots_index(0, 0, 2, 1019)
 
             master_addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[1][0].pk)), 0)
             master_addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[1][1].pk)), 0)
@@ -110,27 +111,28 @@ class TestWalletD(TestCase):
             slave11_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[1][1].qaddress))
             slave12_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[1][2].qaddress))
 
-            self.assertEqual(slaves[1][0].index, 21)
-            for i in range(21, 1020):
+            self.assertEqual(slaves[1][0].index, 0)
+            for i in range(0, 1024):
                 slave10_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 1, 0, 1020)
             m.put(slaves[1][0].qaddress, slave10_addr_state)
 
-            self.assertEqual(slaves[1][1].index, 21)
-            for i in range(21, 1020):
+            self.assertEqual(slaves[1][1].index, 0)
+            for i in range(0, 1024):
                 slave11_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 1, 1, 1020)
             m.put(slaves[1][1].qaddress, slave11_addr_state)
 
-            self.assertEqual(slaves[1][2].index, 21)
-            for i in range(21, 1000):
+            self.assertEqual(slaves[1][2].index, 5)
+            for i in range(5, 1000):
                 slave12_addr_state.set_ots_key(i)
-            walletd._wallet.set_slave_ots_index(0, 1, 2, 1000)
+            walletd._wallet.set_slave_ots_index(0, 1, 2, 1018)
             m.put(slaves[1][2].qaddress, slave12_addr_state)
 
             walletd.get_slave(qaddress)
             slaves = walletd.get_slave_list(qaddress)
             self.assertEqual(len(slaves), 3)
+            walletd._wallet.set_slave_ots_index(0, 1, 2, 1019)
 
             master_addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[2][0].pk)), 0)
             master_addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[2][1].pk)), 0)
@@ -139,27 +141,28 @@ class TestWalletD(TestCase):
             slave21_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[2][1].qaddress))
             slave22_addr_state = AddressState.get_default(walletd.qaddress_to_address(slaves[2][2].qaddress))
 
-            self.assertEqual(slaves[2][0].index, 21)
-            for i in range(21, 1020):
+            self.assertEqual(slaves[2][0].index, 0)
+            for i in range(0, 1024):
                 slave20_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 2, 0, 1020)
             m.put(slaves[2][0].qaddress, slave20_addr_state)
 
-            self.assertEqual(slaves[2][1].index, 21)
-            for i in range(21, 1020):
+            self.assertEqual(slaves[2][1].index, 0)
+            for i in range(0, 1024):
                 slave21_addr_state.set_ots_key(i)
             walletd._wallet.set_slave_ots_index(0, 2, 1, 1020)
             m.put(slaves[2][1].qaddress, slave21_addr_state)
 
-            self.assertEqual(slaves[2][2].index, 21)
-            for i in range(21, 1000):
+            self.assertEqual(slaves[2][2].index, 5)
+            for i in range(5, 1000):
                 slave22_addr_state.set_ots_key(i)
-            walletd._wallet.set_slave_ots_index(0, 2, 2, 1000)
+            walletd._wallet.set_slave_ots_index(0, 2, 2, 1018)
             m.put(slaves[2][2].qaddress, slave22_addr_state)
 
             walletd.get_slave(qaddress)
             slaves = walletd.get_slave_list(qaddress)
             self.assertEqual(len(slaves), 4)
+            walletd._wallet.set_slave_ots_index(0, 0, 2, 1019)
 
     def test_encrypt_last_item(self):
         with set_qrl_dir("wallet_ver1"):
@@ -1019,3 +1022,34 @@ class TestWalletD(TestCase):
 
             address = walletd.get_address_from_pk(pk)
             self.assertEqual(address, 'Q010200670246b0026436b717f199e3ec5320ba6ab61d5eddff811ac199a9e9b871d3280178b343')
+
+    def test_get_node_info(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            block_last_hash_str = 'c23f47a10a8c53cc5ded096369255a32c4a218682a961d0ee7db22c500000000'
+
+            version = "1.0.0"
+            num_connections = 10
+            num_known_peers = 200
+            uptime = 10000
+            block_height = 102345
+            block_last_hash = bytes(hstr2bin(block_last_hash_str))
+            network_id = "network id"
+            node_info = qrl_pb2.NodeInfo(version=version,
+                                         num_connections=num_connections,
+                                         num_known_peers=num_known_peers,
+                                         uptime=uptime,
+                                         block_height=block_height,
+                                         block_last_hash=block_last_hash,
+                                         network_id=network_id)
+            walletd._public_stub.GetNodeState = Mock(
+                return_value=qrl_pb2.GetNodeStateResp(info=node_info))
+
+            b = walletd.get_node_info()
+            self.assertEqual(b.info.version, version)
+            self.assertEqual(b.info.num_connections, num_connections)
+            self.assertEqual(b.info.num_known_peers, num_known_peers)
+            self.assertEqual(b.info.uptime, uptime)
+            self.assertEqual(b.info.block_height, block_height)
+            self.assertEqual(b.info.block_last_hash, block_last_hash)
+            self.assertEqual(b.info.network_id, network_id)

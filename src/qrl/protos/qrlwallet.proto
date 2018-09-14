@@ -28,7 +28,7 @@ service WalletAPI
 
     rpc RemoveAddress(RemoveAddressReq) returns (RemoveAddressResp);
 
-    rpc ValidateAddress(ValidateAddressReq) returns (ValidateAddressResp);
+    rpc IsValidAddress(ValidAddressReq) returns (ValidAddressResp);
 
     rpc EncryptWallet(EncryptWalletReq) returns (EncryptWalletResp);
 
@@ -78,6 +78,8 @@ service WalletAPI
 
     rpc GetAddressFromPK(AddressFromPKReq) returns (AddressFromPKResp);
 
+    rpc GetNodeInfo(NodeInfoReq) returns (NodeInfoResp);
+
 }
 
 message AddNewAddressReq {
@@ -126,14 +128,14 @@ message RemoveAddressResp {
     string error = 2;
 }
 
-message ValidateAddressReq {
+message ValidAddressReq {
     string address = 1;
 }
 
-message ValidateAddressResp {
+message ValidAddressResp {
     uint32 code = 1;
     string error = 2;
-    bool valid = 3;
+    string valid = 3;
 }
 
 
@@ -321,7 +323,7 @@ message BalanceReq {
 message BalanceResp {
     uint32 code = 1;
     string error = 2;
-    uint64 balance = 3;
+    string balance = 3;
 }
 
 message OTSReq {
@@ -366,6 +368,22 @@ message AddressFromPKResp {
     uint32 code = 1;
     string error = 2;
     string address = 3;
+}
+
+message NodeInfoReq {
+}
+
+message NodeInfoResp {
+    uint32 code = 1;
+    string error = 2;
+
+    string version = 3;
+    uint32 num_connections = 4;
+    uint32 num_known_peers = 5;
+    uint64 uptime = 6;               // Uptime in seconds
+    uint64 block_height = 7;
+    string block_last_hash = 8;
+    string network_id = 9;
 }
 
 message PlainGenesisBalance {

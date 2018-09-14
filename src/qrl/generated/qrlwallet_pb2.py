@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrlwallet.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\x0fqrlwallet.proto\x12\x03qrl\x1a\tqrl.proto\"9\n\x10\x41\x64\x64NewAddressReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x15\n\rhash_function\x18\x02 \x01(\t\"A\n\x11\x41\x64\x64NewAddressResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\"]\n\x1a\x41\x64\x64NewAddressWithSlavesReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x18\n\x10number_of_slaves\x18\x02 \x01(\x04\x12\x15\n\rhash_function\x18\x03 \x01(\t\"%\n\x15\x41\x64\x64\x41\x64\x64ressFromSeedReq\x12\x0c\n\x04seed\x18\x01 \x01(\t\"F\n\x16\x41\x64\x64\x41\x64\x64ressFromSeedResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\"\x12\n\x10ListAddressesReq\"C\n\x11ListAddressesResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x11\n\taddresses\x18\x03 \x03(\t\"#\n\x10RemoveAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"0\n\x11RemoveAddressResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"%\n\x12ValidateAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"A\n\x13ValidateAddressResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\r\n\x05valid\x18\x03 \x01(\x08\"&\n\x10\x45ncryptWalletReq\x12\x12\n\npassphrase\x18\x01 \x01(\t\"0\n\x11\x45ncryptWalletResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"%\n\x0fUnlockWalletReq\x12\x12\n\npassphrase\x18\x01 \x01(\t\"/\n\x10UnlockWalletResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\x0f\n\rLockWalletReq\"-\n\x0eLockWalletResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"&\n\x13GetRecoverySeedsReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"V\n\x14GetRecoverySeedsResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07hexseed\x18\x03 \x01(\t\x12\x10\n\x08mnemonic\x18\x04 \x01(\t\"\x12\n\x10GetWalletInfoReq\"n\n\x11GetWalletInfoResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\r\x12\x15\n\raddress_count\x18\x04 \x01(\x04\x12\x14\n\x0cis_encrypted\x18\x05 \x01(\x08\"\x8c\x01\n\x13RelayTransferTxnReq\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x01 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x02 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x16\n\x0emaster_address\x18\x04 \x01(\t\x12\x16\n\x0esigner_address\x18\x05 \x01(\t\x12\x11\n\tots_index\x18\x06 \x01(\x04\"h\n\x1aRelayTransferTxnBySlaveReq\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x01 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x02 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x16\n\x0emaster_address\x18\x04 \x01(\t\"u\n\x12RelayMessageTxnReq\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x16\n\x0emaster_address\x18\x03 \x01(\t\x12\x16\n\x0esigner_address\x18\x04 \x01(\t\x12\x11\n\tots_index\x18\x05 \x01(\x04\"Q\n\x19RelayMessageTxnBySlaveReq\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x16\n\x0emaster_address\x18\x03 \x01(\t\"\xc5\x01\n\x10RelayTokenTxnReq\x12\x0e\n\x06symbol\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05owner\x18\x03 \x01(\t\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12\x11\n\taddresses\x18\x05 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x06 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x07 \x01(\x04\x12\x16\n\x0emaster_address\x18\x08 \x01(\t\x12\x16\n\x0esigner_address\x18\t \x01(\t\x12\x11\n\tots_index\x18\n \x01(\x04\"\xa1\x01\n\x17RelayTokenTxnBySlaveReq\x12\x0e\n\x06symbol\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05owner\x18\x03 \x01(\t\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12\x11\n\taddresses\x18\x05 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x06 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x07 \x01(\x04\x12\x16\n\x0emaster_address\x18\x08 \x01(\t\"\xa7\x01\n\x18RelayTransferTokenTxnReq\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x01 \x03(\t\x12\x14\n\x0ctoken_txhash\x18\x02 \x01(\t\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x16\n\x0emaster_address\x18\x05 \x01(\t\x12\x16\n\x0esigner_address\x18\x06 \x01(\t\x12\x11\n\tots_index\x18\x07 \x01(\x04\"\x83\x01\n\x1fRelayTransferTokenTxnBySlaveReq\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x01 \x03(\t\x12\x14\n\x0ctoken_txhash\x18\x02 \x01(\t\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x16\n\x0emaster_address\x18\x05 \x01(\t\"\x8b\x01\n\x10RelaySlaveTxnReq\x12\x11\n\tslave_pks\x18\x01 \x03(\x0c\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x02 \x03(\r\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x16\n\x0emaster_address\x18\x04 \x01(\t\x12\x16\n\x0esigner_address\x18\x05 \x01(\t\x12\x11\n\tots_index\x18\x06 \x01(\x04\"g\n\x17RelaySlaveTxnBySlaveReq\x12\x11\n\tslave_pks\x18\x01 \x03(\x0c\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x02 \x03(\r\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x16\n\x0emaster_address\x18\x04 \x01(\t\"N\n\x0cRelayTxnResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12!\n\x02tx\x18\x03 \x01(\x0b\x32\x15.qrl.PlainTransaction\"C\n\x13\x43hangePassphraseReq\x12\x15\n\roldPassphrase\x18\x01 \x01(\t\x12\x15\n\rnewPassphrase\x18\x02 \x01(\t\"3\n\x14\x43hangePassphraseResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"+\n\x18TransactionsByAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"z\n\x19TransactionsByAddressResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12/\n\x11mini_transactions\x18\x03 \x03(\x0b\x32\x14.qrl.MiniTransaction\x12\x0f\n\x07\x62\x61lance\x18\x04 \x01(\x04\"!\n\x0eTransactionReq\x12\x0f\n\x07tx_hash\x18\x01 \x01(\t\"\x99\x01\n\x0fTransactionResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12!\n\x02tx\x18\x03 \x01(\x0b\x32\x15.qrl.PlainTransaction\x12\x15\n\rconfirmations\x18\x04 \x01(\x04\x12\x14\n\x0c\x62lock_number\x18\x05 \x01(\x04\x12\x19\n\x11\x62lock_header_hash\x18\x06 \x01(\t\"\x1d\n\nBalanceReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\";\n\x0b\x42\x61lanceResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x03 \x01(\x04\"\x19\n\x06OTSReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"[\n\x07OTSResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x14\n\x0cots_bitfield\x18\x03 \x03(\x0c\x12\x1d\n\x15next_unused_ots_index\x18\x04 \x01(\x04\"\x0b\n\tHeightReq\"9\n\nHeightResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0e\n\x06height\x18\x03 \x01(\x04\"\x1f\n\x08\x42lockReq\x12\x13\n\x0bheader_hash\x18\x01 \x01(\t\"H\n\tBlockResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x1e\n\x05\x62lock\x18\x03 \x01(\x0b\x32\x0f.qrl.PlainBlock\"(\n\x10\x42lockByNumberReq\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\"\x1e\n\x10\x41\x64\x64ressFromPKReq\x12\n\n\x02pk\x18\x01 \x01(\t\"A\n\x11\x41\x64\x64ressFromPKResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\"7\n\x13PlainGenesisBalance\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"5\n\x12PlainAddressAmount\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\"\xce\x07\n\x10PlainTransaction\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\t\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x12\n\npublic_key\x18\x03 \x01(\t\x12\x11\n\tsignature\x18\x04 \x01(\t\x12\r\n\x05nonce\x18\x05 \x01(\x04\x12\x18\n\x10transaction_hash\x18\x06 \x01(\t\x12\x13\n\x0bsigner_addr\x18\x07 \x01(\t\x12\x32\n\x08transfer\x18\x08 \x01(\x0b\x32\x1e.qrl.PlainTransaction.TransferH\x00\x12\x32\n\x08\x63oinbase\x18\t \x01(\x0b\x32\x1e.qrl.PlainTransaction.CoinBaseH\x00\x12;\n\tlatticePK\x18\n \x01(\x0b\x32&.qrl.PlainTransaction.LatticePublicKeyH\x00\x12\x30\n\x07message\x18\x0b \x01(\x0b\x32\x1d.qrl.PlainTransaction.MessageH\x00\x12,\n\x05token\x18\x0c \x01(\x0b\x32\x1b.qrl.PlainTransaction.TokenH\x00\x12=\n\x0etransfer_token\x18\r \x01(\x0b\x32#.qrl.PlainTransaction.TransferTokenH\x00\x12,\n\x05slave\x18\x0e \x01(\x0b\x32\x1b.qrl.PlainTransaction.SlaveH\x00\x1a-\n\x08Transfer\x12\x10\n\x08\x61\x64\x64rs_to\x18\x01 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x02 \x03(\x04\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1a:\n\x10LatticePublicKey\x12\x10\n\x08kyber_pk\x18\x01 \x01(\t\x12\x14\n\x0c\x64ilithium_pk\x18\x02 \x01(\t\x1a\x1f\n\x07Message\x12\x14\n\x0cmessage_hash\x18\x01 \x01(\t\x1ay\n\x05Token\x12\x0e\n\x06symbol\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05owner\x18\x03 \x01(\t\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12\x31\n\x10initial_balances\x18\x05 \x03(\x0b\x32\x17.qrl.PlainAddressAmount\x1aH\n\rTransferToken\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\t\x12\x10\n\x08\x61\x64\x64rs_to\x18\x02 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x1a\x30\n\x05Slave\x12\x11\n\tslave_pks\x18\x01 \x03(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x02 \x03(\rB\x11\n\x0ftransactionType\"\xdc\x01\n\x10PlainBlockHeader\x12\x13\n\x0bhash_header\x18\x01 \x01(\t\x12\x14\n\x0c\x62lock_number\x18\x02 \x01(\x04\x12\x19\n\x11timestamp_seconds\x18\x03 \x01(\x04\x12\x18\n\x10hash_header_prev\x18\x04 \x01(\t\x12\x14\n\x0creward_block\x18\x05 \x01(\x04\x12\x12\n\nreward_fee\x18\x06 \x01(\x04\x12\x13\n\x0bmerkle_root\x18\x07 \x01(\t\x12\x14\n\x0cmining_nonce\x18\x08 \x01(\r\x12\x13\n\x0b\x65xtra_nonce\x18\t \x01(\x04\"\x93\x01\n\nPlainBlock\x12%\n\x06header\x18\x01 \x01(\x0b\x32\x15.qrl.PlainBlockHeader\x12+\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x15.qrl.PlainTransaction\x12\x31\n\x0fgenesis_balance\x18\x03 \x03(\x0b\x32\x18.qrl.PlainGenesisBalance2\xf8\x0e\n\tWalletAPI\x12>\n\rAddNewAddress\x12\x15.qrl.AddNewAddressReq\x1a\x16.qrl.AddNewAddressResp\x12R\n\x17\x41\x64\x64NewAddressWithSlaves\x12\x1f.qrl.AddNewAddressWithSlavesReq\x1a\x16.qrl.AddNewAddressResp\x12>\n\rListAddresses\x12\x15.qrl.ListAddressesReq\x1a\x16.qrl.ListAddressesResp\x12>\n\rRemoveAddress\x12\x15.qrl.RemoveAddressReq\x1a\x16.qrl.RemoveAddressResp\x12\x44\n\x0fValidateAddress\x12\x17.qrl.ValidateAddressReq\x1a\x18.qrl.ValidateAddressResp\x12>\n\rEncryptWallet\x12\x15.qrl.EncryptWalletReq\x1a\x16.qrl.EncryptWalletResp\x12\x35\n\nLockWallet\x12\x12.qrl.LockWalletReq\x1a\x13.qrl.LockWalletResp\x12;\n\x0cUnlockWallet\x12\x14.qrl.UnlockWalletReq\x1a\x15.qrl.UnlockWalletResp\x12G\n\x10GetRecoverySeeds\x12\x18.qrl.GetRecoverySeedsReq\x1a\x19.qrl.GetRecoverySeedsResp\x12>\n\rGetWalletInfo\x12\x15.qrl.GetWalletInfoReq\x1a\x16.qrl.GetWalletInfoResp\x12?\n\x10RelayTransferTxn\x12\x18.qrl.RelayTransferTxnReq\x1a\x11.qrl.RelayTxnResp\x12M\n\x17RelayTransferTxnBySlave\x12\x1f.qrl.RelayTransferTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12=\n\x0fRelayMessageTxn\x12\x17.qrl.RelayMessageTxnReq\x1a\x11.qrl.RelayTxnResp\x12K\n\x16RelayMessageTxnBySlave\x12\x1e.qrl.RelayMessageTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12\x39\n\rRelayTokenTxn\x12\x15.qrl.RelayTokenTxnReq\x1a\x11.qrl.RelayTxnResp\x12G\n\x14RelayTokenTxnBySlave\x12\x1c.qrl.RelayTokenTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12I\n\x15RelayTransferTokenTxn\x12\x1d.qrl.RelayTransferTokenTxnReq\x1a\x11.qrl.RelayTxnResp\x12W\n\x1cRelayTransferTokenTxnBySlave\x12$.qrl.RelayTransferTokenTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12\x39\n\rRelaySlaveTxn\x12\x15.qrl.RelaySlaveTxnReq\x1a\x11.qrl.RelayTxnResp\x12G\n\x14RelaySlaveTxnBySlave\x12\x1c.qrl.RelaySlaveTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12G\n\x10\x43hangePassphrase\x12\x18.qrl.ChangePassphraseReq\x1a\x19.qrl.ChangePassphraseResp\x12Y\n\x18GetTransactionsByAddress\x12\x1d.qrl.TransactionsByAddressReq\x1a\x1e.qrl.TransactionsByAddressResp\x12;\n\x0eGetTransaction\x12\x13.qrl.TransactionReq\x1a\x14.qrl.TransactionResp\x12/\n\nGetBalance\x12\x0f.qrl.BalanceReq\x1a\x10.qrl.BalanceResp\x12#\n\x06GetOTS\x12\x0b.qrl.OTSReq\x1a\x0c.qrl.OTSResp\x12,\n\tGetHeight\x12\x0e.qrl.HeightReq\x1a\x0f.qrl.HeightResp\x12)\n\x08GetBlock\x12\r.qrl.BlockReq\x1a\x0e.qrl.BlockResp\x12\x39\n\x10GetBlockByNumber\x12\x15.qrl.BlockByNumberReq\x1a\x0e.qrl.BlockResp\x12\x41\n\x10GetAddressFromPK\x12\x15.qrl.AddressFromPKReq\x1a\x16.qrl.AddressFromPKRespb\x06proto3')
+  serialized_pb=_b('\n\x0fqrlwallet.proto\x12\x03qrl\x1a\tqrl.proto\"9\n\x10\x41\x64\x64NewAddressReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x15\n\rhash_function\x18\x02 \x01(\t\"A\n\x11\x41\x64\x64NewAddressResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\"]\n\x1a\x41\x64\x64NewAddressWithSlavesReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\x12\x18\n\x10number_of_slaves\x18\x02 \x01(\x04\x12\x15\n\rhash_function\x18\x03 \x01(\t\"%\n\x15\x41\x64\x64\x41\x64\x64ressFromSeedReq\x12\x0c\n\x04seed\x18\x01 \x01(\t\"F\n\x16\x41\x64\x64\x41\x64\x64ressFromSeedResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\"\x12\n\x10ListAddressesReq\"C\n\x11ListAddressesResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x11\n\taddresses\x18\x03 \x03(\t\"#\n\x10RemoveAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"0\n\x11RemoveAddressResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\"\n\x0fValidAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\">\n\x10ValidAddressResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\r\n\x05valid\x18\x03 \x01(\t\"&\n\x10\x45ncryptWalletReq\x12\x12\n\npassphrase\x18\x01 \x01(\t\"0\n\x11\x45ncryptWalletResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"%\n\x0fUnlockWalletReq\x12\x12\n\npassphrase\x18\x01 \x01(\t\"/\n\x10UnlockWalletResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"\x0f\n\rLockWalletReq\"-\n\x0eLockWalletResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"&\n\x13GetRecoverySeedsReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"V\n\x14GetRecoverySeedsResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07hexseed\x18\x03 \x01(\t\x12\x10\n\x08mnemonic\x18\x04 \x01(\t\"\x12\n\x10GetWalletInfoReq\"n\n\x11GetWalletInfoResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\r\x12\x15\n\raddress_count\x18\x04 \x01(\x04\x12\x14\n\x0cis_encrypted\x18\x05 \x01(\x08\"\x8c\x01\n\x13RelayTransferTxnReq\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x01 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x02 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x16\n\x0emaster_address\x18\x04 \x01(\t\x12\x16\n\x0esigner_address\x18\x05 \x01(\t\x12\x11\n\tots_index\x18\x06 \x01(\x04\"h\n\x1aRelayTransferTxnBySlaveReq\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x01 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x02 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x16\n\x0emaster_address\x18\x04 \x01(\t\"u\n\x12RelayMessageTxnReq\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x16\n\x0emaster_address\x18\x03 \x01(\t\x12\x16\n\x0esigner_address\x18\x04 \x01(\t\x12\x11\n\tots_index\x18\x05 \x01(\x04\"Q\n\x19RelayMessageTxnBySlaveReq\x12\x0f\n\x07message\x18\x01 \x01(\t\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x16\n\x0emaster_address\x18\x03 \x01(\t\"\xc5\x01\n\x10RelayTokenTxnReq\x12\x0e\n\x06symbol\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05owner\x18\x03 \x01(\t\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12\x11\n\taddresses\x18\x05 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x06 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x07 \x01(\x04\x12\x16\n\x0emaster_address\x18\x08 \x01(\t\x12\x16\n\x0esigner_address\x18\t \x01(\t\x12\x11\n\tots_index\x18\n \x01(\x04\"\xa1\x01\n\x17RelayTokenTxnBySlaveReq\x12\x0e\n\x06symbol\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05owner\x18\x03 \x01(\t\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12\x11\n\taddresses\x18\x05 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x06 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x07 \x01(\x04\x12\x16\n\x0emaster_address\x18\x08 \x01(\t\"\xa7\x01\n\x18RelayTransferTokenTxnReq\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x01 \x03(\t\x12\x14\n\x0ctoken_txhash\x18\x02 \x01(\t\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x16\n\x0emaster_address\x18\x05 \x01(\t\x12\x16\n\x0esigner_address\x18\x06 \x01(\t\x12\x11\n\tots_index\x18\x07 \x01(\x04\"\x83\x01\n\x1fRelayTransferTokenTxnBySlaveReq\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x01 \x03(\t\x12\x14\n\x0ctoken_txhash\x18\x02 \x01(\t\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x16\n\x0emaster_address\x18\x05 \x01(\t\"\x8b\x01\n\x10RelaySlaveTxnReq\x12\x11\n\tslave_pks\x18\x01 \x03(\x0c\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x02 \x03(\r\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x16\n\x0emaster_address\x18\x04 \x01(\t\x12\x16\n\x0esigner_address\x18\x05 \x01(\t\x12\x11\n\tots_index\x18\x06 \x01(\x04\"g\n\x17RelaySlaveTxnBySlaveReq\x12\x11\n\tslave_pks\x18\x01 \x03(\x0c\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x02 \x03(\r\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x16\n\x0emaster_address\x18\x04 \x01(\t\"N\n\x0cRelayTxnResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12!\n\x02tx\x18\x03 \x01(\x0b\x32\x15.qrl.PlainTransaction\"C\n\x13\x43hangePassphraseReq\x12\x15\n\roldPassphrase\x18\x01 \x01(\t\x12\x15\n\rnewPassphrase\x18\x02 \x01(\t\"3\n\x14\x43hangePassphraseResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\"+\n\x18TransactionsByAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"z\n\x19TransactionsByAddressResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12/\n\x11mini_transactions\x18\x03 \x03(\x0b\x32\x14.qrl.MiniTransaction\x12\x0f\n\x07\x62\x61lance\x18\x04 \x01(\x04\"!\n\x0eTransactionReq\x12\x0f\n\x07tx_hash\x18\x01 \x01(\t\"\x99\x01\n\x0fTransactionResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12!\n\x02tx\x18\x03 \x01(\x0b\x32\x15.qrl.PlainTransaction\x12\x15\n\rconfirmations\x18\x04 \x01(\x04\x12\x14\n\x0c\x62lock_number\x18\x05 \x01(\x04\x12\x19\n\x11\x62lock_header_hash\x18\x06 \x01(\t\"\x1d\n\nBalanceReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\";\n\x0b\x42\x61lanceResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x03 \x01(\t\"\x19\n\x06OTSReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\"[\n\x07OTSResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x14\n\x0cots_bitfield\x18\x03 \x03(\x0c\x12\x1d\n\x15next_unused_ots_index\x18\x04 \x01(\x04\"\x0b\n\tHeightReq\"9\n\nHeightResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0e\n\x06height\x18\x03 \x01(\x04\"\x1f\n\x08\x42lockReq\x12\x13\n\x0bheader_hash\x18\x01 \x01(\t\"H\n\tBlockResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x1e\n\x05\x62lock\x18\x03 \x01(\x0b\x32\x0f.qrl.PlainBlock\"(\n\x10\x42lockByNumberReq\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\"\x1e\n\x10\x41\x64\x64ressFromPKReq\x12\n\n\x02pk\x18\x01 \x01(\t\"A\n\x11\x41\x64\x64ressFromPKResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07\x61\x64\x64ress\x18\x03 \x01(\t\"\r\n\x0bNodeInfoReq\"\xc1\x01\n\x0cNodeInfoResp\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\r\n\x05\x65rror\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t\x12\x17\n\x0fnum_connections\x18\x04 \x01(\r\x12\x17\n\x0fnum_known_peers\x18\x05 \x01(\r\x12\x0e\n\x06uptime\x18\x06 \x01(\x04\x12\x14\n\x0c\x62lock_height\x18\x07 \x01(\x04\x12\x17\n\x0f\x62lock_last_hash\x18\x08 \x01(\t\x12\x12\n\nnetwork_id\x18\t \x01(\t\"7\n\x13PlainGenesisBalance\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"5\n\x12PlainAddressAmount\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\"\xce\x07\n\x10PlainTransaction\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\t\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x12\n\npublic_key\x18\x03 \x01(\t\x12\x11\n\tsignature\x18\x04 \x01(\t\x12\r\n\x05nonce\x18\x05 \x01(\x04\x12\x18\n\x10transaction_hash\x18\x06 \x01(\t\x12\x13\n\x0bsigner_addr\x18\x07 \x01(\t\x12\x32\n\x08transfer\x18\x08 \x01(\x0b\x32\x1e.qrl.PlainTransaction.TransferH\x00\x12\x32\n\x08\x63oinbase\x18\t \x01(\x0b\x32\x1e.qrl.PlainTransaction.CoinBaseH\x00\x12;\n\tlatticePK\x18\n \x01(\x0b\x32&.qrl.PlainTransaction.LatticePublicKeyH\x00\x12\x30\n\x07message\x18\x0b \x01(\x0b\x32\x1d.qrl.PlainTransaction.MessageH\x00\x12,\n\x05token\x18\x0c \x01(\x0b\x32\x1b.qrl.PlainTransaction.TokenH\x00\x12=\n\x0etransfer_token\x18\r \x01(\x0b\x32#.qrl.PlainTransaction.TransferTokenH\x00\x12,\n\x05slave\x18\x0e \x01(\x0b\x32\x1b.qrl.PlainTransaction.SlaveH\x00\x1a-\n\x08Transfer\x12\x10\n\x08\x61\x64\x64rs_to\x18\x01 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x02 \x03(\x04\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\t\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1a:\n\x10LatticePublicKey\x12\x10\n\x08kyber_pk\x18\x01 \x01(\t\x12\x14\n\x0c\x64ilithium_pk\x18\x02 \x01(\t\x1a\x1f\n\x07Message\x12\x14\n\x0cmessage_hash\x18\x01 \x01(\t\x1ay\n\x05Token\x12\x0e\n\x06symbol\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05owner\x18\x03 \x01(\t\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12\x31\n\x10initial_balances\x18\x05 \x03(\x0b\x32\x17.qrl.PlainAddressAmount\x1aH\n\rTransferToken\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\t\x12\x10\n\x08\x61\x64\x64rs_to\x18\x02 \x03(\t\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x1a\x30\n\x05Slave\x12\x11\n\tslave_pks\x18\x01 \x03(\t\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x02 \x03(\rB\x11\n\x0ftransactionType\"\xdc\x01\n\x10PlainBlockHeader\x12\x13\n\x0bhash_header\x18\x01 \x01(\t\x12\x14\n\x0c\x62lock_number\x18\x02 \x01(\x04\x12\x19\n\x11timestamp_seconds\x18\x03 \x01(\x04\x12\x18\n\x10hash_header_prev\x18\x04 \x01(\t\x12\x14\n\x0creward_block\x18\x05 \x01(\x04\x12\x12\n\nreward_fee\x18\x06 \x01(\x04\x12\x13\n\x0bmerkle_root\x18\x07 \x01(\t\x12\x14\n\x0cmining_nonce\x18\x08 \x01(\r\x12\x13\n\x0b\x65xtra_nonce\x18\t \x01(\x04\"\x93\x01\n\nPlainBlock\x12%\n\x06header\x18\x01 \x01(\x0b\x32\x15.qrl.PlainBlockHeader\x12+\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x15.qrl.PlainTransaction\x12\x31\n\x0fgenesis_balance\x18\x03 \x03(\x0b\x32\x18.qrl.PlainGenesisBalance2\xa5\x0f\n\tWalletAPI\x12>\n\rAddNewAddress\x12\x15.qrl.AddNewAddressReq\x1a\x16.qrl.AddNewAddressResp\x12R\n\x17\x41\x64\x64NewAddressWithSlaves\x12\x1f.qrl.AddNewAddressWithSlavesReq\x1a\x16.qrl.AddNewAddressResp\x12>\n\rListAddresses\x12\x15.qrl.ListAddressesReq\x1a\x16.qrl.ListAddressesResp\x12>\n\rRemoveAddress\x12\x15.qrl.RemoveAddressReq\x1a\x16.qrl.RemoveAddressResp\x12=\n\x0eIsValidAddress\x12\x14.qrl.ValidAddressReq\x1a\x15.qrl.ValidAddressResp\x12>\n\rEncryptWallet\x12\x15.qrl.EncryptWalletReq\x1a\x16.qrl.EncryptWalletResp\x12\x35\n\nLockWallet\x12\x12.qrl.LockWalletReq\x1a\x13.qrl.LockWalletResp\x12;\n\x0cUnlockWallet\x12\x14.qrl.UnlockWalletReq\x1a\x15.qrl.UnlockWalletResp\x12G\n\x10GetRecoverySeeds\x12\x18.qrl.GetRecoverySeedsReq\x1a\x19.qrl.GetRecoverySeedsResp\x12>\n\rGetWalletInfo\x12\x15.qrl.GetWalletInfoReq\x1a\x16.qrl.GetWalletInfoResp\x12?\n\x10RelayTransferTxn\x12\x18.qrl.RelayTransferTxnReq\x1a\x11.qrl.RelayTxnResp\x12M\n\x17RelayTransferTxnBySlave\x12\x1f.qrl.RelayTransferTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12=\n\x0fRelayMessageTxn\x12\x17.qrl.RelayMessageTxnReq\x1a\x11.qrl.RelayTxnResp\x12K\n\x16RelayMessageTxnBySlave\x12\x1e.qrl.RelayMessageTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12\x39\n\rRelayTokenTxn\x12\x15.qrl.RelayTokenTxnReq\x1a\x11.qrl.RelayTxnResp\x12G\n\x14RelayTokenTxnBySlave\x12\x1c.qrl.RelayTokenTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12I\n\x15RelayTransferTokenTxn\x12\x1d.qrl.RelayTransferTokenTxnReq\x1a\x11.qrl.RelayTxnResp\x12W\n\x1cRelayTransferTokenTxnBySlave\x12$.qrl.RelayTransferTokenTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12\x39\n\rRelaySlaveTxn\x12\x15.qrl.RelaySlaveTxnReq\x1a\x11.qrl.RelayTxnResp\x12G\n\x14RelaySlaveTxnBySlave\x12\x1c.qrl.RelaySlaveTxnBySlaveReq\x1a\x11.qrl.RelayTxnResp\x12G\n\x10\x43hangePassphrase\x12\x18.qrl.ChangePassphraseReq\x1a\x19.qrl.ChangePassphraseResp\x12Y\n\x18GetTransactionsByAddress\x12\x1d.qrl.TransactionsByAddressReq\x1a\x1e.qrl.TransactionsByAddressResp\x12;\n\x0eGetTransaction\x12\x13.qrl.TransactionReq\x1a\x14.qrl.TransactionResp\x12/\n\nGetBalance\x12\x0f.qrl.BalanceReq\x1a\x10.qrl.BalanceResp\x12#\n\x06GetOTS\x12\x0b.qrl.OTSReq\x1a\x0c.qrl.OTSResp\x12,\n\tGetHeight\x12\x0e.qrl.HeightReq\x1a\x0f.qrl.HeightResp\x12)\n\x08GetBlock\x12\r.qrl.BlockReq\x1a\x0e.qrl.BlockResp\x12\x39\n\x10GetBlockByNumber\x12\x15.qrl.BlockByNumberReq\x1a\x0e.qrl.BlockResp\x12\x41\n\x10GetAddressFromPK\x12\x15.qrl.AddressFromPKReq\x1a\x16.qrl.AddressFromPKResp\x12\x32\n\x0bGetNodeInfo\x12\x10.qrl.NodeInfoReq\x1a\x11.qrl.NodeInfoRespb\x06proto3')
   ,
   dependencies=[qrl__pb2.DESCRIPTOR,])
 
@@ -369,15 +369,15 @@ _REMOVEADDRESSRESP = _descriptor.Descriptor(
 )
 
 
-_VALIDATEADDRESSREQ = _descriptor.Descriptor(
-  name='ValidateAddressReq',
-  full_name='qrl.ValidateAddressReq',
+_VALIDADDRESSREQ = _descriptor.Descriptor(
+  name='ValidAddressReq',
+  full_name='qrl.ValidAddressReq',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='address', full_name='qrl.ValidateAddressReq.address', index=0,
+      name='address', full_name='qrl.ValidAddressReq.address', index=0,
       number=1, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
@@ -396,35 +396,35 @@ _VALIDATEADDRESSREQ = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=543,
-  serialized_end=580,
+  serialized_end=577,
 )
 
 
-_VALIDATEADDRESSRESP = _descriptor.Descriptor(
-  name='ValidateAddressResp',
-  full_name='qrl.ValidateAddressResp',
+_VALIDADDRESSRESP = _descriptor.Descriptor(
+  name='ValidAddressResp',
+  full_name='qrl.ValidAddressResp',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='code', full_name='qrl.ValidateAddressResp.code', index=0,
+      name='code', full_name='qrl.ValidAddressResp.code', index=0,
       number=1, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='error', full_name='qrl.ValidateAddressResp.error', index=1,
+      name='error', full_name='qrl.ValidAddressResp.error', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='valid', full_name='qrl.ValidateAddressResp.valid', index=2,
-      number=3, type=8, cpp_type=7, label=1,
-      has_default_value=False, default_value=False,
+      name='valid', full_name='qrl.ValidAddressResp.valid', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
@@ -440,8 +440,8 @@ _VALIDATEADDRESSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=582,
-  serialized_end=647,
+  serialized_start=579,
+  serialized_end=641,
 )
 
 
@@ -471,8 +471,8 @@ _ENCRYPTWALLETREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=649,
-  serialized_end=687,
+  serialized_start=643,
+  serialized_end=681,
 )
 
 
@@ -509,8 +509,8 @@ _ENCRYPTWALLETRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=689,
-  serialized_end=737,
+  serialized_start=683,
+  serialized_end=731,
 )
 
 
@@ -540,8 +540,8 @@ _UNLOCKWALLETREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=739,
-  serialized_end=776,
+  serialized_start=733,
+  serialized_end=770,
 )
 
 
@@ -578,8 +578,8 @@ _UNLOCKWALLETRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=778,
-  serialized_end=825,
+  serialized_start=772,
+  serialized_end=819,
 )
 
 
@@ -602,8 +602,8 @@ _LOCKWALLETREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=827,
-  serialized_end=842,
+  serialized_start=821,
+  serialized_end=836,
 )
 
 
@@ -640,8 +640,8 @@ _LOCKWALLETRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=844,
-  serialized_end=889,
+  serialized_start=838,
+  serialized_end=883,
 )
 
 
@@ -671,8 +671,8 @@ _GETRECOVERYSEEDSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=891,
-  serialized_end=929,
+  serialized_start=885,
+  serialized_end=923,
 )
 
 
@@ -723,8 +723,8 @@ _GETRECOVERYSEEDSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=931,
-  serialized_end=1017,
+  serialized_start=925,
+  serialized_end=1011,
 )
 
 
@@ -747,8 +747,8 @@ _GETWALLETINFOREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1019,
-  serialized_end=1037,
+  serialized_start=1013,
+  serialized_end=1031,
 )
 
 
@@ -806,8 +806,8 @@ _GETWALLETINFORESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1039,
-  serialized_end=1149,
+  serialized_start=1033,
+  serialized_end=1143,
 )
 
 
@@ -872,8 +872,8 @@ _RELAYTRANSFERTXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1152,
-  serialized_end=1292,
+  serialized_start=1146,
+  serialized_end=1286,
 )
 
 
@@ -924,8 +924,8 @@ _RELAYTRANSFERTXNBYSLAVEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1294,
-  serialized_end=1398,
+  serialized_start=1288,
+  serialized_end=1392,
 )
 
 
@@ -983,8 +983,8 @@ _RELAYMESSAGETXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1400,
-  serialized_end=1517,
+  serialized_start=1394,
+  serialized_end=1511,
 )
 
 
@@ -1028,8 +1028,8 @@ _RELAYMESSAGETXNBYSLAVEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1519,
-  serialized_end=1600,
+  serialized_start=1513,
+  serialized_end=1594,
 )
 
 
@@ -1122,8 +1122,8 @@ _RELAYTOKENTXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1603,
-  serialized_end=1800,
+  serialized_start=1597,
+  serialized_end=1794,
 )
 
 
@@ -1202,8 +1202,8 @@ _RELAYTOKENTXNBYSLAVEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1803,
-  serialized_end=1964,
+  serialized_start=1797,
+  serialized_end=1958,
 )
 
 
@@ -1275,8 +1275,8 @@ _RELAYTRANSFERTOKENTXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1967,
-  serialized_end=2134,
+  serialized_start=1961,
+  serialized_end=2128,
 )
 
 
@@ -1334,8 +1334,8 @@ _RELAYTRANSFERTOKENTXNBYSLAVEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2137,
-  serialized_end=2268,
+  serialized_start=2131,
+  serialized_end=2262,
 )
 
 
@@ -1400,8 +1400,8 @@ _RELAYSLAVETXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2271,
-  serialized_end=2410,
+  serialized_start=2265,
+  serialized_end=2404,
 )
 
 
@@ -1452,8 +1452,8 @@ _RELAYSLAVETXNBYSLAVEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2412,
-  serialized_end=2515,
+  serialized_start=2406,
+  serialized_end=2509,
 )
 
 
@@ -1497,8 +1497,8 @@ _RELAYTXNRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2517,
-  serialized_end=2595,
+  serialized_start=2511,
+  serialized_end=2589,
 )
 
 
@@ -1535,8 +1535,8 @@ _CHANGEPASSPHRASEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2597,
-  serialized_end=2664,
+  serialized_start=2591,
+  serialized_end=2658,
 )
 
 
@@ -1573,8 +1573,8 @@ _CHANGEPASSPHRASERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2666,
-  serialized_end=2717,
+  serialized_start=2660,
+  serialized_end=2711,
 )
 
 
@@ -1604,8 +1604,8 @@ _TRANSACTIONSBYADDRESSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2719,
-  serialized_end=2762,
+  serialized_start=2713,
+  serialized_end=2756,
 )
 
 
@@ -1656,8 +1656,8 @@ _TRANSACTIONSBYADDRESSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2764,
-  serialized_end=2886,
+  serialized_start=2758,
+  serialized_end=2880,
 )
 
 
@@ -1687,8 +1687,8 @@ _TRANSACTIONREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2888,
-  serialized_end=2921,
+  serialized_start=2882,
+  serialized_end=2915,
 )
 
 
@@ -1753,8 +1753,8 @@ _TRANSACTIONRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2924,
-  serialized_end=3077,
+  serialized_start=2918,
+  serialized_end=3071,
 )
 
 
@@ -1784,8 +1784,8 @@ _BALANCEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3079,
-  serialized_end=3108,
+  serialized_start=3073,
+  serialized_end=3102,
 )
 
 
@@ -1812,8 +1812,8 @@ _BALANCERESP = _descriptor.Descriptor(
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='balance', full_name='qrl.BalanceResp.balance', index=2,
-      number=3, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
@@ -1829,8 +1829,8 @@ _BALANCERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3110,
-  serialized_end=3169,
+  serialized_start=3104,
+  serialized_end=3163,
 )
 
 
@@ -1860,8 +1860,8 @@ _OTSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3171,
-  serialized_end=3196,
+  serialized_start=3165,
+  serialized_end=3190,
 )
 
 
@@ -1912,8 +1912,8 @@ _OTSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3198,
-  serialized_end=3289,
+  serialized_start=3192,
+  serialized_end=3283,
 )
 
 
@@ -1936,8 +1936,8 @@ _HEIGHTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3291,
-  serialized_end=3302,
+  serialized_start=3285,
+  serialized_end=3296,
 )
 
 
@@ -1981,8 +1981,8 @@ _HEIGHTRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3304,
-  serialized_end=3361,
+  serialized_start=3298,
+  serialized_end=3355,
 )
 
 
@@ -2012,8 +2012,8 @@ _BLOCKREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3363,
-  serialized_end=3394,
+  serialized_start=3357,
+  serialized_end=3388,
 )
 
 
@@ -2057,8 +2057,8 @@ _BLOCKRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3396,
-  serialized_end=3468,
+  serialized_start=3390,
+  serialized_end=3462,
 )
 
 
@@ -2088,8 +2088,8 @@ _BLOCKBYNUMBERREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3470,
-  serialized_end=3510,
+  serialized_start=3464,
+  serialized_end=3504,
 )
 
 
@@ -2119,8 +2119,8 @@ _ADDRESSFROMPKREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3512,
-  serialized_end=3542,
+  serialized_start=3506,
+  serialized_end=3536,
 )
 
 
@@ -2164,8 +2164,119 @@ _ADDRESSFROMPKRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3544,
-  serialized_end=3609,
+  serialized_start=3538,
+  serialized_end=3603,
+)
+
+
+_NODEINFOREQ = _descriptor.Descriptor(
+  name='NodeInfoReq',
+  full_name='qrl.NodeInfoReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3605,
+  serialized_end=3618,
+)
+
+
+_NODEINFORESP = _descriptor.Descriptor(
+  name='NodeInfoResp',
+  full_name='qrl.NodeInfoResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='code', full_name='qrl.NodeInfoResp.code', index=0,
+      number=1, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='error', full_name='qrl.NodeInfoResp.error', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='version', full_name='qrl.NodeInfoResp.version', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='num_connections', full_name='qrl.NodeInfoResp.num_connections', index=3,
+      number=4, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='num_known_peers', full_name='qrl.NodeInfoResp.num_known_peers', index=4,
+      number=5, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='uptime', full_name='qrl.NodeInfoResp.uptime', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block_height', full_name='qrl.NodeInfoResp.block_height', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block_last_hash', full_name='qrl.NodeInfoResp.block_last_hash', index=7,
+      number=8, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='network_id', full_name='qrl.NodeInfoResp.network_id', index=8,
+      number=9, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3621,
+  serialized_end=3814,
 )
 
 
@@ -2202,8 +2313,8 @@ _PLAINGENESISBALANCE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3611,
-  serialized_end=3666,
+  serialized_start=3816,
+  serialized_end=3871,
 )
 
 
@@ -2240,8 +2351,8 @@ _PLAINADDRESSAMOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3668,
-  serialized_end=3721,
+  serialized_start=3873,
+  serialized_end=3926,
 )
 
 
@@ -2278,8 +2389,8 @@ _PLAINTRANSACTION_TRANSFER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4249,
-  serialized_end=4294,
+  serialized_start=4454,
+  serialized_end=4499,
 )
 
 _PLAINTRANSACTION_COINBASE = _descriptor.Descriptor(
@@ -2315,8 +2426,8 @@ _PLAINTRANSACTION_COINBASE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4296,
-  serialized_end=4339,
+  serialized_start=4501,
+  serialized_end=4544,
 )
 
 _PLAINTRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
@@ -2352,8 +2463,8 @@ _PLAINTRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4341,
-  serialized_end=4399,
+  serialized_start=4546,
+  serialized_end=4604,
 )
 
 _PLAINTRANSACTION_MESSAGE = _descriptor.Descriptor(
@@ -2382,8 +2493,8 @@ _PLAINTRANSACTION_MESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4401,
-  serialized_end=4432,
+  serialized_start=4606,
+  serialized_end=4637,
 )
 
 _PLAINTRANSACTION_TOKEN = _descriptor.Descriptor(
@@ -2440,8 +2551,8 @@ _PLAINTRANSACTION_TOKEN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4434,
-  serialized_end=4555,
+  serialized_start=4639,
+  serialized_end=4760,
 )
 
 _PLAINTRANSACTION_TRANSFERTOKEN = _descriptor.Descriptor(
@@ -2484,8 +2595,8 @@ _PLAINTRANSACTION_TRANSFERTOKEN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4557,
-  serialized_end=4629,
+  serialized_start=4762,
+  serialized_end=4834,
 )
 
 _PLAINTRANSACTION_SLAVE = _descriptor.Descriptor(
@@ -2521,8 +2632,8 @@ _PLAINTRANSACTION_SLAVE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4631,
-  serialized_end=4679,
+  serialized_start=4836,
+  serialized_end=4884,
 )
 
 _PLAINTRANSACTION = _descriptor.Descriptor(
@@ -2645,8 +2756,8 @@ _PLAINTRANSACTION = _descriptor.Descriptor(
       name='transactionType', full_name='qrl.PlainTransaction.transactionType',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=3724,
-  serialized_end=4698,
+  serialized_start=3929,
+  serialized_end=4903,
 )
 
 
@@ -2732,8 +2843,8 @@ _PLAINBLOCKHEADER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4701,
-  serialized_end=4921,
+  serialized_start=4906,
+  serialized_end=5126,
 )
 
 
@@ -2777,8 +2888,8 @@ _PLAINBLOCK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4924,
-  serialized_end=5071,
+  serialized_start=5129,
+  serialized_end=5276,
 )
 
 _RELAYTXNRESP.fields_by_name['tx'].message_type = _PLAINTRANSACTION
@@ -2833,8 +2944,8 @@ DESCRIPTOR.message_types_by_name['ListAddressesReq'] = _LISTADDRESSESREQ
 DESCRIPTOR.message_types_by_name['ListAddressesResp'] = _LISTADDRESSESRESP
 DESCRIPTOR.message_types_by_name['RemoveAddressReq'] = _REMOVEADDRESSREQ
 DESCRIPTOR.message_types_by_name['RemoveAddressResp'] = _REMOVEADDRESSRESP
-DESCRIPTOR.message_types_by_name['ValidateAddressReq'] = _VALIDATEADDRESSREQ
-DESCRIPTOR.message_types_by_name['ValidateAddressResp'] = _VALIDATEADDRESSRESP
+DESCRIPTOR.message_types_by_name['ValidAddressReq'] = _VALIDADDRESSREQ
+DESCRIPTOR.message_types_by_name['ValidAddressResp'] = _VALIDADDRESSRESP
 DESCRIPTOR.message_types_by_name['EncryptWalletReq'] = _ENCRYPTWALLETREQ
 DESCRIPTOR.message_types_by_name['EncryptWalletResp'] = _ENCRYPTWALLETRESP
 DESCRIPTOR.message_types_by_name['UnlockWalletReq'] = _UNLOCKWALLETREQ
@@ -2873,6 +2984,8 @@ DESCRIPTOR.message_types_by_name['BlockResp'] = _BLOCKRESP
 DESCRIPTOR.message_types_by_name['BlockByNumberReq'] = _BLOCKBYNUMBERREQ
 DESCRIPTOR.message_types_by_name['AddressFromPKReq'] = _ADDRESSFROMPKREQ
 DESCRIPTOR.message_types_by_name['AddressFromPKResp'] = _ADDRESSFROMPKRESP
+DESCRIPTOR.message_types_by_name['NodeInfoReq'] = _NODEINFOREQ
+DESCRIPTOR.message_types_by_name['NodeInfoResp'] = _NODEINFORESP
 DESCRIPTOR.message_types_by_name['PlainGenesisBalance'] = _PLAINGENESISBALANCE
 DESCRIPTOR.message_types_by_name['PlainAddressAmount'] = _PLAINADDRESSAMOUNT
 DESCRIPTOR.message_types_by_name['PlainTransaction'] = _PLAINTRANSACTION
@@ -2943,19 +3056,19 @@ RemoveAddressResp = _reflection.GeneratedProtocolMessageType('RemoveAddressResp'
   ))
 _sym_db.RegisterMessage(RemoveAddressResp)
 
-ValidateAddressReq = _reflection.GeneratedProtocolMessageType('ValidateAddressReq', (_message.Message,), dict(
-  DESCRIPTOR = _VALIDATEADDRESSREQ,
+ValidAddressReq = _reflection.GeneratedProtocolMessageType('ValidAddressReq', (_message.Message,), dict(
+  DESCRIPTOR = _VALIDADDRESSREQ,
   __module__ = 'qrlwallet_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.ValidateAddressReq)
+  # @@protoc_insertion_point(class_scope:qrl.ValidAddressReq)
   ))
-_sym_db.RegisterMessage(ValidateAddressReq)
+_sym_db.RegisterMessage(ValidAddressReq)
 
-ValidateAddressResp = _reflection.GeneratedProtocolMessageType('ValidateAddressResp', (_message.Message,), dict(
-  DESCRIPTOR = _VALIDATEADDRESSRESP,
+ValidAddressResp = _reflection.GeneratedProtocolMessageType('ValidAddressResp', (_message.Message,), dict(
+  DESCRIPTOR = _VALIDADDRESSRESP,
   __module__ = 'qrlwallet_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.ValidateAddressResp)
+  # @@protoc_insertion_point(class_scope:qrl.ValidAddressResp)
   ))
-_sym_db.RegisterMessage(ValidateAddressResp)
+_sym_db.RegisterMessage(ValidAddressResp)
 
 EncryptWalletReq = _reflection.GeneratedProtocolMessageType('EncryptWalletReq', (_message.Message,), dict(
   DESCRIPTOR = _ENCRYPTWALLETREQ,
@@ -3223,6 +3336,20 @@ AddressFromPKResp = _reflection.GeneratedProtocolMessageType('AddressFromPKResp'
   ))
 _sym_db.RegisterMessage(AddressFromPKResp)
 
+NodeInfoReq = _reflection.GeneratedProtocolMessageType('NodeInfoReq', (_message.Message,), dict(
+  DESCRIPTOR = _NODEINFOREQ,
+  __module__ = 'qrlwallet_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.NodeInfoReq)
+  ))
+_sym_db.RegisterMessage(NodeInfoReq)
+
+NodeInfoResp = _reflection.GeneratedProtocolMessageType('NodeInfoResp', (_message.Message,), dict(
+  DESCRIPTOR = _NODEINFORESP,
+  __module__ = 'qrlwallet_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.NodeInfoResp)
+  ))
+_sym_db.RegisterMessage(NodeInfoResp)
+
 PlainGenesisBalance = _reflection.GeneratedProtocolMessageType('PlainGenesisBalance', (_message.Message,), dict(
   DESCRIPTOR = _PLAINGENESISBALANCE,
   __module__ = 'qrlwallet_pb2'
@@ -3322,8 +3449,8 @@ _WALLETAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=5074,
-  serialized_end=6986,
+  serialized_start=5279,
+  serialized_end=7236,
   methods=[
   _descriptor.MethodDescriptor(
     name='AddNewAddress',
@@ -3362,12 +3489,12 @@ _WALLETAPI = _descriptor.ServiceDescriptor(
     options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='ValidateAddress',
-    full_name='qrl.WalletAPI.ValidateAddress',
+    name='IsValidAddress',
+    full_name='qrl.WalletAPI.IsValidAddress',
     index=4,
     containing_service=None,
-    input_type=_VALIDATEADDRESSREQ,
-    output_type=_VALIDATEADDRESSRESP,
+    input_type=_VALIDADDRESSREQ,
+    output_type=_VALIDADDRESSRESP,
     options=None,
   ),
   _descriptor.MethodDescriptor(
@@ -3584,6 +3711,15 @@ _WALLETAPI = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_ADDRESSFROMPKREQ,
     output_type=_ADDRESSFROMPKRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetNodeInfo',
+    full_name='qrl.WalletAPI.GetNodeInfo',
+    index=29,
+    containing_service=None,
+    input_type=_NODEINFOREQ,
+    output_type=_NODEINFORESP,
     options=None,
   ),
 ])

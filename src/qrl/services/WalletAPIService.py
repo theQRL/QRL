@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+from pyqrllib.pyqrllib import bin2hstr
 from qrl.generated import qrlwallet_pb2
 from qrl.generated.qrlwallet_pb2_grpc import WalletAPIServicer
 from qrl.services.grpcHelper import GrpcExceptionWrapper
@@ -72,16 +73,16 @@ class WalletAPIService(WalletAPIServicer):
 
         return resp
 
-    @GrpcExceptionWrapper(qrlwallet_pb2.ValidateAddressResp)
-    def ValidateAddress(self, request: qrlwallet_pb2.ValidateAddressReq, context) -> qrlwallet_pb2.ValidateAddressResp:
-        resp = qrlwallet_pb2.ValidateAddressResp()
+    @GrpcExceptionWrapper(qrlwallet_pb2.ValidAddressResp)
+    def IsValidAddress(self, request: qrlwallet_pb2.ValidAddressReq, context) -> qrlwallet_pb2.ValidAddressResp:
+        resp = qrlwallet_pb2.ValidAddressResp()
         try:
             if not self._walletd.validate_address(request.address):
                 resp.code = 1
                 resp.error = "Invalid QRL Address"
-                resp.valid = False
+                resp.valid = "False"
             else:
-                resp.valid = True
+                resp.valid = "True"
         except Exception as e:
             resp.code = 1
             resp.error = str(e)
@@ -357,7 +358,7 @@ class WalletAPIService(WalletAPIServicer):
     def GetBalance(self, request: qrlwallet_pb2.BalanceReq, context) -> qrlwallet_pb2.BalanceResp:
         resp = qrlwallet_pb2.BalanceResp()
         try:
-            resp.balance = self._walletd.get_balance(request.address)
+            resp.balance = str(self._walletd.get_balance(request.address))
         except Exception as e:
             resp.code = 1
             resp.error = str(e)
@@ -415,6 +416,25 @@ class WalletAPIService(WalletAPIServicer):
         resp = qrlwallet_pb2.AddressFromPKResp()
         try:
             resp.address = self._walletd.get_address_from_pk(request.pk)
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
+    @GrpcExceptionWrapper(qrlwallet_pb2.NodeInfoResp)
+    def GetNodeInfo(self, request: qrlwallet_pb2.NodeInfoReq, context) -> qrlwallet_pb2.NodeInfoResp:
+        resp = qrlwallet_pb2.NodeInfoResp()
+        try:
+            node_info = self._walletd.get_node_info()
+
+            resp.version = node_info.info.version
+            resp.num_connections = node_info.info.num_connections
+            resp.num_known_peers = node_info.info.num_known_peers
+            resp.uptime = node_info.info.uptime
+            resp.block_height = node_info.info.block_height
+            resp.block_last_hash = bin2hstr(node_info.info.block_last_hash)
+            resp.network_id = node_info.info.network_id
         except Exception as e:
             resp.code = 1
             resp.error = str(e)

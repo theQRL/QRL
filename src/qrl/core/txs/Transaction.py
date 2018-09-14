@@ -267,10 +267,16 @@ class Transaction(object, metaclass=ABCMeta):
             logger.warning('Found Transaction hash %s', bin2hstr(self.txhash))
             raise ValueError("Invalid Transaction Hash")
 
-        if verify_signature and not XmssFast.verify(self.get_data_hash(),
-                                                    self.signature,
-                                                    self.PK):
-            raise ValueError("Invalid xmss signature")
+        if verify_signature:
+            # Temporarily disabled following new added lines.
+            # TODO: Review Juan
+            # if not XMSS.validate_signature(self.signature, self.PK):
+            #     raise ValueError("Invalid xmss signature")
+
+            if not XmssFast.verify(self.get_data_hash(),
+                                   self.signature,
+                                   self.PK):
+                raise ValueError("Invalid xmss signature")
 
         return True
 

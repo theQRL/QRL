@@ -116,6 +116,20 @@ class TestSimpleTransaction(TestCase):
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
 
+    def test_validate_tx3(self, m_logger):
+        tx = TransferTransaction.create(
+            addrs_to=[self.bob.address],
+            amounts=[100],
+            fee=1,
+            xmss_pk=self.alice.pk
+        )
+        tx.sign(self.alice)
+        tx._data.signature = tx.signature * 4183 + tx.signature[0:104]
+        tx._data.transaction_hash = tx.generate_txhash()
+
+        with self.assertRaises(ValueError):
+            tx.validate_or_raise()
+
     @patch('qrl.core.txs.Transaction.config')
     def test_validate_tx_invalid(self, m_config, m_logger):
         # Test all the things that could make a TransferTransaction invalid
