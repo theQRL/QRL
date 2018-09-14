@@ -7,6 +7,7 @@ from pyqrllib.pyqrllib import str2bin, XmssFast, bin2hstr, SHAKE_128, SHAKE_256,
 
 from qrl.core.misc import logger
 from qrl.crypto.xmss import XMSS
+from tests.misc.helper import get_alice_xmss
 
 logger.initialize_default()
 
@@ -63,3 +64,32 @@ class TestXMSS(TestCase):
         xmss_height = 4
         xmss = XMSS.from_height(xmss_height, "shake128")
         self.assertEqual('shake128', xmss.hash_function)
+
+    def test_get_height_from_sig_size(self):
+        with self.assertRaises(Exception):
+            XMSS.get_height_from_sig_size(2179)
+
+        with self.assertRaises(Exception):
+            XMSS.get_height_from_sig_size(0)
+
+        with self.assertRaises(Exception):
+            XMSS.get_height_from_sig_size(-1)
+
+        height = XMSS.get_height_from_sig_size(3204)
+        self.assertEqual(height, 32)
+
+        height = XMSS.get_height_from_sig_size(2180)
+        self.assertEqual(height, 0)
+
+    def test_validate_signature(self):
+        xmss = get_alice_xmss()
+        xmss2 = get_alice_xmss(8)
+        pk = xmss.pk
+        signature = xmss.sign(b"hello")
+
+        self.assertTrue(XMSS.validate_signature(signature, pk))
+
+        with self.assertRaises(ValueError):
+            XMSS.validate_signature(signature, None)
+
+        self.assertFalse(XMSS.validate_signature(signature, xmss2.pk))

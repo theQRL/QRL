@@ -213,7 +213,8 @@ class AddressState(object):
                 bitfield = bytearray(self.ots_bitfield[i])
                 for relative in range(0, 8):
                     if ((bitfield[0] >> relative) & 1) != 1:
-                        return offset + relative
+                        if offset + relative >= start_ots_index:
+                            return offset + relative
 
         if ots_key_count >= config.dev.max_ots_tracking_index:
             if self.ots_counter + 1 < ots_key_count:
