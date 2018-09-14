@@ -95,18 +95,18 @@ class TestWalletAPI(TestCase):
             resp = service.ListAddresses(qrlwallet_pb2.ListAddressesReq(), context=None)
             self.assertEqual(len(resp.addresses), 0)
 
-    def test_validateAddress(self):
+    def test_isValidAddress(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
             service = WalletAPIService(walletd)
 
             qaddress = "Q010400ff39df1ba4d1d5b8753e6d04c51c34b95b01fc3650c10ca7b296a18bdc105412c59d0b3b"
-            resp = service.ValidateAddress(qrlwallet_pb2.ValidateAddressReq(address=qaddress), context=None)
-            self.assertTrue(resp.valid)
+            resp = service.IsValidAddress(qrlwallet_pb2.ValidAddressReq(address=qaddress), context=None)
+            self.assertEqual(resp.valid, "True")
 
             qaddress = "Q010400ff39df1ba4d1d5b8753e6d04c51c34b95b01fc3650c10ca7b296a18bdc105412c59d0b00"
-            resp = service.ValidateAddress(qrlwallet_pb2.ValidateAddressReq(address=qaddress), context=None)
-            self.assertFalse(resp.valid)
+            resp = service.IsValidAddress(qrlwallet_pb2.ValidAddressReq(address=qaddress), context=None)
+            self.assertEqual(resp.valid, "False")
 
     def test_getRecoverySeeds(self):
         with set_qrl_dir("wallet_ver1"):
@@ -593,7 +593,7 @@ class TestWalletAPI(TestCase):
             resp = service.GetBalance(qrlwallet_pb2.BalanceReq(address=self.qaddress), context=None)
 
             self.assertEqual(resp.code, 0)
-            self.assertEqual(resp.balance, 1000)
+            self.assertEqual(resp.balance, "1000")
 
     def test_getOTS(self):
         with set_qrl_dir("wallet_ver1"):
@@ -671,3 +671,37 @@ class TestWalletAPI(TestCase):
             self.assertEqual(resp.code, 0)
             self.assertEqual(resp.address,
                              'Q010200670246b0026436b717f199e3ec5320ba6ab61d5eddff811ac199a9e9b871d3280178b343')
+
+    def test_getNodeInfo(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            block_last_hash_str = 'c23f47a10a8c53cc5ded096369255a32c4a218682a961d0ee7db22c500000000'
+
+            version = "1.0.0"
+            num_connections = 10
+            num_known_peers = 200
+            uptime = 10000
+            block_height = 102345
+            block_last_hash = bytes(hstr2bin(block_last_hash_str))
+            network_id = "network id"
+            node_info = qrl_pb2.NodeInfo(version=version,
+                                         num_connections=num_connections,
+                                         num_known_peers=num_known_peers,
+                                         uptime=uptime,
+                                         block_height=block_height,
+                                         block_last_hash=block_last_hash,
+                                         network_id=network_id)
+            walletd._public_stub.GetNodeState = Mock(
+                return_value=qrl_pb2.GetNodeStateResp(info=node_info))
+
+            resp = service.GetNodeInfo(qrlwallet_pb2.NodeInfoReq(), context=None)
+
+            self.assertEqual(resp.version, version)
+            self.assertEqual(resp.num_connections, num_connections)
+            self.assertEqual(resp.num_known_peers, num_known_peers)
+            self.assertEqual(resp.uptime, uptime)
+            self.assertEqual(resp.block_height, block_height)
+            self.assertEqual(resp.block_last_hash, block_last_hash_str)
+            self.assertEqual(resp.network_id, network_id)

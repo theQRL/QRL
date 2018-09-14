@@ -331,6 +331,29 @@ class XMSS(object):
         """
         return bytes(self._xmss.sign(message))
 
+    @staticmethod
+    def get_height_from_sig_size(sig_size: int) -> int:
+        min_size = 4 + 32 + 67 * 32
+
+        if sig_size < min_size:
+            raise Exception("Invalid Signature Size")
+
+        if (sig_size - 4) % 32 != 0:
+            raise Exception("Invalid Signature Size")
+
+        height = (sig_size - min_size) // 32
+
+        return height
+
+    @staticmethod
+    def validate_signature(signature, PK):
+        height = XMSS.get_height_from_sig_size(len(signature))
+
+        if height == 0 or 2 * int(bin2hstr(PK)[2:4]) != height:
+            return False
+
+        return True
+
 
 if __name__ == "__main__":
     import doctest
