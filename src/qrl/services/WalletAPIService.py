@@ -420,4 +420,3 @@ class WalletAPIService(WalletAPIServicer):
             resp.error = str(e)
 
         return resp
-
