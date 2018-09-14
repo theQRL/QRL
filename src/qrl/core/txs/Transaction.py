@@ -12,7 +12,6 @@ from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.misc import logger
 from qrl.core.txs import build_tx
-from qrl.crypto.xmss import XMSS
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 
@@ -269,8 +268,10 @@ class Transaction(object, metaclass=ABCMeta):
             raise ValueError("Invalid Transaction Hash")
 
         if verify_signature:
-            if not XMSS.validate_signature(self.signature, self.PK):
-                raise ValueError("Invalid xmss signature")
+            # Temporarily disabled following new added lines.
+            # TODO: Review Juan
+            # if not XMSS.validate_signature(self.signature, self.PK):
+            #     raise ValueError("Invalid xmss signature")
 
             if not XmssFast.verify(self.get_data_hash(),
                                    self.signature,
