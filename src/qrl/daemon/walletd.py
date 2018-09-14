@@ -269,8 +269,6 @@ class WalletD:
         return False
 
     def validate_address(self, qaddress: str) -> bool:
-        self.authenticate()
-
         try:
             return AddressState.address_is_valid(bytes(hstr2bin(qaddress[1:])))
         except Exception:
@@ -437,7 +435,6 @@ class WalletD:
                     self.sign_and_push_transaction(tx,
                                                    curr_slave_xmss,
                                                    index,
-                                                   slave_index,
                                                    enable_save=False)
 
                 ots_index = slave_address_state.get_unused_ots_index(slave.index)

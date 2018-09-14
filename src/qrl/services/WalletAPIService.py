@@ -72,16 +72,16 @@ class WalletAPIService(WalletAPIServicer):
 
         return resp
 
-    @GrpcExceptionWrapper(qrlwallet_pb2.ValidateAddressResp)
-    def ValidateAddress(self, request: qrlwallet_pb2.ValidateAddressReq, context) -> qrlwallet_pb2.ValidateAddressResp:
-        resp = qrlwallet_pb2.ValidateAddressResp()
+    @GrpcExceptionWrapper(qrlwallet_pb2.ValidAddressResp)
+    def IsValidAddress(self, request: qrlwallet_pb2.ValidAddressReq, context) -> qrlwallet_pb2.ValidAddressResp:
+        resp = qrlwallet_pb2.ValidAddressResp()
         try:
             if not self._walletd.validate_address(request.address):
                 resp.code = 1
                 resp.error = "Invalid QRL Address"
-                resp.valid = False
+                resp.valid = "False"
             else:
-                resp.valid = True
+                resp.valid = "True"
         except Exception as e:
             resp.code = 1
             resp.error = str(e)
@@ -420,3 +420,4 @@ class WalletAPIService(WalletAPIServicer):
             resp.error = str(e)
 
         return resp
+

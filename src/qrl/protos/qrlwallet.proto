@@ -28,7 +28,7 @@ service WalletAPI
 
     rpc RemoveAddress(RemoveAddressReq) returns (RemoveAddressResp);
 
-    rpc ValidateAddress(ValidateAddressReq) returns (ValidateAddressResp);
+    rpc IsValidAddress(ValidAddressReq) returns (ValidAddressResp);
 
     rpc EncryptWallet(EncryptWalletReq) returns (EncryptWalletResp);
 
@@ -78,6 +78,8 @@ service WalletAPI
 
     rpc GetAddressFromPK(AddressFromPKReq) returns (AddressFromPKResp);
 
+    // rpc GetNodeStats(GetNodeStatsReq) returns (GetNodeStatsResp)
+
 }
 
 message AddNewAddressReq {
@@ -126,14 +128,14 @@ message RemoveAddressResp {
     string error = 2;
 }
 
-message ValidateAddressReq {
+message ValidAddressReq {
     string address = 1;
 }
 
-message ValidateAddressResp {
+message ValidAddressResp {
     uint32 code = 1;
     string error = 2;
-    bool valid = 3;
+    string valid = 3;
 }
 
 
