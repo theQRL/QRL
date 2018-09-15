@@ -772,7 +772,7 @@ class WalletD:
         block_header_hash = None
         if response.block_header_hash:
             block_header_hash = bin2hstr(response.block_header_hash)
-        return self.to_plain_transaction(response.tx), response.confirmations, response.block_number, block_header_hash
+        return self.to_plain_transaction(response.tx), str(response.confirmations), response.block_number, block_header_hash
 
     def get_balance(self, qaddress: str) -> int:
         address = self.qaddress_to_address(qaddress)
