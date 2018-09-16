@@ -580,7 +580,8 @@ class TestWalletAPI(TestCase):
 
             self.assertEqual(resp.code, 0)
             self.assertIsNotNone(resp.tx)
-            self.assertEqual(bin2hstr(tx.transaction_hash), resp.tx.transaction_hash)
+            self.assertEqual(resp.tx.transaction_hash, bin2hstr(tx.transaction_hash))
+            self.assertEqual(resp.confirmations, "10")
 
     def test_getBalance(self):
         with set_qrl_dir("wallet_ver1"):
@@ -699,8 +700,8 @@ class TestWalletAPI(TestCase):
             resp = service.GetNodeInfo(qrlwallet_pb2.NodeInfoReq(), context=None)
 
             self.assertEqual(resp.version, version)
-            self.assertEqual(resp.num_connections, num_connections)
-            self.assertEqual(resp.num_known_peers, num_known_peers)
+            self.assertEqual(resp.num_connections, str(num_connections))
+            self.assertEqual(resp.num_known_peers, str(num_known_peers))
             self.assertEqual(resp.uptime, uptime)
             self.assertEqual(resp.block_height, block_height)
             self.assertEqual(resp.block_last_hash, block_last_hash_str)
