@@ -429,8 +429,8 @@ class WalletAPIService(WalletAPIServicer):
             node_info = self._walletd.get_node_info()
 
             resp.version = node_info.info.version
-            resp.num_connections = node_info.info.num_connections
-            resp.num_known_peers = node_info.info.num_known_peers
+            resp.num_connections = str(node_info.info.num_connections)
+            resp.num_known_peers = str(node_info.info.num_known_peers)
             resp.uptime = node_info.info.uptime
             resp.block_height = node_info.info.block_height
             resp.block_last_hash = bin2hstr(node_info.info.block_last_hash)

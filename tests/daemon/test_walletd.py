@@ -952,7 +952,7 @@ class TestWalletD(TestCase):
             tx, confirmations, block_number, block_header_hash = walletd.get_transaction(tx_hash='1234')
             self.assertIsNotNone(tx)
             self.assertEqual(tx.transaction_hash, bin2hstr(b'1234'))
-            self.assertEqual(confirmations, 10)
+            self.assertEqual(confirmations, "10")
             self.assertEqual(block_number, 5)
             self.assertEqual(block_header_hash, header_hash)
 
