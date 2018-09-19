@@ -102,14 +102,21 @@ def get_item_from_wallet(wallet, wallet_idx):
 
 def _print_addresses(ctx, addresses: List[AddressItem], source_description):
     def _normal(wallet):
-        output = "{:<8}{:<83}{:<13}\n{:<8}{:<83}".format(wallet['number'], wallet['address'], wallet['balance'], "",
-                                                         wallet['address_b32'])
+        if config.user.bech32_enabled:
+            output = "{:<8}{:<83}{:<13}\n{:<8}{:<83}".format(wallet['number'], wallet['address'], wallet['balance'], "",
+                                                             wallet['address_b32'])
+        else:
+            output = "{:<8}{:<83}{:<13}".format(wallet['number'], wallet['address'], wallet['balance'])
         return output
 
     def _verbose(wallet):
-        output = "{:<8}{:<83}{:<13}{:<8}\n{:<8}{:<83}".format(
-            wallet['number'], wallet['address'], wallet['balance'], wallet['hash_function'], "", wallet['address_b32']
-        )
+        if config.user.bech32_enabled:
+            output = "{:<8}{:<83}{:<13}{:<8}\n{:<8}{:<83}".format(
+                wallet['number'], wallet['address'], wallet['balance'], wallet['hash_function'], "",
+                wallet['address_b32'])
+        else:
+            output = "{:<8}{:<83}{:<13}{:<8}".format(
+                wallet['number'], wallet['address'], wallet['balance'], wallet['hash_function'])
         return output
 
     def _generate_header_and_divider():

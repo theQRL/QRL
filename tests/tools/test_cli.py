@@ -163,14 +163,16 @@ class TestCLI(TestCase):
         shutil.rmtree(self.temp_dir)
 
     def test_wallet_ls(self):
-        result = self.runner.invoke(qrl_cli, ["wallet_ls"])
+        with mock.patch('qrl.core.config.user', bech32_enabled=True):
+            result = self.runner.invoke(qrl_cli, ["wallet_ls"])
         wallet = open_wallet()
         self.assertIn(wallet["addresses"][0]["address"], result.output)
         self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
         self.assertIn(self.temp_dir, result.output)  # You should know which wallet you've opened.
 
     def test_wallet_ls_verbose(self):
-        result = self.runner.invoke(qrl_cli, ["-v", "wallet_ls"])
+        with mock.patch('qrl.core.config.user', bech32_enabled=True):
+            result = self.runner.invoke(qrl_cli, ["-v", "wallet_ls"])
         wallet = open_wallet()
         self.assertIn(wallet["addresses"][0]["hashFunction"], result.output)
         self.assertIn(wallet["addresses"][0]["address_b32"], result.output)
@@ -184,7 +186,8 @@ class TestCLI(TestCase):
         self.assertIn(self.temp_dir, result.output)  # You should know which wallet you've opened.
 
     def test_wallet_add(self):
-        result = self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"])
+        with mock.patch('qrl.core.config.user', bech32_enabled=True):
+            result = self.runner.invoke(qrl_cli, ["wallet_add", "--height=4"])
         wallet = open_wallet()
         self.assertIn(wallet["addresses"][1]["address"], result.output)
         self.assertIn(wallet["addresses"][1]["address_b32"], result.output)

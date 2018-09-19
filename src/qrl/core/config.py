@@ -70,6 +70,7 @@ class UserConfig(object):
 
         self._qrl_dir = expanduser(os.path.join("~/.qrl"))
 
+        self.bech32_enabled = False  # BECH32 support is implemented but is disabled by default
         # ======================================
         #        ADMIN API CONFIGURATION
         # ======================================
