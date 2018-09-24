@@ -348,7 +348,9 @@ class WalletD:
             target_address_item = slave
             if self._passphrase:
                 target_address_item = self._wallet.decrypt_address_item(slave, self._passphrase)
-            xmss = self._wallet.get_xmss_by_item(target_address_item, ots_index)
+            target_address_item.index = ots_index
+            target_address_item.generate_xmss()
+            xmss = target_address_item.xmss
         else:
             xmss.set_ots_index(ots_index)
 
