@@ -12,7 +12,6 @@ with open('data/token_migration.csv') as f:
     count = 0
     for row in data:
         count += 1
-        # FIX Me (cyyber): converting all amounts to int, could be dangerous
         json_data[row[0]] = int(Decimal(row[1]) * shor_per_quanta)
 
     if count != len(json_data.keys()):
