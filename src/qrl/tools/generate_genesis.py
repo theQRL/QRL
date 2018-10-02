@@ -55,36 +55,39 @@ def get_migration_transactions(signing_xmss, filename):
     return transactions
 
 
-if len(sys.argv) > 2:
-    print("Unexpected arguments")
-    sys.exit(0)
-elif len(sys.argv) == 1:
-    print("Missing Filename")
-    sys.exit(0)
+def main():
+    if len(sys.argv) > 2:
+        print("Unexpected arguments")
+        sys.exit(0)
+    elif len(sys.argv) == 1:
+        print("Missing Filename")
+        sys.exit(0)
 
-filename = sys.argv[1]
+    filename = sys.argv[1]
 
-if sys.version_info.major > 2:
-    seed = bytes(hstr2bin(input('Enter extended hexseed: ')))
-else:
-    seed = bytes(hstr2bin(raw_input('Enter extended hexseed: ')))  # noqa
+    if sys.version_info.major > 2:
+        seed = bytes(hstr2bin(input('Enter extended hexseed: ')))
+    else:
+        seed = bytes(hstr2bin(raw_input('Enter extended hexseed: ')))  # noqa
 
-dist_xmss = XMSS.from_extended_seed(seed)
+    dist_xmss = XMSS.from_extended_seed(seed)
 
-transactions = get_migration_transactions(signing_xmss=dist_xmss, filename=filename)
+    transactions = get_migration_transactions(signing_xmss=dist_xmss, filename=filename)
 
-block = Block.create(block_number=0,
-                     prev_headerhash=config.user.genesis_prev_headerhash,
-                     prev_timestamp=config.user.genesis_timestamp,
-                     transactions=transactions,
-                     miner_address=dist_xmss.address)
+    block = Block.create(block_number=0,
+                         prev_headerhash=config.user.genesis_prev_headerhash,
+                         prev_timestamp=config.user.genesis_timestamp,
+                         transactions=transactions,
+                         miner_address=dist_xmss.address)
 
-block.set_nonces(0, 0)
+    block.set_nonces(0, 0)
 
-block._data.genesis_balance.MergeFrom([qrl_pb2.GenesisBalance(address=config.dev.coinbase_address,
-                                                              balance=105000000000000000)])
+    block._data.genesis_balance.MergeFrom([qrl_pb2.GenesisBalance(address=config.dev.coinbase_address,
+                                                                  balance=105000000000000000)])
 
-k = block.blockheader.to_json()
+    with open('genesis.yml', 'w') as f:
+        yaml.dump(json.loads(block.to_json()), f)
 
-with open('genesis.yml', 'w') as f:
-    yaml.dump(json.loads(block.to_json()), f)
+
+if __name__ == '__main__':
+    main()
