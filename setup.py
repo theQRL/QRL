@@ -19,6 +19,7 @@ entry_points = """
     qrl_grpc_proxy = qrl.grpcProxy:main
     qrl_measure = qrl.measure:main
     qrl_walletd = qrl.daemon.walletd:main
+    qrl_generate_genesis = qrl.tools.generate_genesis:main
 """
 
 
