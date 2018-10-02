@@ -23,21 +23,21 @@ def create_tx(addrs_to, amounts, signing_xmss, nonce):
     return tx
 
 
-def get_migration_transactions(signing_xmss):
+def get_migration_transactions(signing_xmss, filename):
     transactions = []
 
-    with open('data/token_migration.json', 'r') as f:
+    with open(filename, 'r') as f:
         json_data = json.load(f)
 
     count = 1
     addrs_to = []
     amounts = []
     output_limit = config.dev.transaction_multi_output_limit
-    # output_limit = 100  # Overriding output limit to 4, to get multiple txns and better testing scenario
+
     for addr in json_data:
         try:
             addrs_to.append(bytes(hstr2bin(addr[1:])))
-        except: # noqa
+        except:  # noqa
             print("Invalid Address ", addr)
             raise Exception
         amounts.append(json_data[addr])
@@ -55,6 +55,15 @@ def get_migration_transactions(signing_xmss):
     return transactions
 
 
+if len(sys.argv) > 2:
+    print("Unexpected arguments")
+    sys.exit(0)
+elif len(sys.argv) == 1:
+    print("Missing Filename")
+    sys.exit(0)
+
+filename = sys.argv[1]
+
 if sys.version_info.major > 2:
     seed = bytes(hstr2bin(input('Enter extended hexseed: ')))
 else:
@@ -62,7 +71,7 @@ else:
 
 dist_xmss = XMSS.from_extended_seed(seed)
 
-transactions = get_migration_transactions(signing_xmss=dist_xmss)
+transactions = get_migration_transactions(signing_xmss=dist_xmss, filename=filename)
 
 block = Block.create(block_number=0,
                      prev_headerhash=config.user.genesis_prev_headerhash,
