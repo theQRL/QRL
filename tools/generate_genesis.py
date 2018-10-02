@@ -2,6 +2,7 @@
 from __future__ import print_function
 import simplejson as json
 import yaml
+import sys
 
 from pyqrllib.pyqrllib import hstr2bin
 
@@ -54,7 +55,10 @@ def get_migration_transactions(signing_xmss):
     return transactions
 
 
-seed = bytes(hstr2bin(input('Enter extended hexseed: ')))
+if sys.version_info.major > 2:
+    seed = bytes(hstr2bin(input('Enter extended hexseed: ')))
+else:
+    seed = bytes(hstr2bin(raw_input('Enter extended hexseed: ')))  # noqa
 
 dist_xmss = XMSS.from_extended_seed(seed)
 
