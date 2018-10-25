@@ -203,7 +203,7 @@ class DevConfig(object):
 
         DevConfig.__instance = self
 
-        self.version = version
+        self.version = version + 'python'
 
         ################################################################
         # Warning: Don't change following configuration.               #
