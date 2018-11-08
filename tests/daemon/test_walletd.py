@@ -10,6 +10,7 @@ from qrl.daemon.walletd import WalletD
 from qrl.generated import qrl_pb2
 from qrl.core.AddressState import AddressState
 from qrl.core.txs.TransferTransaction import TransferTransaction
+from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.daemon.helper.DaemonHelper import WalletDecryptionError
 from qrl.core.misc import logger
 from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_bob_xmss
@@ -1006,6 +1007,30 @@ class TestWalletD(TestCase):
             block = qrl_pb2.Block()
             block.header.hash_header = b'001122'
             block.header.block_number = 1
+
+            walletd._public_stub.GetBlockByNumber = Mock(
+                return_value=qrl_pb2.GetBlockResp(block=block))
+
+            b = walletd.get_block_by_number(1)
+            self.assertEqual(b.header.hash_header, bin2hstr(block.header.hash_header))
+            self.assertEqual(b.header.block_number, block.header.block_number)
+
+    def test_get_block_by_number2(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            alice = get_alice_xmss()
+            message = b'\xaf\xaf\xa2\xe4\xfc\xabv\xdb\xe5\xbf\xe9(\x9a\xe5\xf5\xfb' \
+                      b'\xe5\x9a\x13\xde+\xe5{D_\x05m\x06\x1c\x8f\nG?\xed\xd6qip3'
+            tx = MessageTransaction.create(message_hash=message,
+                                           fee=1,
+                                           xmss_pk=alice.pk)
+            tx.sign(alice)
+
+            block = qrl_pb2.Block()
+            block.header.hash_header = b'001122'
+            block.header.block_number = 1
+
+            block.transactions.extend([tx.pbdata])
 
             walletd._public_stub.GetBlockByNumber = Mock(
                 return_value=qrl_pb2.GetBlockResp(block=block))

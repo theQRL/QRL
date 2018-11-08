@@ -101,7 +101,7 @@ class WalletD:
             ptx.lattice_public_key.dilithium_pk = bin2hstr(tx.lattice_public_key.dilithium_pk)
 
         elif tx.WhichOneof('transactionType') == 'message':
-            ptx.message.message_hash = tx.message.message_hash
+            ptx.message.message_hash = str(tx.message.message_hash)
 
         elif tx.WhichOneof('transactionType') == 'token':
             ptx.token.symbol = tx.token.symbol
