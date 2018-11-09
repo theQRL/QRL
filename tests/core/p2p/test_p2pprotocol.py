@@ -123,6 +123,13 @@ class TestP2PProtocol(TestCase):
         self.channel.peer_manager.ban_channel.assert_called_with(self.channel)
 
     @patch('qrl.core.misc.ntp.getTime')
+    def test_send_version_request(self, getTime):
+        getTime.return_value = 1525078652.9991353
+        version_request = b'\x00\x00\x00\x02\x1a\x00'
+        self.channel.send_version_request()
+        self.channel.transport.write.assert_called_with(version_request)
+
+    @patch('qrl.core.misc.ntp.getTime')
     def test_send_sync(self, getTime):
         getTime.return_value = 1525078652.9991353
         self.channel.send_sync(synced=True)
