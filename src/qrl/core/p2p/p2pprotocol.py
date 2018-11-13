@@ -271,7 +271,8 @@ class P2PProtocol(Protocol):
     ###################################################
 
     def send_version_request(self):
-        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE)
+        msg = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE,
+                                          veData=qrllegacy_pb2.VEData())
         self.send(msg)
 
     def send_peer_list(self):
