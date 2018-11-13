@@ -100,6 +100,12 @@ class ChainManager:
                 tx = tx_set[1].transaction
                 if tx.txhash == transaction_hash:
                     return [tx, tx_set[1].timestamp]
+            if transaction_hash in self.tx_pool.pending_tx_pool_hash:
+                for tx_set in self.tx_pool.pending_tx_pool:
+                    tx = tx_set[1].transaction
+                    if tx.txhash == transaction_hash:
+                        return [tx, tx_set[1].timestamp]
+
             return []
 
     def get_block_metadata(self, header_hash: bytes) -> Optional[BlockMetadata]:
