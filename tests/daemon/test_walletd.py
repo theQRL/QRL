@@ -1180,4 +1180,3 @@ class TestWalletD(TestCase):
             self.assertEqual(b.info.block_height, block_height)
             self.assertEqual(b.info.block_last_hash, block_last_hash)
             self.assertEqual(b.info.network_id, network_id)
-
