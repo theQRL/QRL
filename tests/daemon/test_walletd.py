@@ -379,32 +379,6 @@ class TestWalletD(TestCase):
                                             ots_index=0)
             self.assertIsNotNone(tx)
 
-    def test_relay_transfer_txn_by_slave(self):
-        with set_qrl_dir("wallet_ver1"):
-            walletd = WalletD()
-
-            walletd._public_stub.PushTransaction = Mock(
-                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
-
-            qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
-            slaves = walletd.get_slave_list(qaddress)
-
-            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
-            walletd._public_stub.GetAddressState = Mock(
-                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
-
-            alice_xmss = get_alice_xmss(4)
-            bob_xmss = get_bob_xmss(4)
-            qaddresses_to = [alice_xmss.qaddress, bob_xmss.qaddress]
-            amounts = [1000000000, 1000000000]
-
-            tx = walletd.relay_transfer_txn_by_slave(qaddresses_to=qaddresses_to,
-                                                     amounts=amounts,
-                                                     fee=100000000,
-                                                     master_qaddress=qaddress)
-            self.assertIsNotNone(tx)
-
     def test_relay_transfer_txn2(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
@@ -440,6 +414,56 @@ class TestWalletD(TestCase):
                                            signer_address=qaddress,
                                            ots_index=0)
 
+    def test_relay_transfer_txn3(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            qaddress = walletd.add_new_address(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            alice_xmss = get_alice_xmss(4)
+            bob_xmss = get_bob_xmss(4)
+            qaddresses_to = [alice_xmss.qaddress, bob_xmss.qaddress]
+            amounts = [1000000000, 1000000000]
+
+            with self.assertRaises(Exception):
+                walletd.relay_transfer_txn(qaddresses_to=qaddresses_to,
+                                           amounts=amounts,
+                                           fee=100000000,
+                                           master_qaddress=None,
+                                           signer_address=alice_xmss.qaddress,
+                                           ots_index=0)
+
+    def test_relay_transfer_txn_by_slave(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            qaddress = walletd.add_new_address_with_slaves(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            slaves = walletd.get_slave_list(qaddress)
+
+            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            alice_xmss = get_alice_xmss(4)
+            bob_xmss = get_bob_xmss(4)
+            qaddresses_to = [alice_xmss.qaddress, bob_xmss.qaddress]
+            amounts = [1000000000, 1000000000]
+
+            tx = walletd.relay_transfer_txn_by_slave(qaddresses_to=qaddresses_to,
+                                                     amounts=amounts,
+                                                     fee=100000000,
+                                                     master_qaddress=qaddress)
+            self.assertIsNotNone(tx)
+
     def test_relay_transfer_txn2_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
@@ -466,6 +490,40 @@ class TestWalletD(TestCase):
                                                      fee=100000000,
                                                      master_qaddress=qaddress)
             self.assertIsNotNone(tx)
+
+            walletd.lock_wallet()
+            with self.assertRaises(ValueError):
+                walletd.relay_transfer_txn_by_slave(qaddresses_to=qaddresses_to,
+                                                    amounts=amounts,
+                                                    fee=100000000,
+                                                    master_qaddress=qaddress)
+
+    def test_relay_transfer_txn3_by_slave(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            qaddress = walletd.add_new_address_with_slaves(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            slaves = walletd.get_slave_list(qaddress)
+
+            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            walletd.encrypt_wallet(self.passphrase)
+            walletd.unlock_wallet(self.passphrase)
+            alice_xmss = get_alice_xmss(4)
+            bob_xmss = get_bob_xmss(4)
+            qaddresses_to = [alice_xmss.qaddress, bob_xmss.qaddress]
+            amounts = [1000000000, 1000000000]
+
+            with self.assertRaises(Exception):
+                walletd.relay_transfer_txn_by_slave(qaddresses_to=qaddresses_to,
+                                                    amounts=amounts,
+                                                    fee=100000000,
+                                                    master_qaddress=alice_xmss.qaddress)
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
@@ -738,6 +796,50 @@ class TestWalletD(TestCase):
                                                   signer_address=qaddress,
                                                   ots_index=0)
             self.assertIsNotNone(tx)
+
+            walletd.lock_wallet()
+            with self.assertRaises(ValueError):
+                walletd.relay_transfer_token_txn(qaddresses_to=qaddresses_to,
+                                                 amounts=amounts,
+                                                 token_txhash='',
+                                                 fee=100000000,
+                                                 master_qaddress=None,
+                                                 signer_address=qaddress,
+                                                 ots_index=0)
+
+    def test_relay_transfer_token_txn2(self):
+        """
+        Relaying transfer token transaction from an address not listed in wallet daemon
+        :return:
+        """
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
+            walletd.add_new_address(height=8)
+            qaddress = walletd.add_new_address_with_slaves(height=8)
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
+            walletd._public_stub.GetAddressState = Mock(
+                return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+
+            walletd.encrypt_wallet(self.passphrase)
+            walletd.unlock_wallet(self.passphrase)
+
+            alice_xmss = get_alice_xmss(4)
+            bob_xmss = get_bob_xmss(4)
+            qaddresses_to = [alice_xmss.qaddress, bob_xmss.qaddress]
+            amounts = [1000000000, 1000000000]
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+            with self.assertRaises(Exception):
+                walletd.relay_transfer_token_txn(qaddresses_to=qaddresses_to,
+                                                 amounts=amounts,
+                                                 token_txhash='',
+                                                 fee=100000000,
+                                                 master_qaddress=None,
+                                                 signer_address=alice_xmss.qaddress,
+                                                 ots_index=0)
 
             walletd.lock_wallet()
             with self.assertRaises(ValueError):
