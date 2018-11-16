@@ -177,11 +177,11 @@ class Wallet:
             slaves=[]
         )
 
-    def get_address_item(self, qaddress) -> [int, AddressItem]:
+    def get_address_item(self, qaddress) -> [Optional[int], AddressItem]:
         for idx, item in enumerate(self._address_items):
             if item.qaddress == qaddress:
                 return idx, item
-        return -1, None
+        return None, None
 
     def get_xmss_by_address(self, search_addr) -> Optional[XMSS]:
         search_addr_str = self._get_Qaddress(search_addr)
@@ -190,7 +190,7 @@ class Wallet:
     def get_xmss_by_qaddress(self, search_addr_str, passphrase: str=None) -> Optional[XMSS]:
         idx, _ = self.get_address_item(search_addr_str)
 
-        if idx == -1:
+        if idx is None:
             return None
 
         return self.get_xmss_by_index(idx, passphrase)
