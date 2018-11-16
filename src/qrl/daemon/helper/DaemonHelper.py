@@ -190,7 +190,7 @@ class Wallet:
     def get_xmss_by_qaddress(self, search_addr_str, passphrase: str=None) -> Optional[XMSS]:
         idx, _ = self.get_address_item(search_addr_str)
 
-        if idx == -1:
+        if idx is None:
             return None
 
         return self.get_xmss_by_index(idx, passphrase)
