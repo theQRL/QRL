@@ -15,7 +15,9 @@ import "qrl.proto";
 ////////////////////////////
 ////////////////////////////
 
-// This service describes the Debug API used for debugging
+// This service describes the Debug API used for debugging, used by the fork
+// recovery integration test.
+
 service DebugAPI
 {
     rpc GetFullState (GetFullStateReq) returns (GetFullStateResp);

@@ -15,6 +15,17 @@ from qrl.core.TransactionInfo import TransactionInfo
 
 
 class TransactionPool:
+    """
+    As each Transaction comes in over the network, it is first stored in
+    TransactionPool.pending_tx_pool before the node validates them. After the TX
+    has been validated, it is moved to TransactionPool.transaction_pool.
+
+    The node pulls from this Pool in order to fill a block, which it then
+    attempts to mine. If a block is successfully mined, it will naturally be
+    added to the Chain, at which point ChainManager will call
+    remove_tx_in_block_from_pool
+    """
+
     # FIXME: Remove tx pool from all method names
     def __init__(self, broadcast_tx):
         self.pending_tx_pool = []
@@ -78,7 +89,7 @@ class TransactionPool:
 
         return True
 
-    def add_tx_to_pool(self, tx_class_obj, block_number, timestamp: int=None) -> bool:
+    def add_tx_to_pool(self, tx_class_obj, block_number, timestamp: int = None) -> bool:
         if self.is_full_transaction_pool():
             return False
 

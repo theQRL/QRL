@@ -26,37 +26,61 @@ from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 p2p_msg_priority = {
-            qrllegacy_pb2.LegacyMessage.VE: 0,
-            qrllegacy_pb2.LegacyMessage.PL: 0,
-            qrllegacy_pb2.LegacyMessage.PONG: 0,
+    qrllegacy_pb2.LegacyMessage.VE: 0,
+    qrllegacy_pb2.LegacyMessage.PL: 0,
+    qrllegacy_pb2.LegacyMessage.PONG: 0,
 
-            ######################
-            qrllegacy_pb2.LegacyMessage.MR: 2,
-            qrllegacy_pb2.LegacyMessage.SFM: 1,
+    ######################
+    qrllegacy_pb2.LegacyMessage.MR: 2,
+    qrllegacy_pb2.LegacyMessage.SFM: 1,
 
-            qrllegacy_pb2.LegacyMessage.BK: 1,
-            qrllegacy_pb2.LegacyMessage.FB: 0,
-            qrllegacy_pb2.LegacyMessage.PB: 0,
-            qrllegacy_pb2.LegacyMessage.BH: 1,
+    qrllegacy_pb2.LegacyMessage.BK: 1,
+    qrllegacy_pb2.LegacyMessage.FB: 0,
+    qrllegacy_pb2.LegacyMessage.PB: 0,
+    qrllegacy_pb2.LegacyMessage.BH: 1,
 
-            ############################
-            qrllegacy_pb2.LegacyMessage.TX: 1,
-            qrllegacy_pb2.LegacyMessage.MT: 1,
-            qrllegacy_pb2.LegacyMessage.TK: 1,
-            qrllegacy_pb2.LegacyMessage.TT: 1,
-            qrllegacy_pb2.LegacyMessage.LT: 1,
-            qrllegacy_pb2.LegacyMessage.SL: 1,
+    ############################
+    qrllegacy_pb2.LegacyMessage.TX: 1,
+    qrllegacy_pb2.LegacyMessage.MT: 1,
+    qrllegacy_pb2.LegacyMessage.TK: 1,
+    qrllegacy_pb2.LegacyMessage.TT: 1,
+    qrllegacy_pb2.LegacyMessage.LT: 1,
+    qrllegacy_pb2.LegacyMessage.SL: 1,
 
-            qrllegacy_pb2.LegacyMessage.EPH: 3,
+    qrllegacy_pb2.LegacyMessage.EPH: 3,
 
-            qrllegacy_pb2.LegacyMessage.SYNC: 0,
-            qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
-            qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
-            qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
-        }
+    qrllegacy_pb2.LegacyMessage.SYNC: 0,
+    qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
+    qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
+    qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
+}
 
 
 class P2PFactory(ServerFactory):
+    """
+    The role of P2PFactory is not very well defined. Strictly using the Twisted
+    terminology, P2PFactory is a factory for P2PProtocols - that is, whenever a
+    new connection is made, P2PFactory instantiates a P2PProtocol (remember that
+    a P2PProtocol represents a connection between this node and a peer, speaking
+    the QRL 'P2PProtocol'). But it also has logic for other, blockchain-level
+    concerns:
+
+    It has some logic to know that it shouldn't try to connect to a peer if
+    there is already a connection. If a full message needs to be downloaded from
+    a peer, P2PFactory schedules the connection to the peer with the Twisted
+    reactor.
+
+    It peridically tries to connect to preferred nodes.
+
+    It broadcasts information (that it has this tx or block) to all connected
+    peers.
+
+    It goes through the inventory reported by other peers and finds out if they
+    are on a different tip/fork.
+
+    Basically, not only is it a factory for P2PProtocols, it includes business
+    logic that generally handles information exchange with peers.
+    """
     protocol = P2PProtocol
 
     def __init__(self,
@@ -485,7 +509,8 @@ class P2PFactory(ServerFactory):
             return False
 
         if conn_protocol.peer.ip == conn_protocol.host.ip and conn_protocol.peer.port == config.user.p2p_public_port:
-            peer_list = [p for p in self._qrl_node.peer_manager.known_peer_addresses if p != conn_protocol.peer.full_address]
+            peer_list = [p for p in self._qrl_node.peer_manager.known_peer_addresses if
+                         p != conn_protocol.peer.full_address]
             self._qrl_node.peer_manager.extend_known_peers(peer_list)
             return False
 

@@ -8,6 +8,10 @@ from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 
 class P2PChainManager(P2PBaseObserver):
+    """
+    P2PChainManager is a collection of function handlers that will be called
+    whenever P2P messages that have to do with blocks arrive.
+    """
     def __init__(self):
         super().__init__()
 

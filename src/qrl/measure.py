@@ -3,6 +3,7 @@ import multiprocessing
 from pyqryptonight.pyqryptonight import Qryptominer
 
 
+# This is just for measuring your CPU hash rate.
 def measure(threads):
     class CustomQMiner(Qryptominer):
         def __init__(self):

@@ -31,6 +31,13 @@ pid = os.path.join(config.user.wallet_dir, 'qrl_walletd.pid')
 
 
 class WalletD:
+    """
+    The point of WalletD is to have a daemon that can sign transactions for you,
+    and make sure that you never run out of OTS keys to sign with. Meant for
+    exchanges. It automatically generates slave XMSS trees when you are runing
+    low on OTS keys, and submits SlaveTransactions to register them, but you can
+    manage this manually too.
+    """
     def __init__(self):
         self._wallet_path = os.path.join(config.user.wallet_dir, 'walletd.json')
         self._public_stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel(config.user.public_api_server))

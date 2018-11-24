@@ -4,6 +4,11 @@ from qrl.core import config
 
 
 class IPMetadata(object):
+    """
+    This is a convenience class used by P2PProtocol that holds a peer's IP and
+    port, making sure they're valid, and providing some metadata about the
+    IP:port that the P2PPeerManager might find useful.
+    """
     def __init__(self, ip_str: str, port: int):
         self._ip = ip_str
 

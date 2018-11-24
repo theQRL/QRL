@@ -7,7 +7,7 @@ package qrl;
 
 import "qrl.proto";
 
-// Adding old code to refactor while keeping things working
+// This defines the messages used by P2PProtocol for P2P networking.
 message LegacyMessage {
     enum FuncName {
         VE = 0;             // Version

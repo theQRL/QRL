@@ -10,6 +10,12 @@ from qrl.generated import qrllegacy_pb2
 
 
 class P2PTxManagement(P2PBaseObserver):
+    """
+    P2PTxManagement is simply a collection of functions that are called when
+    messages about transactions arrive. All the handlers do is validate the
+    message, create a Transaction from the data in the message, and send it to
+    the txpool through P2PFactory.
+    """
     def __init__(self):
         super().__init__()
 

@@ -27,6 +27,13 @@ class ConsensusMechanism(object):
 
 
 class POW(ConsensusMechanism):
+    """
+    This is named POW because back then QRL was PoS and this was just a
+    alternate implementation of the node that used PoW.
+
+    Some functions are now unused/obsolete - go-qrl will clean this up. Most of
+    the functionality has been moved into QRLNode.
+    """
     def __init__(self,
                  chain_manager: ChainManager,
                  p2p_factory,
@@ -72,11 +79,13 @@ class POW(ConsensusMechanism):
         reactor.callLater(1, self.initialize_pow)
 
     def _handler_state_unsynced(self):
+        # cyyber confirms this function is obsolete/unused
         self.miner.cancel()
         self.last_bk_time = ntp.getTime()
         self.restart_unsynced_logic()
 
     def _handler_state_syncing(self):
+        # cyyber confirms this function is obsolete/unused
         self.last_pb_time = ntp.getTime()
 
     def _handler_state_synced(self):
@@ -85,9 +94,11 @@ class POW(ConsensusMechanism):
         self._mine_next(last_block)
 
     def _handler_state_forked(self):
+        # cyyber confirms this function is obsolete/unused
         pass
 
     def update_node_state(self, new_sync_state: ESyncState):
+        #  cyyber confirms this function is ALMOST obsolete/unused
         self.sync_state.state = new_sync_state
         logger.info('Status changed to %s', self.sync_state.state)
 
@@ -144,6 +155,7 @@ class POW(ConsensusMechanism):
     ##############################################
 
     def restart_unsynced_logic(self, delay=0):
+        # cyyber confirms this function is obsolete/unused
         logger.info('Restarting unsynced logic in %s seconds', delay)
         try:
             reactor.unsynced_logic.cancel()
@@ -153,6 +165,7 @@ class POW(ConsensusMechanism):
         reactor.unsynced_logic = reactor.callLater(delay, self.unsynced_logic)
 
     def unsynced_logic(self):
+        # cyyber confirms this function is obsolete/unused
         if self.sync_state.state != ESyncState.synced:
             self.p2p_factory.broadcast_get_synced_state()
             reactor.request_peer_blockheight = reactor.callLater(0, self.p2p_factory.request_peer_blockheight)

@@ -8,6 +8,11 @@ from qrl.generated import qrl_pb2
 
 
 class TokenMetadata(object):
+    """
+    TokenMetadata is a list of txhashes which are related to a given Token. This
+    is for the block-explorer, and is persisted to State and updated by State
+    (not ChainManager) whenever a new Block is added.
+    """
     def __init__(self, protobuf_data=None):
         self._data = protobuf_data
         if protobuf_data is None:

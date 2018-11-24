@@ -35,6 +35,16 @@ class WalletVersionError(WalletException):
 
 
 class Wallet:
+    """
+    Wallet is used by the CLI to parse wallet.json files (the WalletD uses its
+    own Wallet class). It handles reading/writing to wallet.json files with
+    different versions, encryption/decryption. Each XMSS tree in the wallet is
+    parsed into a namedtuple structure called AddressItem.
+
+    Wallet has a lot of code to manage the AddressItem. It would be better if
+    AddressItem were made into a class with logic of its own, so Wallet can
+    focus managing collections of AddressItems.
+    """
     def __init__(self, wallet_path=None):
         if wallet_path is None:
             wallet_path = self.get_default_wallet_path()

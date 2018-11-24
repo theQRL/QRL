@@ -9,6 +9,11 @@ from qrl.core.misc import ntp, logger
 
 
 class ExpiringSet(Set):
+    """
+    This class maintains a list of (persistent) entries that have an expiration
+    time. Currently only used by P2PPeerManager to maintain a list of banned
+    peers.
+    """
     def __init__(self, expiration_time, filename=None):
         super().__init__()
         self.expiration_time = expiration_time

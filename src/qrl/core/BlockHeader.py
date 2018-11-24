@@ -12,6 +12,10 @@ from qrl.generated import qrl_pb2
 
 
 class BlockHeader(object):
+    """
+    The BlockHeader is responsible for generating the mining blob that is passed
+    to the mining pool (or miner software).
+    """
     def __init__(self, protobuf_blockheader=None):
         """
         >>> BlockHeader() is not None

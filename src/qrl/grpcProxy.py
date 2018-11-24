@@ -17,6 +17,14 @@ from jsonrpc.backend.flask import api
 
 app = Flask(__name__)
 
+"""
+Because the QRL node uses GRPC as an API, but historically Bitcoin has used
+JSON-RPC as an API, most mining pool software expects a JSON-RPC interface
+to communicate with. grpcProxy provides the REST API interface that
+Cryptonote mining pools expect, and translates them into GRPC calls to the
+QRL node.
+"""
+
 
 def read_slaves(slaves_filename):
     with open(slaves_filename, 'r') as f:

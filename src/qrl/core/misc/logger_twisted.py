@@ -5,6 +5,9 @@ from twisted.logger import LogLevel, globalLogPublisher
 
 from qrl.core.misc import logger
 
+# Twisted's logger has slightly different severity levels, which
+# twisted_log_observer maps to something Python's logger understands.
+
 twisted_logger_mapping = {
     LogLevel.critical: logger.fatal,
     LogLevel.error: logger.error,

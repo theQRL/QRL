@@ -12,6 +12,11 @@ from qrl.crypto.misc import sha256
 
 
 class AESHelper(object):
+    """
+    AESHelper is used exclusively for wallet encryption/decryption.
+    Specifically, encrypting the contents of AddressItem, even when it's in RAM
+    and not yet written to disk.
+    """
     def __init__(self, key_str: str):
         self.key = key_str.encode()
         self.key_hash = sha256(self.key)
