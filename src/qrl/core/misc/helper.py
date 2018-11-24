@@ -5,6 +5,10 @@ from pyqrllib.pyqrllib import hstr2bin
 
 from qrl.core.AddressState import AddressState
 
+# These address conversion functions are useful everywhere throughout the node,
+# although with the introduction of BECH32 support this will be moved into a much
+# more capable class, AddressHelper.
+
 
 def parse_hexblob(blob: str) -> bytes:
     """

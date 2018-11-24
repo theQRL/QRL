@@ -7,6 +7,11 @@ from qrl.generated import qrlstateinfo_pb2
 
 
 class LastTransactions:
+    """
+    LastTransactions keeps track of the last 20 mined transactions for the block
+    explorer. It is persisted to Database and updated whenever a new block is
+    added in ChainManager.
+    """
     def __init__(self, pbdata=None):
         self._data = pbdata
         if not pbdata:

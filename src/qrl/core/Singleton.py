@@ -4,6 +4,10 @@
 
 
 class Singleton(type):
+    """
+    This is just a simple utility to make a class a Singleton.
+    """
+
     instance = None
 
     def __call__(cls, *args, **kw):

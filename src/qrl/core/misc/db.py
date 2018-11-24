@@ -13,6 +13,10 @@ __author__ = 'pete'
 
 
 class DB:
+    """
+    DB is just a wrapper around LevelDB, so that the rest of the node depends on
+    our wrapper's API, not leveldb's API.
+    """
     def __init__(self):
         self.db_dir = os.path.join(config.user.data_dir, config.dev.db_name)
         logger.info('DB path: %s', self.db_dir)

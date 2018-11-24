@@ -7,6 +7,8 @@ package qrl;
 
 import "qrl.proto";
 
+
+// This defines the GRPC MiningAPI.
 service MiningAPI
 {
     rpc GetBlockMiningCompatible(GetBlockMiningCompatibleReq) returns (GetBlockMiningCompatibleResp);

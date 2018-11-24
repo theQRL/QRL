@@ -8,6 +8,12 @@ import pkg_resources
 
 
 class DependencyChecker:
+    """
+    Tired of dealing with subtle errors caused by version mismatches in our
+    dependencies, cyyber wrote this little class that ensures upon startup that
+    every package in the Python virtualenv is exactly what was specified in
+    requirements.txt.
+    """
     @staticmethod
     def _get_requirements_path():
         return os.path.abspath(os.path.join(os.path.dirname(__file__),

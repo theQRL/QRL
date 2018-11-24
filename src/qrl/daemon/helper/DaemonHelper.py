@@ -38,6 +38,12 @@ class WalletVersionError(WalletException):
 
 
 class Wallet:
+    """
+    This is simply a copy of the node's Wallet class, but with added slave XMSS
+    functionality. Of course the best thing is to have it merged into Wallet,
+    but while exchange integration is ongoing, the decision was made to make
+    things easier for the exchange by not changing the node too much.
+    """
     def __init__(self, wallet_path=None):
         if wallet_path is None:
             wallet_path = self.get_default_wallet_path()

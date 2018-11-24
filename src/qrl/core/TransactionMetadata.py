@@ -7,6 +7,15 @@ from qrl.generated import qrlstateinfo_pb2
 
 
 class TransactionMetadata:
+    """
+    TransactionMetadata stores in which block and the block's timestamp in which
+    a particular TX was mined. This is for the block explorer, so that if you
+    need to look up a particular txhash you don't have to search through all the
+    blocks.
+
+    This is persisted into State, although this should be the block explorer's
+    job...
+    """
     def __init__(self, pbdata=None):
         self._data = pbdata
         if not pbdata:

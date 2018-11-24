@@ -4,6 +4,16 @@ from qrl.core import config
 
 
 class DifficultyTracker(object):
+    """
+    State.get_measurement calculates whether the last few blocks were found
+    earlier/later than expected. This measurement is then passed down to
+    DifficultyTracker, which calculates what the next difficulty/target should
+    be.
+
+    Yes, this could be just some functions, but it is also used in Miner and
+    ChainManager (potential for cyclic dependencies), and it's nice to have this
+    PoW related code boxed away so that the move to PoS will be easier.
+    """
     def __init__(self):
         pass
 

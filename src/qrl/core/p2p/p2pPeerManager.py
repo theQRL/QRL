@@ -20,6 +20,14 @@ from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 
 class P2PPeerManager(P2PBaseObserver):
+    """
+    P2PPeerManager is an Observer, and its main role is to bundle together
+    function handlers that handle messages about node version, peer list
+    exchange, peer's chain state, sync state, acknowledgement.
+
+    Other than that, it does many similar things to P2PFactory (refactoring is
+    incomplete, and likely to stay so as we move towards go-qrl).
+    """
     class EventType(Enum):
         NO_PEERS = 1
 
@@ -212,6 +220,9 @@ class P2PPeerManager(P2PBaseObserver):
         dest_channel.send(msg)
 
     def monitor_chain_state(self):
+        # Nodes broadcast their current block height and its headerhash every couple seconds
+        # as a health indicator. This function simply checks that we have last heard from each
+        # connected peer recently.
         # FIXME: Not sure this belongs to peer management
         current_timestamp = ntp.getTime()
         for channel in self._channels:
@@ -225,6 +236,8 @@ class P2PPeerManager(P2PBaseObserver):
                 channel.loseConnection()
 
     def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
+        # Called from qrlnode.py to broadcast the height, latest blockhash, and cumulative difficulty
+        # to all connected peers.
         # FIXME: Not sure this belongs to peer management
         # TODO: Verify/Disconnect problematic channels
         # Ping all channels
@@ -281,6 +294,13 @@ class P2PPeerManager(P2PBaseObserver):
             self._p2pfactory.connect_peer(peer_address)
 
     def get_peers_stat(self) -> list:
+        """
+        Peers broadcast their blockheight, headerhash and other info in a PeerStat protobuf message.
+        When the node receives such a message, it stores it in self.peer_node_status.
+        This function is only used by the block explorer - it basically returns the contents
+        of self.peer_node_status.
+        :return:
+        """
         peers_stat = []
         # Copying the list of keys, to avoid any change by other thread
         for source in list(self.peer_node_status.keys()):

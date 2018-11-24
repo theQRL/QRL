@@ -6,6 +6,16 @@ from qrl.core.misc import ntp
 
 
 class OutgoingMessage:
+    """
+    The meaning of Message here is different from
+    Message/MessageReceipt/MessageRequest. Here, the Message is anything that
+    P2PProtocol sends. (Yes, something needs to be renamed)
+
+    P2P message prioritization was introduced to make sure that ping/pong, node
+    status messages are prioritized over block/tx transfers and the like. This
+    class is meant to simply link an outgoing message with its priority.
+    """
+
     def __init__(self, priority, message):
         self.priority = priority
         self.timestamp = int(ntp.getTime())

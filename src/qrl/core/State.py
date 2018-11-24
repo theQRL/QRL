@@ -26,6 +26,12 @@ from qrl.generated import qrl_pb2, qrlstateinfo_pb2
 
 
 class State:
+    """
+    State is the only class that is allowed to read/write to the database.
+    Everything else should go through it. Basically State manages the database
+    and provides a business logic interface that other components can use.
+    """
+
     # FIXME: Rename to PersistentState
     # FIXME: Move blockchain caching/storage over here
     # FIXME: Improve key generation
@@ -99,7 +105,8 @@ class State:
         self._db.delete(str(block_number).encode(), batch)
 
     def put_block_number_mapping(self, block_number: int, block_number_mapping, batch):
-        self._db.put_raw(str(block_number).encode(), MessageToJson(block_number_mapping, sort_keys=True).encode(), batch)
+        self._db.put_raw(str(block_number).encode(), MessageToJson(block_number_mapping, sort_keys=True).encode(),
+                         batch)
 
     def get_block_number_mapping(self, block_number: int) -> Optional[qrl_pb2.BlockNumberMapping]:
         try:
@@ -431,7 +438,8 @@ class State:
     #########################################
 
     def _update_total_coin_supply(self, balance):
-        self._db.put_raw(b'total_coin_supply', (self.total_coin_supply + balance).to_bytes(8, byteorder='big', signed=False))
+        self._db.put_raw(b'total_coin_supply',
+                         (self.total_coin_supply + balance).to_bytes(8, byteorder='big', signed=False))
 
     def get_measurement(self, block_timestamp, parent_headerhash, parent_metadata: BlockMetadata):
         count_headerhashes = len(parent_metadata.last_N_headerhashes)

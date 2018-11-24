@@ -29,6 +29,10 @@ from qrl.generated import qrl_pb2
 
 
 class QRLNode:
+    """
+    QRLNode is the center of the node. It starts everything, and the *Service
+    API implementations in service/ call the business logic functions here.
+    """
     def __init__(self, mining_address: bytes):
         self.start_time = ntp.getTime()
         self._sync_state = SyncState()

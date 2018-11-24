@@ -23,6 +23,17 @@ from qrl.generated import qrl_pb2, qrlstateinfo_pb2
 
 
 class ChainManager:
+    """
+    The ChainManager maintains the chain, adding, removing blocks, and rolling
+    back from forks to the longest chain. Therefore it needs to access State and
+    TransactionPool, so that it can remove confirmed txs from the
+    TransactionPool.
+
+    Only ChainManager is allowed to access State. This was done as a quick fix
+    to prevent threading issues. That's why it also includes chain-unrelated
+    business logic functions (get_address_balance, get_blockheader_and_metadata,
+    get_unconfirmed_transaction).
+    """
     def __init__(self, state):
         self._state = state
         self.tx_pool = TransactionPool(None)

@@ -18,6 +18,10 @@ from qrl.core.txs.Transaction import Transaction
 
 
 class Miner(Qryptominer):
+    """
+    This is node's built in miner. The pool mining functionality has nothing to
+    do with this class.
+    """
     def __init__(self,
                  pre_block_logic,
                  mining_address: bytes,

@@ -6,6 +6,13 @@ from qrl.core.misc import logger
 
 
 class MessageRequest:
+    """
+    If the node finds that it needs a particular Message (i.e. the full Block or
+    Transaction), it creates a MessageRequest for that Message, and populates it
+    with a list of peers known to have that Message.
+    So MessageRequest simply keeps track of the node's need for a particular
+    Message.
+    """
     def __init__(self):
         self.callLater = None
         self.msg_type = None

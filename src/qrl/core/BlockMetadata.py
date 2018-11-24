@@ -8,7 +8,23 @@ from qrl.generated import qrl_pb2
 
 
 class BlockMetadata(object):
+    """
+    BlockMetadata describes how the Block fits into the chain, like the block's
+    difficulty, cumulative difficulty, the hashes of the block's parents and
+    children. This is useful for the PoW difficulty calculation.
 
+    Although you could walk through previous blocks to find their parents, in
+    practice this could be rather slow. Therefore it was better to just store a
+    list of the parent blocks' headerhashes in last_N_headerhashes. This was
+    especially important in the PoS days - back then you had to look back 1000
+    blocks - now you only have to look back 30 blocks, so the problem is not
+    nearly as severe.
+
+    Blocks always come with their accompanying BlockMetadata when passed around
+    between peers. As the node adds a Block to the chain in ChainManager, it
+    calculates the difficulty of the network and what should be the next
+    difficulty.
+    """
     def __init__(self, pbdata=None):
         self._data = pbdata
         if not pbdata:

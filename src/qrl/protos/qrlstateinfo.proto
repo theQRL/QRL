@@ -7,6 +7,7 @@ package qrl;
 
 import "qrl.proto";
 
+// This provides the messages used in qrldebug.proto.
 message TransactionMetadata {
     Transaction transaction = 1;
     uint64 block_number = 2;

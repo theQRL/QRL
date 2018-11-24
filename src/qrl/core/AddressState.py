@@ -9,6 +9,19 @@ from qrl.generated import qrl_pb2
 
 
 class AddressState(object):
+    """
+    Every address that has interacted with the QRL network has its own
+    AddressState. This is not synced between peers, but instead it is calculated
+    internally by each node as it verifies blocks. If the address has never
+    interacted with the network before, its default state is taken from
+    get_default().
+
+    If a Transaction was dropped by a node for whatever reason and not included
+    in a block, the ots_bitfield that the network maintains may be different
+    from the account's actual ots_bitfield (as seen by the account that made the
+    Transaction).
+    """
+
     def __init__(self, protobuf_block=None):
         self._data = protobuf_block
         if protobuf_block is None:
