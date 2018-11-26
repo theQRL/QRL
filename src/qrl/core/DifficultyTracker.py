@@ -10,9 +10,10 @@ class DifficultyTracker(object):
     DifficultyTracker, which calculates what the next difficulty/target should
     be.
 
-    Yes, this could be just some functions, but it is also used in Miner and
-    ChainManager (potential for cyclic dependencies), and it's nice to have this
-    PoW related code boxed away so that the move to PoS will be easier.
+    These simple functions don't need to be a class, but they are useful in
+    Miner and ChainManager (potential for cyclic dependencies), and it's nice to
+    have this PoW related code boxed away so that the move to PoS will be
+    easier.
     """
     def __init__(self):
         pass

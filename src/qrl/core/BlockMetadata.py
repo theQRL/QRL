@@ -15,10 +15,10 @@ class BlockMetadata(object):
 
     Although you could walk through previous blocks to find their parents, in
     practice this could be rather slow. Therefore it was better to just store a
-    list of the parent blocks' headerhashes in last_N_headerhashes. This was
-    especially important in the PoS days - back then you had to look back 1000
-    blocks - now you only have to look back 30 blocks, so the problem is not
-    nearly as severe.
+    list of the parent blocks' headerhashes in last_N_headerhashes. With the
+    current PoW consensus algorithm, you only have to look back 30 hashes, but
+    if a PoS consensus algorithm needs to look back 1000 blocks,
+    last_N_headerhashes becomes very useful.
 
     Blocks always come with their accompanying BlockMetadata when passed around
     between peers. As the node adds a Block to the chain in ChainManager, it

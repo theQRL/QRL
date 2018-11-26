@@ -5,9 +5,8 @@
 
 class ObservableEvent(object):
     """
-    This is the Observer pattern, except we use composition instead of
-    inheritance (presumably Juan did it this way to work around some weird parts
-    of Twisted). This means that instead of inheriting from this class (and
+    This is the Observer pattern, but implemented with composition instead of
+    inheritance. This means that instead of inheriting from this class (and
     getting the notify() method), the class that will be observed will have a
     self._observable. Then, the class will take care of calling
     self._observable.notify() whenever something relevant happens to it.

@@ -11,7 +11,7 @@ from qrl.core.Singleton import Singleton
 
 class PoWValidator(object, metaclass=Singleton):
     """
-    PoWValidator is just used to validate mining blocks. Just like with the
+    PoWValidator is used to validate mining blocks. Just like with the
     mining part, the memory sharing issue within the Qryptonight hashing code
     crops up here again, so you need a threading.Lock() again.
     """

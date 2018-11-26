@@ -9,7 +9,7 @@ class OutgoingMessage:
     """
     The meaning of Message here is different from
     Message/MessageReceipt/MessageRequest. Here, the Message is anything that
-    P2PProtocol sends. (Yes, something needs to be renamed)
+    P2PProtocol sends.
 
     P2P message prioritization was introduced to make sure that ping/pong, node
     status messages are prioritized over block/tx transfers and the like. This

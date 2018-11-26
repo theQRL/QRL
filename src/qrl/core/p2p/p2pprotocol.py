@@ -26,25 +26,22 @@ class P2PProtocol(Protocol):
     A P2PProtocol represents a QRL connection between the node and another node
     (the Protocol/Factory terminology comes from Twisted).
 
-    Upon instantiation, it registers itself as an Observable to:
+    It handles sending/receiving messages, sending acknowledgements, rate
+    limiting, and peers dropping offline.
 
+    Upon instantiation, it registers itself as an Observable to:
     P2PPeerManager (so that messages about node version, peer list exchange,
     peer's chain state, sync state, acknowledgement are handled by
     P2PPeerManager's functions)
-
     P2PChainManager (so that messages about sending/receiving blocks and block
     inventory are handled by P2PChainManager's functions)
-
     P2PTxManagement (so that messages about transactions get handled by the
     corresponding Transaction_type function)
-
-    It handles sending/receiving messages, sending acknowledgements, rate
-    limiting, and peers dropping offline.
 
     It has a general purpose send(msg) method that other classes mainly use, and
     convenience functions that use send(msg) such as "tell me your inventory",
     "I am synced", "these are the peers I am connected to", "send me block
-    number n" (these functions are probably redundant).
+    number n".
     """
 
     def __init__(self):

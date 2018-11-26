@@ -23,7 +23,7 @@ class TransactionPool:
     The node pulls from this Pool in order to fill a block, which it then
     attempts to mine. If a block is successfully mined, it will naturally be
     added to the Chain, at which point ChainManager will call
-    remove_tx_in_block_from_pool
+    remove_tx_in_block_from_pool()
     """
 
     # FIXME: Remove tx pool from all method names

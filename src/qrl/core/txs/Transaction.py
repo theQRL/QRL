@@ -30,16 +30,15 @@ class Transaction(object, metaclass=ABCMeta):
     """
     Abstract Base class to be derived by all other transactions
 
-    Because QRL does not have smart contracts yet, every operation possible on
-    the QRL blockchain is represented by a corresponding Transaction type. This
-    is similar to how business logic is done in Hyperledger Sawtooth, and what
-    Satoshi was trying to avoid when he created Bitcoin Script.
+    Every operation possible on the QRL blockchain is represented by a
+    corresponding Transaction type (until smart contract functionality is
+    introduced). This is similar to how business logic is done in Hyperledger
+    Sawtooth.
 
-    We have forgotten the purpose of the transaction nonce (see Ethereum - used
-    to prevent tx replay attacks), since the OTS index serves the purpose of the
-    transaction nonce.
+    Although Transactions also have a nonce (used to prevent tx replay attacks -
+    also seen in Ethereum), the OTS index, since it is meant to also be unique
+    per transaction, serves the purpose of the nonce.
     """
-
     def __init__(self, protobuf_transaction=None):
         self._data = protobuf_transaction  # This object cointains persistable data
         if protobuf_transaction is None:

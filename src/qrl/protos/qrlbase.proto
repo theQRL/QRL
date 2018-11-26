@@ -5,10 +5,10 @@ syntax = "proto3";
 
 package qrl;
 
-// This is used by Scott to get the latest qrl.proto file (which will then be
-// compiled by whatever needs it), since qrl.proto can change and is used by
-// the wallet and block-explorer. So whenever the PublicAPI changes, you don't
-// need to make changes to the wallet or block-explorer.
+// This is used by qrl-wallet and block-explorer to get the latest qrl.proto
+// file (which will then be compiled by whatever needs it). So whenever the
+// PublicAPI changes, you don't need to make changes to the wallet or block-
+// explorer.
 
 service Base {
   rpc GetNodeInfo (GetNodeInfoReq) returns (GetNodeInfoResp) {}

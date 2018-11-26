@@ -7,7 +7,7 @@ from qrl.generated import qrllegacy_pb2
 class P2PBaseObserver(object):
     """
     This is the Observer pattern, except done with composition rather than
-    inheritance (ask Juan why).
+    inheritance.
 
     1. An Observable is created.
 

@@ -9,10 +9,10 @@ import pkg_resources
 
 class DependencyChecker:
     """
-    Tired of dealing with subtle errors caused by version mismatches in our
-    dependencies, cyyber wrote this little class that ensures upon startup that
-    every package in the Python virtualenv is exactly what was specified in
-    requirements.txt.
+    While developing, version mismatches between requirements.txt and what is
+    actually in the virtualenv can lead to subtle errors. This class ensures
+    upon startup that every package in the Python virtualenv is exactly what was
+    specified in requirements.txt.
     """
     @staticmethod
     def _get_requirements_path():
