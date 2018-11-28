@@ -84,6 +84,16 @@ class AddressState(object):
                tokens: dict,
                slave_pks_access_type: dict,
                ots_counter: int):
+        """
+        :param address: address in byte format (not Q or BECH32 formatted)
+        :param nonce: the nonce of the last transaction this address sent
+        :param balance:
+        :param ots_bitfield: a bitfield tracks the used OTS indexes up to config.dev.max_ots_tracking_index
+        :param tokens: a dict mapping token_txhashes (bytes) to their balances
+        :param slave_pks_access_type: a dict mapping a slave XMSS tree's public key (bytes) to permission levels (int)
+        :param ots_counter: this is for used OTS indexes above config.dev.max_ots_tracking_index
+        :return:
+        """
         address_state = AddressState()
 
         address_state._data.address = address

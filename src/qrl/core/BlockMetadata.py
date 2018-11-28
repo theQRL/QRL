@@ -91,6 +91,13 @@ class BlockMetadata(object):
     def create(block_difficulty=bytes([0] * 32),
                cumulative_difficulty=bytes([0] * 32),
                child_headerhashes=None):
+        """
+        Used by ChainManager. Only override params for testing purposes.
+        :param block_difficulty:
+        :param cumulative_difficulty:
+        :param child_headerhashes: headerhashes of Blocks that come after this block
+        :return:
+        """
         block_meta_data = BlockMetadata()
         block_meta_data._data.block_difficulty = block_difficulty
         block_meta_data._data.cumulative_difficulty = cumulative_difficulty

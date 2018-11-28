@@ -14,6 +14,11 @@ class TransactionInfo:
     the tx, and which blockheight were you on.
     """
     def __init__(self, tx: Transaction, block_number: int, timestamp: int=None):
+        """
+        :param tx: An actual Transaction instance
+        :param block_number: node's current blockheight when the tx was received
+        :param timestamp: when the Transaction was received (not its timestamp)
+        """
         self._transaction = tx
         self._block_number = block_number
         self._timestamp = timestamp

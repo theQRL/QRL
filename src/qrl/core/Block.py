@@ -19,6 +19,8 @@ class Block(object):
     """
     Blocks are, like many other classes in QRL, hydrated from Protobuf messages.
     They contain a BlockHeader instance, which does the actual hash calculation.
+    Use __init__() to hydrate a Block() from a Protobuf message, or create() to
+    create a Block from parameters.
     """
     def __init__(self, protobuf_block=None):
         self._data = protobuf_block
@@ -127,6 +129,14 @@ class Block(object):
                prev_timestamp: int,
                transactions: list,
                miner_address: bytes):
+        """
+        :param block_number: this block's number
+        :param prev_headerhash: previous Block's headerhash
+        :param prev_timestamp: previous Block's timestamp
+        :param transactions: list of txhashes in this block, excluding the coinbase tx
+        :param miner_address: the address to which the coinbase tx will be credited to
+        :return:
+        """
 
         block = Block()
 

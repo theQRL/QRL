@@ -126,6 +126,15 @@ class BlockHeader(object):
                prev_timestamp: int,
                hashedtransactions: bytes,
                fee_reward: int):
+        """
+        Intended to be called by Block.create(), which will calculate these params
+        :param blocknumber:
+        :param prev_headerhash:
+        :param prev_timestamp:
+        :param hashedtransactions: merkle root of all transactions including coinbase
+        :param fee_reward: sum of all transaction fees
+        :return:
+        """
         bh = BlockHeader()
         bh._data.block_number = blocknumber
 

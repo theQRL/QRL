@@ -4,6 +4,8 @@
 from qrl.core import config
 from qrl.core.misc import ntp
 
+from qrl.generated import qrllegacy_pb2
+
 
 class OutgoingMessage:
     """
@@ -16,7 +18,11 @@ class OutgoingMessage:
     class is meant to simply link an outgoing message with its priority.
     """
 
-    def __init__(self, priority, message):
+    def __init__(self, priority, message: qrllegacy_pb2.LegacyMessage):
+        """
+        :param priority: int from 0-2, see p2pfactory.py.p2p_msg_priority
+        :param message:
+        """
         self.priority = priority
         self.timestamp = int(ntp.getTime())
         self.message = message

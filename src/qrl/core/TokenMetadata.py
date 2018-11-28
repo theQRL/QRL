@@ -37,6 +37,12 @@ class TokenMetadata(object):
 
     @staticmethod
     def create(token_txhash: bytes, transfer_token_txhashes: list):
+        """
+        To be used by State.
+        :param token_txhash: the txhash of the TokenTransaction that created the token
+        :param transfer_token_txhashes: a list of all TransferTokenTransactions related to this token
+        :return:
+        """
         token_metadata = TokenMetadata()
 
         token_metadata._data.token_txhash = token_txhash
