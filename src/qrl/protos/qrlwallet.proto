@@ -68,6 +68,8 @@ service WalletAPI
 
     rpc GetBalance(BalanceReq) returns (BalanceResp);
 
+    rpc GetTotalBalance(TotalBalanceReq) returns (TotalBalanceResp);
+
     rpc GetOTS(OTSReq) returns (OTSResp);
 
     rpc GetHeight(HeightReq) returns (HeightResp);
@@ -321,6 +323,15 @@ message BalanceReq {
 }
 
 message BalanceResp {
+    uint32 code = 1;
+    string error = 2;
+    string balance = 3;
+}
+
+message TotalBalanceReq {
+}
+
+message TotalBalanceResp {
     uint32 code = 1;
     string error = 2;
     string balance = 3;

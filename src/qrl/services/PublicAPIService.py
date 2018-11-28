@@ -354,6 +354,17 @@ class PublicAPIService(PublicAPIServicer):
         response = qrl_pb2.GetBalanceResp(balance=address_state.balance)
         return response
 
+    @GrpcExceptionWrapper(qrl_pb2.GetTotalBalanceResp)
+    def GetTotalBalance(self, request: qrl_pb2.GetTotalBalanceReq, context) -> qrl_pb2.GetTotalBalanceResp:
+        logger.debug("[PublicAPI] GetTotalBalance")
+        response = qrl_pb2.GetBalanceResp(balance=0)
+
+        for address in request.addresses:
+            address_state = self.qrlnode.get_address_state(address)
+            response.balance += address_state.balance
+
+        return response
+
     @GrpcExceptionWrapper(qrl_pb2.GetOTSResp)
     def GetOTS(self, request: qrl_pb2.GetOTSReq, context) -> qrl_pb2.GetOTSResp:
         logger.debug("[PublicAPI] GetOTS")

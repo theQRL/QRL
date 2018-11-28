@@ -47,6 +47,8 @@ service PublicAPI
 
     rpc GetBalance(GetBalanceReq) returns (GetBalanceResp);
 
+    rpc GetTotalBalance(GetTotalBalanceReq) returns (GetTotalBalanceResp);
+
     rpc GetOTS(GetOTSReq) returns (GetOTSResp);
 
     rpc GetHeight(GetHeightReq) returns (GetHeightResp);
@@ -302,6 +304,14 @@ message GetBalanceReq {
 }
 
 message GetBalanceResp {
+    uint64 balance = 1;
+}
+
+message GetTotalBalanceReq {
+    repeated bytes addresses = 1;
+}
+
+message GetTotalBalanceResp {
     uint64 balance = 1;
 }
 

@@ -112,6 +112,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetBalanceReq.SerializeToString,
         response_deserializer=qrl__pb2.GetBalanceResp.FromString,
         )
+    self.GetTotalBalance = channel.unary_unary(
+        '/qrl.PublicAPI/GetTotalBalance',
+        request_serializer=qrl__pb2.GetTotalBalanceReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetTotalBalanceResp.FromString,
+        )
     self.GetOTS = channel.unary_unary(
         '/qrl.PublicAPI/GetOTS',
         request_serializer=qrl__pb2.GetOTSReq.SerializeToString,
@@ -154,147 +159,132 @@ class PublicAPIServicer(object):
 
   def GetKnownPeers(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetPeersStat(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetStats(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetAddressState(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetObject(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetLatestData(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def PushTransaction(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def TransferCoins(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def ParseAddress(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetAddressFromPK(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetMessageTxn(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetTokenTxn(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetTransferTokenTxn(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetSlaveTxn(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetTransactionsByAddress(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetTransaction(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetBalance(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetTotalBalance(self, request, context):
+    # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetOTS(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetHeight(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetBlock(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
   def GetBlockByNumber(self, request, context):
     # missing associated documentation comment in .proto file
-    pass
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
@@ -391,6 +381,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetBalance,
           request_deserializer=qrl__pb2.GetBalanceReq.FromString,
           response_serializer=qrl__pb2.GetBalanceResp.SerializeToString,
+      ),
+      'GetTotalBalance': grpc.unary_unary_rpc_method_handler(
+          servicer.GetTotalBalance,
+          request_deserializer=qrl__pb2.GetTotalBalanceReq.FromString,
+          response_serializer=qrl__pb2.GetTotalBalanceResp.SerializeToString,
       ),
       'GetOTS': grpc.unary_unary_rpc_method_handler(
           servicer.GetOTS,
