@@ -142,6 +142,11 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.BalanceReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.BalanceResp.FromString,
         )
+    self.GetTotalBalance = channel.unary_unary(
+        '/qrl.WalletAPI/GetTotalBalance',
+        request_serializer=qrlwallet__pb2.TotalBalanceReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.TotalBalanceResp.FromString,
+        )
     self.GetOTS = channel.unary_unary(
         '/qrl.WalletAPI/GetOTS',
         request_serializer=qrlwallet__pb2.OTSReq.SerializeToString,
@@ -332,6 +337,12 @@ class WalletAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetTotalBalance(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def GetOTS(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -490,6 +501,11 @@ def add_WalletAPIServicer_to_server(servicer, server):
           servicer.GetBalance,
           request_deserializer=qrlwallet__pb2.BalanceReq.FromString,
           response_serializer=qrlwallet__pb2.BalanceResp.SerializeToString,
+      ),
+      'GetTotalBalance': grpc.unary_unary_rpc_method_handler(
+          servicer.GetTotalBalance,
+          request_deserializer=qrlwallet__pb2.TotalBalanceReq.FromString,
+          response_serializer=qrlwallet__pb2.TotalBalanceResp.SerializeToString,
       ),
       'GetOTS': grpc.unary_unary_rpc_method_handler(
           servicer.GetOTS,

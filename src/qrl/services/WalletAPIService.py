@@ -365,6 +365,17 @@ class WalletAPIService(WalletAPIServicer):
 
         return resp
 
+    @GrpcExceptionWrapper(qrlwallet_pb2.TotalBalanceResp)
+    def GetTotalBalance(self, request: qrlwallet_pb2.TotalBalanceReq, context) -> qrlwallet_pb2.TotalBalanceResp:
+        resp = qrlwallet_pb2.TotalBalanceResp()
+        try:
+            resp.balance = str(self._walletd.get_total_balance())
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
     @GrpcExceptionWrapper(qrlwallet_pb2.OTSResp)
     def GetOTS(self, request: qrlwallet_pb2.OTSReq, context) -> qrlwallet_pb2.OTSResp:
         resp = qrlwallet_pb2.OTSResp()
