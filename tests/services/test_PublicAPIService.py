@@ -25,6 +25,7 @@ from qrl.generated import qrl_pb2
 from qrl.services.PublicAPIService import PublicAPIService
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, replacement_getTime
 from tests.blockchain.MockedBlockchain import MockedBlockchain
+from tests.misc.MockHelper.mock_function import MockFunction
 
 logger.initialize_default()
 
@@ -527,6 +528,62 @@ class TestPublicAPI(TestCase):
         context.set_code.assert_not_called()
 
         self.assertEqual(10, response.balance)
+
+    def test_getTotalBalance(self):
+        db_state = Mock(spec=State)
+        xmss1 = get_alice_xmss()
+        xmss2 = get_alice_xmss(4)
+        xmss3 = get_bob_xmss(4)
+        address_state1 = AddressState.create(address=xmss1.address,
+                                             nonce=25,
+                                             balance=1000,
+                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                             tokens=dict(),
+                                             slave_pks_access_type=dict(),
+                                             ots_counter=0)
+        address_state2 = AddressState.create(address=xmss2.address,
+                                             nonce=25,
+                                             balance=2000,
+                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                             tokens=dict(),
+                                             slave_pks_access_type=dict(),
+                                             ots_counter=0)
+        address_state3 = AddressState.create(address=xmss3.address,
+                                             nonce=25,
+                                             balance=3000,
+                                             ots_bitfield=[b'\x00'] * config.dev.ots_bitfield_size,
+                                             tokens=dict(),
+                                             slave_pks_access_type=dict(),
+                                             ots_counter=0)
+        m = MockFunction()
+        m.put(xmss1.address, address_state1)
+        m.put(xmss2.address, address_state2)
+        m.put(xmss3.address, address_state3)
+        db_state.get_address_state = m.get
+
+        p2p_factory = Mock(spec=P2PFactory)
+        chain_manager = ChainManager(db_state)
+
+        qrlnode = QRLNode(mining_address=b'')
+        qrlnode.set_chain_manager(chain_manager)
+        qrlnode._p2pfactory = p2p_factory
+        qrlnode._peer_addresses = ['127.0.0.1', '192.168.1.1']
+
+        service = PublicAPIService(qrlnode)
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetAddressStateReq()
+        service.GetAddressState(request=request, context=context)
+        context.set_code.assert_called()
+        context.set_details.assert_called()
+
+        context = Mock(spec=ServicerContext)
+        request = qrl_pb2.GetTotalBalanceReq()
+        request.addresses.extend([xmss1.address, xmss2.address, xmss3.address])
+        response = service.GetTotalBalance(request=request, context=context)
+        context.set_code.assert_not_called()
+
+        self.assertEqual(6000, response.balance)
 
     def test_getOTS(self):
         db_state = Mock(spec=State)
