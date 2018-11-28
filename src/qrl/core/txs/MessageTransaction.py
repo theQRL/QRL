@@ -6,7 +6,10 @@ from qrl.core.txs.Transaction import Transaction
 
 
 class MessageTransaction(Transaction):
-
+    """
+    This is a transaction that just takes a message, to be stored on the blockchain.
+    Useful for timestamping or any other immutable proof of record.
+    """
     def __init__(self, protobuf_transaction=None):
         super(MessageTransaction, self).__init__(protobuf_transaction)
 
@@ -21,6 +24,13 @@ class MessageTransaction(Transaction):
 
     @staticmethod
     def create(message_hash: bytes, fee: int, xmss_pk: bytes, master_addr: bytes = None):
+        """
+        :param message_hash: the actual message, in bytes
+        :param fee: in units of shor
+        :param xmss_pk: the signer's XMSS public key, for verifying the signature
+        :param master_addr: if signed by a slave XMSS tree, specify the master tree's address
+        :return:
+        """
         transaction = MessageTransaction()
 
         if master_addr:

@@ -9,7 +9,7 @@ from qrl.crypto.misc import sha256
 
 class TransferTransaction(Transaction):
     """
-    SimpleTransaction for the transaction of QRL from one wallet to another.
+    This transaction sends QRL from one address to another.
     """
 
     def __init__(self, protobuf_transaction=None):
@@ -43,6 +43,15 @@ class TransferTransaction(Transaction):
 
     @staticmethod
     def create(addrs_to: list, amounts: list, fee, xmss_pk, master_addr: bytes = None):
+        """
+
+        :param addrs_to: list of raw addresses (not Qaddr or BECH32 formatted)
+        :param amounts: in units of shor
+        :param fee: in units of shor
+        :param xmss_pk: the signer's XMSS public key, for verifying the signature
+        :param master_addr: if signed by a slave XMSS tree, specify the master tree's address
+        :return:
+        """
         transaction = TransferTransaction()
 
         if master_addr:

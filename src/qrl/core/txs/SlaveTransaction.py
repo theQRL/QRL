@@ -7,7 +7,11 @@ from qrl.core.txs.Transaction import Transaction
 
 
 class SlaveTransaction(Transaction):
-
+    """
+    This registers one XMSS tree as the slave of another XMSS tree,
+    thus allowing it to sign transactions on its master's behalf.
+    Using this, one will not run out of signatures to sign transactions with.
+    """
     def __init__(self, protobuf_transaction=None):
         super(SlaveTransaction, self).__init__(protobuf_transaction)
 
@@ -32,6 +36,14 @@ class SlaveTransaction(Transaction):
 
     @staticmethod
     def create(slave_pks: list, access_types: list, fee: int, xmss_pk: bytes, master_addr: bytes = None):
+        """
+        :param slave_pks: a list of XMSS public keys that should be slave XMSS trees
+        :param access_types: a list of integers that represent permission levels for each slave XMSS tree
+        :param fee: in units of shor
+        :param xmss_pk: the signer's XMSS public key, for verifying the signature
+        :param master_addr: if signed by a slave XMSS tree, specify the master tree's address
+        :return:
+        """
         transaction = SlaveTransaction()
 
         if master_addr:

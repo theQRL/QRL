@@ -8,7 +8,8 @@ from qrl.core.txs.Transaction import Transaction
 
 class TokenTransaction(Transaction):
     """
-    TokenTransaction to create new Token.
+    This Transaction type creates a new Token.
+    Within the code, Tokens are referred to by their TokenTransaction.txhash.
     """
 
     def __init__(self, protobuf_transaction=None):
@@ -57,6 +58,17 @@ class TokenTransaction(Transaction):
                fee: int,
                xmss_pk: bytes,
                master_addr: bytes = None):
+        """
+        :param symbol: a ticker-appropriate abbreviation of the Token's name
+        :param name: full Token name
+        :param owner: an XMSS address
+        :param decimals: Decimal places. This determines the smallest unit of your Token
+        :param initial_balances: a list of qrl_pb2.AddressAmount instances
+        :param fee: in units of shor
+        :param xmss_pk: the signer's XMSS public key, for verifying the signature
+        :param master_addr: if signed by a slave XMSS tree, specify the master tree's address
+        :return:
+        """
         transaction = TokenTransaction()
 
         if master_addr:

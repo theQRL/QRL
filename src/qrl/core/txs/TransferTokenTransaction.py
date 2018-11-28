@@ -8,7 +8,8 @@ from qrl.core.txs.Transaction import Transaction
 
 class TransferTokenTransaction(Transaction):
     """
-    TransferTokenTransaction for the transaction of pre-existing Token from one wallet to another.
+    This transaction type sends tokens (specified by their TokenTransaction.txhash)
+    from one address to another.
     """
 
     def __init__(self, protobuf_transaction=None):
@@ -53,6 +54,15 @@ class TransferTokenTransaction(Transaction):
                fee: int,
                xmss_pk: bytes,
                master_addr: bytes = None):
+        """
+        :param token_txhash: Specifies the Token which will be transferred
+        :param addrs_to: a list of raw addresses to whom the Token will be transferred
+        :param amounts: in units of the smallest decimal place allowed by the Token
+        :param fee: in units of shor
+        :param xmss_pk: the signer's XMSS public key, for verifying the signature
+        :param master_addr: if signed by a slave XMSS tree, specify the master tree's address
+        :return:
+        """
         transaction = TransferTokenTransaction()
 
         if master_addr:

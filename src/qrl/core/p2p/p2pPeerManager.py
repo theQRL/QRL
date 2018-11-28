@@ -28,6 +28,7 @@ class P2PPeerManager(P2PBaseObserver):
     Other than that, it does many similar things to P2PFactory (refactoring is
     incomplete, and likely to stay so as we move towards go-qrl).
     """
+
     class EventType(Enum):
         NO_PEERS = 1
 
@@ -220,9 +221,12 @@ class P2PPeerManager(P2PBaseObserver):
         dest_channel.send(msg)
 
     def monitor_chain_state(self):
-        # Nodes broadcast their current block height and its headerhash every couple seconds
-        # as a health indicator. This function simply checks that we have last heard from each
-        # connected peer recently.
+        """
+        Nodes broadcast their current block height and its headerhash every couple seconds
+        as a health indicator. This function simply checks that we have last heard from each
+        connected peer recently.
+        :return:
+        """
         # FIXME: Not sure this belongs to peer management
         current_timestamp = ntp.getTime()
         for channel in self._channels:
@@ -236,8 +240,12 @@ class P2PPeerManager(P2PBaseObserver):
                 channel.loseConnection()
 
     def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
-        # Called from qrlnode.py to broadcast the height, latest blockhash, and cumulative difficulty
-        # to all connected peers.
+        """
+        Called from qrlnode.py to broadcast the height, latest blockhash, and cumulative difficulty
+        to all connected peers.
+        :param node_chain_state:
+        :return:
+        """
         # FIXME: Not sure this belongs to peer management
         # TODO: Verify/Disconnect problematic channels
         # Ping all channels
