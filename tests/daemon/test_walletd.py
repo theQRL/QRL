@@ -1068,6 +1068,16 @@ class TestWalletD(TestCase):
             balance = walletd.get_balance(self.qaddress)
             self.assertEqual(balance, 1000)
 
+    def test_get_total_balance(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+
+            walletd._public_stub.GetTotalBalance = Mock(
+                return_value=qrl_pb2.GetTotalBalanceResp(balance=6000))
+
+            balance = walletd.get_total_balance()
+            self.assertEqual(balance, 6000)
+
     def test_get_ots(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()

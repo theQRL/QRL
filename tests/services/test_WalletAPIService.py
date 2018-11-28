@@ -596,6 +596,19 @@ class TestWalletAPI(TestCase):
             self.assertEqual(resp.code, 0)
             self.assertEqual(resp.balance, "1000")
 
+    def test_getTotalBalance(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            walletd._public_stub.GetTotalBalance = Mock(
+                return_value=qrl_pb2.GetTotalBalanceResp(balance=6000))
+
+            resp = service.GetTotalBalance(qrlwallet_pb2.TotalBalanceReq(), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertEqual(resp.balance, "6000")
+
     def test_getOTS(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()

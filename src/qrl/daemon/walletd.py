@@ -785,6 +785,16 @@ class WalletD:
         response = self._public_stub.GetBalance(qrl_pb2.GetBalanceReq(address=address))
         return response.balance
 
+    def get_total_balance(self) -> int:
+        self.authenticate()
+
+        addresses = []
+        for item in self._wallet.address_items:
+            addresses.append(bytes(hstr2bin(item.qaddress[1:])))
+
+        response = self._public_stub.GetTotalBalance(qrl_pb2.GetTotalBalanceReq(addresses=addresses))
+        return response.balance
+
     def get_ots(self, qaddress: str):
         address = self.qaddress_to_address(qaddress)
         response = self._public_stub.GetOTS(qrl_pb2.GetOTSReq(address=address))
