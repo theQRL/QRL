@@ -41,6 +41,29 @@ class Wallet:
     different versions, encryption/decryption. Each XMSS tree in the wallet is
     parsed into a namedtuple structure called AddressItem.
 
+    Sample wallet.json version 1:
+    {
+      "addresses": [
+        {
+          "address": "Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0...",
+          "pk": null,
+          "hexseed": "010400589c3e0bf438bcdc5575c9cb367e9dbb96c7182c9ed...",
+          "mnemonic": "absorb drank fruity set aside earth sacred she...",
+          "height": 8,
+          "hashFunction": null,
+          "signatureType": null,
+          "index": 0
+        }
+      ],
+      "encrypted": false,
+      "version": 1
+    }
+    Rationale of changes compared to wallet.json version 0:
+    1. the 'encrypted' field was moved outside of an address, because it is
+    unrealistic for only one XMSS tree in the wallet to be encrypted.
+    2. Only hexseed and mnemonic are encrypted, because to type in your password
+    every time you want to find out your QRL address is cumbersome.
+
     Wallet has a lot of code to manage the AddressItem. It would be better if
     AddressItem were made into a class with logic of its own, so Wallet can
     focus managing collections of AddressItems.

@@ -10,16 +10,17 @@ from qrl.generated import qrl_pb2
 
 class AddressState(object):
     """
-    Every address that has interacted with the QRL network has its own
-    AddressState. This is not synced between peers, but instead it is calculated
-    internally by each node as it verifies blocks. If the address has never
-    interacted with the network before, its default state is taken from
-    get_default().
+    AddressState stores information about an Address, like its balance, which
+    OTS indexes it has used, its transaction nonce, a list of transaction hashes
+    that are related to the Address etc, and permissions for any slave XMSS
+    addresses.
 
-    If a Transaction was dropped by a node for whatever reason and not included
-    in a block, the ots_bitfield that the network maintains may be different
-    from the account's actual ots_bitfield (as seen by the account that made the
-    Transaction).
+    Every address involved in a validated, mined transaction has its own
+    AddressState, which is calculated by the node as it verifies blocks.
+    AddressState is not transmitted between peers.
+
+    The default state of an Address (balance 0, all OTS signatures available) is
+    returned by AddressState.get_default().
     """
 
     def __init__(self, protobuf_block=None):

@@ -11,20 +11,24 @@ class BlockMetadata(object):
     """
     BlockMetadata describes how the Block fits into the chain, like the block's
     difficulty, cumulative difficulty, the hashes of the block's parents and
-    children. This is useful for the PoW difficulty calculation.
-
-    Although you could walk through previous blocks to find their parents, in
-    practice this could be rather slow. Therefore it was better to just store a
-    list of the parent blocks' headerhashes in last_N_headerhashes. With the
-    current PoW consensus algorithm, you only have to look back 30 hashes, but
-    if a PoS consensus algorithm needs to look back 1000 blocks,
-    last_N_headerhashes becomes very useful.
+    children (which is useful for the PoW difficulty calculation).
 
     Blocks always come with their accompanying BlockMetadata when passed around
     between peers. As the node adds a Block to the chain in ChainManager, it
     calculates the difficulty of the network and what should be the next
     difficulty.
+
+    block_difficulty: the difficulty of the block
+
+    cumulative_difficulty: the sum of the difficulties of the block's parents,
+    including this block's difficulty
+
+    child_headerhashes: blockhashes of the blocks that follow this block
+
+    last_N_headerhashes: stores the last N parent block hashes, so one doesn't
+    have to look them up all the time.
     """
+
     def __init__(self, pbdata=None):
         self._data = pbdata
         if not pbdata:

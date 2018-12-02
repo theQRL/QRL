@@ -4,18 +4,12 @@ from qrl.generated import qrllegacy_pb2
 
 class P2PObservable(Observable):
     """
-    This is the Observer pattern, except done with composition rather than
-    inheritance.
+    A P2PObservable is a base class for any class that has (network) events
+    spontaneously happening to it (P2PProtocol).
 
-    1. An Observable is created.
-
-    2. Observable calls Observer.register().
-
-    3. Observer is a collection of function handlers around a specific theme
-    (say transactions).
-
-    Observer.register() runs Observable.register(protobuf_message_type,
-    one_of_Observer's_functions).
+    Whenever a network event happens, P2PObservable will call
+    Observable.notify(), which looks up which events are registered to which
+    actions and runs those actions accordingly.
     """
 
     def __init__(self, source):

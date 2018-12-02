@@ -19,9 +19,14 @@ class Block(object):
     """
     Blocks are, like many other classes in QRL, hydrated from Protobuf messages.
     They contain a BlockHeader instance, which does the actual hash calculation.
+
+    Transactions in the Block are represented as a list in transactions,
+    including the Coinbase Transaction.
+
     Use __init__() to hydrate a Block() from a Protobuf message, or create() to
     create a Block from parameters.
     """
+
     def __init__(self, protobuf_block=None):
         self._data = protobuf_block
         if protobuf_block is None:

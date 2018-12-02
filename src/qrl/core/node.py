@@ -31,8 +31,8 @@ class POW(ConsensusMechanism):
     This is named POW because back then QRL was PoS and this was just a
     alternate implementation of the node that used PoW.
 
-    Some functions are now unused/obsolete - go-qrl will clean this up. Most of
-    the functionality has been moved into QRLNode.
+    Some functions are now unused/obsolete. Most of the functionality has
+    been moved into QRLNode.
     """
     def __init__(self,
                  chain_manager: ChainManager,

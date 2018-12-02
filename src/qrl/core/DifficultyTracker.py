@@ -5,16 +5,15 @@ from qrl.core import config
 
 class DifficultyTracker(object):
     """
-    State.get_measurement calculates whether the last few blocks were found
-    earlier/later than expected. This measurement is then passed down to
-    DifficultyTracker, which calculates what the next difficulty/target should
-    be.
+    DifficultyTracker calculates what the next difficulty/target should be,
+    given when the last few blocks were produced. This information is provided
+    by State.get_measurement().
 
-    These simple functions don't need to be a class, but they are useful in
-    Miner and ChainManager (potential for cyclic dependencies), and it's nice to
-    have this PoW related code boxed away so that the move to PoS will be
-    easier.
+    get_target() vs get(): target and difficulty are two sides of the same coin
+    - the target is the value which the hash has to be less than, and the lower
+    the target, the higher the difficulty.
     """
+
     def __init__(self):
         pass
 
@@ -27,7 +26,6 @@ class DifficultyTracker(object):
     @staticmethod
     def get(measurement,
             parent_difficulty):
-
         ph = PoWHelper(kp=config.dev.kp,
                        set_point=config.dev.mining_setpoint_blocktime)
 

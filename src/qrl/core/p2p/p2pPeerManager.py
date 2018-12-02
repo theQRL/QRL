@@ -25,8 +25,7 @@ class P2PPeerManager(P2PBaseObserver):
     function handlers that handle messages about node version, peer list
     exchange, peer's chain state, sync state, acknowledgement.
 
-    Other than that, it does many similar things to P2PFactory (refactoring is
-    incomplete, and likely to stay so as we move towards go-qrl).
+    Other than that, it does many similar things to P2PFactory.
     """
 
     class EventType(Enum):

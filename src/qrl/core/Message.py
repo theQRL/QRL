@@ -5,9 +5,11 @@
 
 class Message:
     """
-    This class is merely a container for MessageReceipt, which is a hash map
-    that looks like this: {"txhash/blockheaderhash": Message(msg_type=TX/BK,
-    pbdata=actual_pbdata_of_block_or_tx}
+    Message is a container that stores the 'type' (Block or Transaction), and
+    the actual Block/Transaction itself (as protobuf).
+
+    This is used in MessageReceipt, where Receipts are passed around to avoid
+    having to transmit full Blocks or Transactions all the time.
     """
 
     def __init__(self, pbdata, msg_type):

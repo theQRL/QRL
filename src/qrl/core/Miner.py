@@ -19,9 +19,11 @@ from qrl.core.txs.Transaction import Transaction
 
 class Miner(Qryptominer):
     """
-    This is node's built in miner. The pool mining functionality has nothing to
-    do with this class.
+    QRL can be solo-mined and pool-mined. This class handles solo-mining, where
+    each peer/node finds the solution for the next block on its own. It only
+    uses the CPU.
     """
+
     def __init__(self,
                  pre_block_logic,
                  mining_address: bytes,

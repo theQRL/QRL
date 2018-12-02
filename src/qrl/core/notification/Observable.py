@@ -5,6 +5,7 @@
 from typing import Callable
 
 from qrl.core.misc import logger
+from qrl.core.notification.ObservableEvent import ObservableEvent
 
 
 class Observable(object):
@@ -33,7 +34,7 @@ class Observable(object):
         # FIXME: Add mutexes
         self._observers.setdefault(message_type, []).append(func)
 
-    def notify(self, message, force_delivery=False):
+    def notify(self, message: ObservableEvent, force_delivery=False):
         # FIXME: Add mutexes
         observers = self._observers.get(message.func_name, [])
 

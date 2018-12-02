@@ -16,6 +16,7 @@ class BlockHeader(object):
     The BlockHeader is responsible for generating the mining blob that is passed
     to the mining pool (or miner software).
     """
+
     def __init__(self, protobuf_blockheader=None):
         """
         >>> BlockHeader() is not None
@@ -48,6 +49,11 @@ class BlockHeader(object):
 
     @property
     def headerhash(self):
+        """
+        the Qryptonight hash of of BlockHeader's mining_blob representation.
+        See generate_headerhash()
+        :return:
+        """
         return self._data.hash_header
 
     @property
@@ -56,10 +62,19 @@ class BlockHeader(object):
 
     @property
     def block_reward(self):
+        """
+        The reward for mining this block, which depends on block_number.
+        Does not include fee_reward.
+        :return:
+        """
         return self._data.reward_block
 
     @property
     def fee_reward(self):
+        """
+        Sum of fees of all Transactions in this block.
+        :return:
+        """
         return self._data.reward_fee
 
     @property
@@ -68,28 +83,53 @@ class BlockHeader(object):
 
     @property
     def extra_nonce(self):
+        """
+        If one has run through all possible values of mining_nonce and still not
+        found a hash that satisfies the difficulty, one can use extra_nonce.
+        :return:
+        """
         return self._data.extra_nonce
 
     @property
     def mining_nonce(self):
+        """
+        A meaningless number that the miner can change in order to get different
+        hashes from the same BlockHeader.
+        :return:
+        """
         return self._data.mining_nonce
 
     @property
     def nonce_offset(self):
+        """
+        The nonce's position within mining_blob (same position as Monero for
+        mining pool compatibility)
+        :return:
+        """
         return config.dev.mining_nonce_offset
 
     @property
     def extra_nonce_offset(self):
+        """
+        The extra nonce's position within mining_blob. (same position as Monero
+        for mining pool compatibility)
+        :return:
+        """
         return config.dev.extra_nonce_offset
 
     @property
     def mining_blob(self) -> bytes:
+        """
+        Returns a binary blob that represents the BlockHeader, whose hash should
+        satisfy the network's difficulty.
+        :return:
+        """
         blob = self.block_number.to_bytes(8, byteorder='big', signed=False) \
-               + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
-               + self.prev_headerhash \
-               + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
-               + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
-               + self.tx_merkle_root
+            + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
+            + self.prev_headerhash \
+            + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
+            + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
+            + self.tx_merkle_root
 
         # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool + 5 bytes for pool (17 bytes)
         blob = bytes(shake128(config.dev.mining_blob_size - 18, blob))
