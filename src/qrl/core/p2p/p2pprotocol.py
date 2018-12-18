@@ -23,7 +23,7 @@ IN_FACTOR = 2.2
 # Rename to p2p channel
 class P2PProtocol(Protocol):
     """
-    A P2PProtocol represents a QRL connection between the node and another node
+    A P2PProtocol represents a connection between the node and another node
     (the Protocol/Factory terminology comes from Twisted).
 
     It handles sending/receiving messages, sending acknowledgements, rate

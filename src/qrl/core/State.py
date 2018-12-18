@@ -28,8 +28,8 @@ from qrl.generated import qrl_pb2, qrlstateinfo_pb2
 class State:
     """
     State is the only class that is allowed to read/write to the database.
-    Everything else should go through it. Basically State manages the database
-    and provides a business logic interface that other components can use.
+    Basically State manages the database and provides a business logic interface
+    that other components can use.
     """
 
     # FIXME: Rename to PersistentState

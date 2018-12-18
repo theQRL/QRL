@@ -70,13 +70,13 @@ class P2PFactory(ServerFactory):
     a peer, P2PFactory schedules the connection to the peer with the Twisted
     reactor.
 
-    It peridically tries to connect to preferred nodes.
+    It periodically tries to connect to preferred nodes.
 
-    It broadcasts information (that it has this tx or block) to all connected
-    peers.
+    It broadcasts information (that it has this transaction or block) to all
+    connected peers.
 
-    It goes through the inventory reported by other peers and finds out if they
-    are on a different tip/fork.
+    It goes through the Block headerhash list reported by other peers and finds
+    out if they are on a different tip/fork.
 
     Basically, not only is it a factory for P2PProtocols, it includes business
     logic that generally handles information exchange with peers.
@@ -331,9 +331,11 @@ class P2PFactory(ServerFactory):
 
     def request_full_message(self, mr_data: qrllegacy_pb2.MRData):
         """
-        Request Full Message
-        This function request for the full message against,
-        the Message Receipt received.
+        This function is called to ask that the peer sends this node the full
+        Block/Transaction.
+
+        It is triggered when you receive a MessageReceipt and the node finds
+        that it doesn't have that full message corresponding to the hash.
         :return:
         """
 

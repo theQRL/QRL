@@ -17,19 +17,13 @@ from qrl.generated.qrllegacy_pb2 import LegacyMessage
 # FIXME: Refactor / improve
 class MessageReceipt(object):
     """
-    MessageReceipt is a hash map that looks like this:
-    {"txhash/blockheaderhash": Message(msg_type=TX/BK,
-    pbdata=actual_pbdata_of_block_or_tx)}
-
     This class is used for networking (P2PFactory). To avoid transferring full
     Blocks or Transactions all the time, especially when peers already have
     them, MessageReceipts are passed around instead.
 
-    When you receive a MessageReceipt, if you find that you don't have that
-    message corresponding to the hash, this is when you call
-    P2PFactory.request_full_message(), which will make the peer send you the
-    full Block/Transaction.
-
+    MessageReceipt is a hash map that looks like this:
+    {"txhash/blockheaderhash": Message(msg_type=TX/BK,
+    pbdata=actual_pbdata_of_block_or_tx)}
 
     1> dict Hash to peer
     2> dict peer to Hash

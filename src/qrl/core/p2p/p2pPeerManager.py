@@ -221,9 +221,12 @@ class P2PPeerManager(P2PBaseObserver):
 
     def monitor_chain_state(self):
         """
-        Nodes broadcast their current block height and its headerhash every couple seconds
-        as a health indicator. This function simply checks that we have last heard from each
+        This function simply checks that we have last heard from each
         connected peer recently.
+
+        Nodes broadcast their current block height and its headerhash every
+        couple seconds as a health indicator. If the node hasn't heard from them
+        in the last 180 seconds, the peer is disconnected.
         :return:
         """
         # FIXME: Not sure this belongs to peer management
@@ -240,8 +243,8 @@ class P2PPeerManager(P2PBaseObserver):
 
     def broadcast_chain_state(self, node_chain_state: qrl_pb2.NodeChainState):
         """
-        Called from qrlnode.py to broadcast the height, latest blockhash, and cumulative difficulty
-        to all connected peers.
+        Broadcasts the height, latest blockhash, and cumulative difficulty to
+        all connected peers.
         :param node_chain_state:
         :return:
         """
@@ -302,10 +305,11 @@ class P2PPeerManager(P2PBaseObserver):
 
     def get_peers_stat(self) -> list:
         """
-        Peers broadcast their blockheight, headerhash and other info in a PeerStat protobuf message.
-        When the node receives such a message, it stores it in self.peer_node_status.
-        This function is only used by the block explorer - it basically returns the contents
-        of self.peer_node_status.
+        Peers broadcast their blockheight, headerhash, cumulative difficulty,
+        node version and timestamp in a PeerStat protobuf message. When the node
+        receives such a message, it stores it in self.peer_node_status. This
+        function is only used by the block explorer - it basically returns the
+        contents of self.peer_node_status.
         :return:
         """
         peers_stat = []

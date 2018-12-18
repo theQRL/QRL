@@ -16,13 +16,17 @@ from qrl.core.TransactionInfo import TransactionInfo
 
 class TransactionPool:
     """
-    As each Transaction comes in over the network, it is first stored in
-    TransactionPool.pending_tx_pool before the node validates them. After the TX
-    has been validated, it is moved to TransactionPool.transaction_pool.
+    TransactionPool keeps track of unvalidated/validated Transactions that
+    have not been mined into a Block yet.
 
-    The node pulls from this Pool in order to fill a block, which it then
-    attempts to mine. If a block is successfully mined, it will naturally be
-    added to the Chain, at which point ChainManager will call
+    As each Transaction comes in over the network, it is first stored in
+    TransactionPool.pending_tx_pool before the node validates them. After the
+    Transaction has been validated, it is moved to
+    TransactionPool.transaction_pool.
+
+    The node pulls validated Transactions from this Pool in order to fill a
+    block, which it then attempts to mine. If a block is successfully mined, it
+    will naturally be added to the Chain, at which point ChainManager will call
     remove_tx_in_block_from_pool()
     """
 
@@ -113,6 +117,12 @@ class TransactionPool:
             heapq.heapify(self.transaction_pool)
 
     def remove_tx_in_block_from_pool(self, block_obj: Block):
+        """
+        This function is called when a block is successfully mined to remove
+        its Transactions from the TransactionPool.
+        :param block_obj:
+        :return:
+        """
         for protobuf_tx in block_obj.transactions[1:]:  # Ignore first transaction, as it is a coinbase txn
             tx = Transaction.from_pbdata(protobuf_tx)
             if tx.ots_key < config.dev.max_ots_tracking_index:

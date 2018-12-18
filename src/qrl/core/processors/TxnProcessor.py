@@ -13,10 +13,11 @@ from qrl.core.txs.Transaction import Transaction
 class TxnProcessor:
     """
     The Twisted reactor loop runs the TxnProcessor, which goes through the
-    txpool and validates ONLY 1 transaction. This is to prevent tx spamming from
-    preventing the Twisted reactor loop from going through other tasks. Once
-    it's done, it passes control back to the Twisted reactor (cooperative
-    multitasking).
+    txpool and validates ONLY 1 transaction.
+
+    This is so that transaction spamming doesn't prevent the Twisted reactor
+    loop from going through other tasks. Once it's done, it passes control back
+    to the Twisted reactor (cooperative multitasking).
     """
     def __init__(self,
                  chain_manager: ChainManager,

@@ -34,7 +34,7 @@ class WalletD:
     """
     The point of WalletD is to have a daemon that can sign transactions for you,
     and make sure that you never run out of OTS keys to sign with. Meant for
-    exchanges. It automatically generates slave XMSS trees when you are runing
+    exchanges. It automatically generates slave XMSS trees when you are running
     low on OTS keys, and submits SlaveTransactions to register them, but you can
     manage this manually too.
     """

@@ -66,7 +66,7 @@ class TokenTransaction(Transaction):
         :param initial_balances: a list of qrl_pb2.AddressAmount instances
         :param fee: in units of shor
         :param xmss_pk: the signer's XMSS public key, for verifying the signature
-        :param master_addr: if signed by a slave XMSS tree, specify the master tree's address
+        :param master_addr: if signed by a slave XMSS tree, specify the master's XMSS address
         :return:
         """
         transaction = TokenTransaction()

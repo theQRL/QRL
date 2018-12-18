@@ -28,7 +28,7 @@ class MessageTransaction(Transaction):
         :param message_hash: the actual message, in bytes
         :param fee: in units of shor
         :param xmss_pk: the signer's XMSS public key, for verifying the signature
-        :param master_addr: if signed by a slave XMSS tree, specify the master tree's address
+        :param master_addr: if signed by a slave XMSS tree, specify the master's XMSS address
         :return:
         """
         transaction = MessageTransaction()

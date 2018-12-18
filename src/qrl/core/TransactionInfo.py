@@ -10,8 +10,9 @@ from qrl.core.txs.Transaction import Transaction
 class TransactionInfo:
     """
     TransactionInfo is a container used by TransactionPool to identify if a
-    particular TX is stale, so it includes information like when you received
-    the tx, and which blockheight were you on.
+    particular Transaction is stale, so it includes information like when you
+    received the transaction, and which blockheight were you on.
+    It is also used by the block explorer.
     """
     def __init__(self, tx: Transaction, block_number: int, timestamp: int=None):
         """

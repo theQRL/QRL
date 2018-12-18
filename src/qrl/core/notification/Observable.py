@@ -31,6 +31,17 @@ class Observable(object):
         return len(self._observers)
 
     def register(self, message_type, func: Callable):
+        """
+        Other "observer" classes will use Observable.register() to tell the
+        observed class  "hey, if you receive this message_type, run my function
+        at ...". Then, when the observed class receives a message, it will run
+        notify(), which will notify the corresponding observer classes that it
+        received this message.
+
+        :param message_type:
+        :param func:
+        :return:
+        """
         # FIXME: Add mutexes
         self._observers.setdefault(message_type, []).append(func)
 

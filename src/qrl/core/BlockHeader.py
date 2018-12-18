@@ -50,7 +50,7 @@ class BlockHeader(object):
     @property
     def headerhash(self):
         """
-        the Qryptonight hash of of BlockHeader's mining_blob representation.
+        This is the Qryptonight hash of BlockHeader.mining_blob.
         See generate_headerhash()
         :return:
         """
@@ -93,8 +93,9 @@ class BlockHeader(object):
     @property
     def mining_nonce(self):
         """
-        A meaningless number that the miner can change in order to get different
-        hashes from the same BlockHeader.
+        The purpose of the mining nonce is so that the miner can produce
+        different hashes with the same BlockHeader data. It is a large number
+        that does not represent anything.
         :return:
         """
         return self._data.mining_nonce
@@ -120,8 +121,8 @@ class BlockHeader(object):
     @property
     def mining_blob(self) -> bytes:
         """
-        Returns a binary blob that represents the BlockHeader, whose hash should
-        satisfy the network's difficulty.
+        This serializes the BlockHeader into a binary blob that the miner can
+        pass to the hashing algorithm.
         :return:
         """
         blob = self.block_number.to_bytes(8, byteorder='big', signed=False) \
@@ -167,7 +168,6 @@ class BlockHeader(object):
                hashedtransactions: bytes,
                fee_reward: int):
         """
-        Intended to be called by Block.create(), which will calculate these params
         :param blocknumber:
         :param prev_headerhash:
         :param prev_timestamp:

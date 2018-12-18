@@ -32,8 +32,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     Every operation possible on the QRL blockchain is represented by a
     corresponding Transaction type (until smart contract functionality is
-    introduced). This is similar to how business logic is done in Hyperledger
-    Sawtooth.
+    introduced).
 
     Although Transactions also have a nonce (used to prevent tx replay attacks -
     also seen in Ethereum), the OTS index, since it is meant to also be unique

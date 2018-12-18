@@ -25,8 +25,7 @@ class BlockMetadata(object):
 
     child_headerhashes: blockhashes of the blocks that follow this block
 
-    last_N_headerhashes: stores the last N parent block hashes, so one doesn't
-    have to look them up all the time.
+    last_N_headerhashes: stores the last N parent block hashes
     """
 
     def __init__(self, pbdata=None):
@@ -96,7 +95,8 @@ class BlockMetadata(object):
                cumulative_difficulty=bytes([0] * 32),
                child_headerhashes=None):
         """
-        Used by ChainManager. Only override params for testing purposes.
+        Creates a new instance of BlockMetadata. Only override params for
+        testing purposes.
         :param block_difficulty:
         :param cumulative_difficulty:
         :param child_headerhashes: headerhashes of Blocks that come after this block
