@@ -19,9 +19,10 @@ from qrl.core.txs.Transaction import Transaction
 
 class Miner(Qryptominer):
     """
-    QRL can be solo-mined and pool-mined. This class handles solo-mining, where
-    each peer/node finds the solution for the next block on its own. It only
-    uses the CPU.
+    Miner collects mining functionality into one class. Solo mining uses
+    start_mining(), while for pool mining, the Stratum JSON-RPC functions
+    getblocktemplate and submitblock eventually call get_block_to_mine() and
+    submit_mined_block() respectively.
     """
 
     def __init__(self,

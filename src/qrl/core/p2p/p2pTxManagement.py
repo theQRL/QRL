@@ -33,11 +33,10 @@ class P2PTxManagement(P2PBaseObserver):
     @staticmethod
     def handle_message_received(source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Message Receipt
-        This function accepts message receipt from peer,
-        checks if the message hash already been received or not.
-        In case its a already received message, it is ignored.
-        Otherwise the request is made to get the full message.
+        MessageReceipts from peer are handled by this function. It checks if the
+        message hash already been received or not. If the node already has the
+        corresponding Message, it is ignored, otherwise the full Message is
+        requested from the peer.
         :return:
         """
         mr_data = message.mrData
@@ -84,8 +83,8 @@ class P2PTxManagement(P2PBaseObserver):
     @staticmethod
     def handle_full_message_request(source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Send Full Message
-        This function serves the request made for the full message.
+        When a peer requests the full Message of a MessageReceipt, this function
+        is called.
         :return:
         """
         msg = source.factory.master_mr.get(message.mrData.type, message.mrData.hash)
@@ -180,9 +179,9 @@ class P2PTxManagement(P2PBaseObserver):
     @staticmethod
     def handle_lattice(source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Receives Lattice Public Key Transaction
-        :param source:
-        :param message:
+        Lattice Public Key Transaction
+        This function processes whenever a Transaction having
+        subtype LATTICEPK is received.
         :return:
         """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.LT)
@@ -200,9 +199,9 @@ class P2PTxManagement(P2PBaseObserver):
     @staticmethod
     def handle_slave(source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Receives Slave Transaction
-        :param source:
-        :param message:
+        Slave Transaction
+        This function processes whenever a Transaction having
+        subtype SLAVE is received.
         :return:
         """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SL)

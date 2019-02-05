@@ -159,10 +159,11 @@ class P2PPeerManager(P2PBaseObserver):
 
     def handle_version(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Version
-        If version is empty, it sends the version & genesis_prev_headerhash.
-        Otherwise, processes the content of data.
-        In case of mismatches, it disconnects from the peer
+        Version messages are how peers inform each other which QRL node version
+        they are running. If the version message is empty, the peer is
+        requesting this node's version and genesis_prev_headerhash. Otherwise,
+        processes the content of data. If the genesis block is different, the
+        peer is disconnected.
         """
         self._validate_message(message, qrllegacy_pb2.LegacyMessage.VE)
 
@@ -190,6 +191,11 @@ class P2PPeerManager(P2PBaseObserver):
             source.loseConnection()
 
     def handle_peer_list(self, source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Nodes pass their peer lists around to find more peers to connect to.
+        This function adds the peer list from another peer (and the peer
+        it received the list from), to this node's peer list.
+        """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
 
         if not config.user.enable_peer_discovery:
@@ -272,6 +278,10 @@ class P2PPeerManager(P2PBaseObserver):
         self._peer_node_status[source] = message.chainStateData
 
     def handle_p2p_acknowledgement(self, source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        The P2P acknowledgement message tells the peer how many bytes of the
+        message they sent has been processed by this node.
+        """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.P2P_ACK)
 
         source.bytes_sent -= message.p2pAckData.bytes_processed

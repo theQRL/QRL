@@ -26,8 +26,8 @@ class P2PChainManager(P2PBaseObserver):
 
     def handle_fetch_block(self, source, message: qrllegacy_pb2.LegacyMessage):  # Fetch Request for block
         """
-        Fetch Block
-        Sends the request for the block.
+        This function responds to a fetch_block request comes in from a peer
+        node by sending the block.
         :return:
         """
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.FB)
@@ -43,11 +43,10 @@ class P2PChainManager(P2PBaseObserver):
 
     def handle_push_block(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Push Block
         This function processes requested blocks received while syncing.
         Block received under this function are directly added to the main
         chain i.e. chain.blockchain
-        It is expected to receive only one block for a given blocknumber.
+        It expects to receive only one block for a given blocknumber.
         :return:
         """
         # FIXME: Later rename
@@ -90,9 +89,8 @@ class P2PChainManager(P2PBaseObserver):
 
     def handle_block_height(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Sends / Receives Blockheight
-        :param source:
-        :param message:
+        Updates the node's database of which peer is at which blockheight when a
+        peer reports its blockheight
         :return:
         """
         if message.bhData.block_number == 0:
@@ -122,9 +120,9 @@ class P2PChainManager(P2PBaseObserver):
 
     def handle_node_headerhash(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
-        Sends/Receives NodeHeaderHashes
-        :param source:
-        :param message:
+        If the peer sent a node_headerhash message with length=0, this means the
+        peer is requesting this node's headerhashes. Otherwise, compare our
+        headerhashes and synchronize with peer if necessary.
         :return:
         """
 
