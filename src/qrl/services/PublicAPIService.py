@@ -74,15 +74,15 @@ class PublicAPIService(PublicAPIServicer):
         return response
 
     @GrpcExceptionWrapper(qrl_pb2.GetChainStatsResp)
-    def GetChainStats(self,request: qrl_pb2.GetChainStatsReq, context) -> qrl_pb2.GetChainStatsResp:
+    def GetChainStats(self, request: qrl_pb2.GetChainStatsReq, context) -> qrl_pb2.GetChainStatsResp:
         response = qrl_pb2.GetChainStatsResp()
-        for (path, dirs, files) in os.walk(config.user.data_dir+"/state"):
+        for (path, dirs, files) in os.walk(config.user.data_dir + "/state"):
             for f in files:
                 filename = os.path.join(path, f)
                 response.state_size += os.path.getsize(filename)
 
-        response.state_size_mb = str(response.state_size/(1024*1024))
-        response.state_size_gb = str(response.state_size/(1024*1024*1024))
+        response.state_size_mb = str(response.state_size / (1024 * 1024))
+        response.state_size_gb = str(response.state_size / (1024 * 1024 * 1024))
         return response
 
     @GrpcExceptionWrapper(qrl_pb2.ParseAddressResp)
