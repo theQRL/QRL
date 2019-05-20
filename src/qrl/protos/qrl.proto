@@ -17,12 +17,15 @@ package qrl;
 service PublicAPI
 {
     rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp);
+    
     rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
 
     rpc GetPeersStat (GetPeersStatReq) returns (GetPeersStatResp);
 
     rpc GetStats (GetStatsReq) returns (GetStatsResp);
+    
     rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
+    
     rpc GetObject(GetObjectReq) returns (GetObjectResp);
 
     rpc GetLatestData(GetLatestDataReq) returns (GetLatestDataResp);
@@ -30,7 +33,11 @@ service PublicAPI
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
+    
     rpc ParseAddress (ParseAddressReq) returns (ParseAddressResp);
+
+    rpc GetChainStats (GetChainStatsReq) returns (GetChainStatsResp);
+
     rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp);
 
     rpc GetMessageTxn (MessageTxnReq) returns (TransferCoinsResp);
@@ -112,6 +119,23 @@ message GetPeersStatReq { }
 message GetPeersStatResp {
     repeated PeerStat peers_stat = 1;    // PeerState object contains peer_ip, port and peer state information
 }
+
+/**
+ * Represents the query for get chain size
+*/
+
+message GetChainStatsReq { }
+
+/**
+ * Represents the reply message for get chain stats
+*/
+
+message GetChainStatsResp {
+    uint64 state_size = 1;                    // whole state folder size in bytes
+    string state_size_mb = 2;                 // megabytes
+    string state_size_gb = 3;                 // gigabytes
+}
+
 
 /**
  * Represents a query to get statistics about node
