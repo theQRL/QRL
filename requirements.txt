@@ -2,7 +2,7 @@
 setuptools==39.0.1
 leveldb==0.20
 ntplib==0.3.3
-Twisted==17.5.0
+Twisted==19.2.1
 colorlog==3.1.0
 simplejson==3.11.1
 PyYAML==5.1
