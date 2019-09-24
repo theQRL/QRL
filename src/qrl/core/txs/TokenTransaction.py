@@ -103,6 +103,10 @@ class TokenTransaction(Transaction):
             logger.warning('Invalid Token Transaction, without any initial balance')
             return False
 
+        if self.decimals > 19:
+            logger.warning('Token decimals cannot be more than 19')
+            return False
+
         sum_of_initial_balances = 0
         for initial_balance in self.initial_balances:
             sum_of_initial_balances += initial_balance.amount
