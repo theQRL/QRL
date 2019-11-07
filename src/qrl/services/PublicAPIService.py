@@ -256,7 +256,8 @@ class PublicAPIService(PublicAPIServicer):
         # NOTE: This is temporary, indexes are accepted for blocks
         try:
             block = self.qrlnode.get_block_from_hash(query)
-            if block is None:
+            # The condition after or is to avoid a bug, where a block is deserialized by BlockNumberMapping
+            if block is None or (block.block_number == 0 and block.prev_headerhash != config.user.genesis_prev_headerhash):
                 query_str = query.decode()
                 query_index = int(query_str)
                 block = self.qrlnode.get_block_from_index(query_index)
