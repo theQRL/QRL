@@ -348,11 +348,10 @@ class State:
     def get_tx_metadata(self, txhash: bytes):
         try:
             tx_metadata = TransactionMetadata.deserialize(self._db.get_raw(txhash))
+            data, block_number = tx_metadata.transaction, tx_metadata.block_number
+            return Transaction.from_pbdata(data), block_number
         except Exception:
             return None
-
-        data, block_number = tx_metadata.transaction, tx_metadata.block_number
-        return Transaction.from_pbdata(data), block_number
 
     #########################################
     #########################################
