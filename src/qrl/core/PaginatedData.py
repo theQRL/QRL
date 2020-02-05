@@ -50,37 +50,6 @@ class PaginatedData:
 
         del self.key_value[storage_key][-1]
 
-    """
-    states_with_counter: It could be address state, vote stats, proposal vote stats, proposal record 
-    """
-    # def put_paginated_data(self, states_with_counter: dict, batch) -> bool:
-    #     data = dict()
-    #     key_value = self.key_value
-    #     self.key_value = dict()
-    #     for key in key_value:
-    #         my_state = states_with_counter[key]
-    #         t = self.get_paginated_data(key=key,
-    #                                     count=my_state.get_counter_by_name(self.name))
-    #         my_state.update_counter_by_name(self.name, len(t), subtract=True)
-    #         t.extend(key_value[key])
-    #         data[key] = t
-    #
-    #     for key in data:
-    #         full_hashes = data[key]
-    #         start = 0
-    #         hashes = full_hashes[start:start + config.dev.data_per_page]
-    #         while hashes:
-    #             my_state = states_with_counter[key]
-    #             self.put(key,
-    #                      my_state.get_counter_by_name(self.name),
-    #                      hashes,
-    #                      batch)
-    #             my_state.update_counter_by_name(self.name, len(hashes))
-    #             start += config.dev.data_per_page
-    #             hashes = full_hashes[start:start + config.dev.data_per_page]
-    #
-    #     return True
-
     def put_paginated_data(self, batch) -> bool:
         key_value = self.key_value
         self.key_value = dict()
@@ -123,32 +92,3 @@ class PaginatedData:
             return
         self.db.delete(storage_key,
                        batch)
-
-    # def revert_paginated_data(self, states_with_counter: dict, batch) -> bool:
-    #     key_value = self.key_value
-    #     self.key_value = dict()
-    #     for key in key_value:
-    #         v = states_with_counter[key]
-    #         data = self.get_paginated_data(key, v.get_counter_by_name(self.name))
-    #
-    #         for value in key_value[key]:
-    #             if data[-1] != value:
-    #                 logger.warning("Mismatch Paginated data", data[-5:], value)
-    #                 return False
-    #             del data[-1]
-    #             v.update_counter_by_name(self.name, subtract=True)
-    #             if len(data) == 0:
-    #                 self.delete(key,
-    #                             v.get_counter_by_name(self.name),
-    #                             batch)
-    #                 if v.get_counter_by_name(self.name) > 0:
-    #                     data = self.get_paginated_data(key,
-    #                                                    v.get_counter_by_name(self.name) - 1)
-    #
-    #         if data:
-    #             self.put(key,
-    #                      v.get_counter_by_name(self.name),
-    #                      data,
-    #                      batch)
-    #
-    #     return True

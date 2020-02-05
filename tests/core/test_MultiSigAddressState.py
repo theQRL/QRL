@@ -1,7 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-from pyqrllib.pyqrllib import hstr2bin, bin2hstr
+from pyqrllib.pyqrllib import hstr2bin
 from unittest import TestCase
 
 from qrl.core.misc import logger

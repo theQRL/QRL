@@ -36,13 +36,11 @@ class TestMiner(TestCase):
 
         self.chain_manager = Mock(spec=ChainManager)
         self.chain_manager.get_block_size_limit.return_value = 500
-        # self.chain_manager.get_address_state.return_value = self.alice_address_state
         self.chain_manager.get_config_by_block_number.return_value = config.dev
         self.parent_block = Block()
         self.parent_difficulty = StringToUInt256('0')  # tuple (0,0,0,0,0...) length 32
 
         self.m_pre_block_logic = Mock(spec=POW.pre_block_logic, name='hello')
-        m_add_unprocessed_txn_fn = create_autospec(P2PFactory.add_unprocessed_txn)
         mining_thread_count = 1
 
         self.miner = Miner(self.chain_manager,

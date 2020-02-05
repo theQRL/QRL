@@ -279,7 +279,7 @@ class State:
     def put_slaves_hash(self, slaves: dict, addresses_state: dict, batch=None):
         slave_hashes = dict()
         for address_slave_pk in slaves:
-            address, slave_pk = address_slave_pk
+            address, _ = address_slave_pk
             # There could be case where same address associated with multiple
             # slave_pk so full_hashes needs to be loaded only once
             if address not in slave_hashes:

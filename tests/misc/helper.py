@@ -249,9 +249,9 @@ def gen_blocks(block_count, state, miner_address):
                 coin_base_tx.apply(state, state_container)
 
                 for tx_idx in range(1, len(block.transactions)):
+                    tx = Transaction.from_pbdata(block.transactions[tx_idx])
                     if not chain_manager.update_state_container(tx, state_container):
                         return False
-                    tx = Transaction.from_pbdata(block.transactions[tx_idx])
                     tx.apply(state, state_container)
 
                 block.set_nonces(dev_config=config.dev, mining_nonce=10, extra_nonce=0)

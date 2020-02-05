@@ -1,5 +1,5 @@
 from unittest import TestCase
-from mock import Mock, patch, PropertyMock, mock, MagicMock
+from mock import Mock, patch, PropertyMock, mock
 
 from qrl.core import config
 from qrl.core.misc import logger

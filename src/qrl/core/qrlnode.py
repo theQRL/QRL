@@ -326,8 +326,8 @@ class QRLNode:
                                           xmss_pk=xmss_pk,
                                           master_addr=master_addr)
 
-    def create_slave_tx(self,
-                        slave_pks: list,
+    @staticmethod
+    def create_slave_tx(slave_pks: list,
                         access_types: list,
                         fee: int,
                         xmss_pk: bytes,
@@ -338,8 +338,8 @@ class QRLNode:
                                        xmss_pk=xmss_pk,
                                        master_addr=master_addr)
 
-    def create_lattice_tx(self,
-                          pk1: bytes,
+    @staticmethod
+    def create_lattice_tx(pk1: bytes,
                           pk2: bytes,
                           pk3: bytes,
                           pk4: bytes,

@@ -4,7 +4,6 @@
 
 from qrl.core import config
 from qrl.core.misc import ntp
-from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.txs.Transaction import Transaction
 
 

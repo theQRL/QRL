@@ -2,12 +2,11 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from qrl.core.misc import db
 from qrl.generated.qrl_pb2 import SlaveMetadata
 
 
 class Indexer:
-    def __init__(self, name: bytes, db: db):
+    def __init__(self, name: bytes, db):
         self._name = name
         self._db = db
         # self._data = IndexerData(self._name)
@@ -35,7 +34,7 @@ class Indexer:
         return True
 
     def remove(self, batch=None):
-        for key, value in self._data.items():
+        for key in self._data.items():
             self._db.delete(self.generate_key(key), batch)
 
     def generate_key(self, keys) -> bytes:

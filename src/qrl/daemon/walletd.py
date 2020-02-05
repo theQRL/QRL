@@ -389,9 +389,7 @@ class WalletD:
             # Relay slave txn using master address using ots index 0
             return index, -1, -1, None
 
-        for slave_index in range(len(slave_group)):
-            slave = slave_group[slave_index]
-
+        for slave_index, slave in enumerate(slave_group):
             if slave.index > 2 ** slave.height - 1:
                 continue
 

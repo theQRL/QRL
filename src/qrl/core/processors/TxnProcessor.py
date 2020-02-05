@@ -7,9 +7,6 @@ from twisted.internet.task import cooperate
 from qrl.core import ChainManager
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
-from qrl.core.txs.Transaction import Transaction
-from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
-from qrl.core.txs.SlaveTransaction import SlaveTransaction
 
 
 class TxnProcessor:

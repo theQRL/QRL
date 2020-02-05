@@ -2,7 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
-from mock import patch, Mock, PropertyMock, MagicMock
+from mock import patch, Mock, PropertyMock
 from pyqrllib.pyqrllib import sha2_256
 from collections import OrderedDict
 

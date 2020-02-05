@@ -73,13 +73,6 @@ class TransactionMetadata:
             txn = Transaction.from_pbdata(protobuf_txn)
             fee_reward += txn.fee
             TransactionMetadata.remove_tx_metadata(state, txn, batch)
-            # FIXME: Being updated without batch, need to fix,
-            # if isinstance(txn, TransferTokenTransaction):
-            #     self.remove_transfer_token_metadata(txn)
-            # elif isinstance(txn, TokenTransaction):
-            #     self.remove_token_metadata(txn)
-            # self._decrease_txn_count(self.get_txn_count(txn.addr_from),
-            #                          txn.addr_from)
 
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
         state._update_total_coin_supply(fee_reward - txn.amount, batch)
@@ -97,13 +90,6 @@ class TransactionMetadata:
                                                 block.block_number,
                                                 block.timestamp,
                                                 batch)
-            # FIXME: Being updated without batch, need to fix,
-            # if isinstance(txn, TransferTokenTransaction):
-            #     self.update_token_metadata(txn)
-            # elif isinstance(txn, TokenTransaction):
-            #     self.create_token_metadata(txn)
-            # self._increase_txn_count(self.get_txn_count(txn.addr_from),
-            #                          txn.addr_from)
 
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
         state._update_total_coin_supply(txn.amount - fee_reward, batch)
@@ -113,5 +99,5 @@ class TransactionMetadata:
     def remove_tx_metadata(state: State, txn, batch):
         try:
             state._db.delete(txn.txhash, batch)
-        except Exception:
+        except KeyError:
             pass

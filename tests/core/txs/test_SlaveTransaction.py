@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mock import patch, Mock, PropertyMock
+from mock import patch, PropertyMock
 
 from qrl.core import config
 from qrl.core.Indexer import Indexer

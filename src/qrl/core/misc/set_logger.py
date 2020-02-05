@@ -1,5 +1,4 @@
 import logging
-import sys
 import threading
 
 from qrl.core.misc import logger, logger_twisted

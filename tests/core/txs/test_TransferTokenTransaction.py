@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 import simplejson as json
-from mock import patch, PropertyMock, Mock
+from mock import patch, PropertyMock
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config

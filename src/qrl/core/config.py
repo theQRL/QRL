@@ -521,13 +521,10 @@ class DevConfig(object):
                                                     foundation_multi_sig=foundation_multi_sig,
                                                     proposal=proposal)
 
-        pow = qrl_pb2.DevConfig.POW(N_measurement=30,
-                                    kp=5)
-
         dev_config = qrl_pb2.DevConfig(chain=chain,
                                        block=block,
                                        transaction=transaction,
-                                       pow=pow)
+                                       pow=qrl_pb2.DevConfig.POW(N_measurement=30, kp=5))
 
         if prev_state_key is not None:
             dev_config.prev_state_key = prev_state_key

@@ -68,10 +68,12 @@ class BlockHeader(object):
     def mining_nonce(self):
         return self._data.mining_nonce
 
-    def nonce_offset(self, dev_config: DevConfig):
+    @staticmethod
+    def nonce_offset(dev_config: DevConfig):
         return dev_config.mining_nonce_offset
 
-    def extra_nonce_offset(self, dev_config: DevConfig):
+    @staticmethod
+    def extra_nonce_offset(dev_config: DevConfig):
         return dev_config.extra_nonce_offset
 
     def mining_blob(self, dev_config: DevConfig) -> bytes:

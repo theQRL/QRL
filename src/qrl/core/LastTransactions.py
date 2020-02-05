@@ -45,7 +45,7 @@ class LastTransactions:
 
         try:
             last_txn = LastTransactions.deserialize(state._db.get_raw(b'last_txn'))
-        except:  # noqa
+        except KeyError:
             return
 
         for protobuf_txn in block.transactions:
@@ -68,7 +68,7 @@ class LastTransactions:
 
         try:
             last_txn = LastTransactions.deserialize(state._db.get_raw(b'last_txn'))
-        except:  # noqa
+        except KeyError:
             pass
 
         for protobuf_txn in block.transactions[-20:]:

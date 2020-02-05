@@ -178,11 +178,9 @@ class MultiSigAddressState(object):
     @staticmethod
     def get_multi_sig_address_by_shared_key(state: State,
                                             shared_key: bytes):
-        tx, block_number = TransactionMetadata.get_tx_metadata(state, shared_key)
+        tx, _ = TransactionMetadata.get_tx_metadata(state, shared_key)
         if tx is None:
             return None
-        # if not isinstance(tx, MultiSigSpend):
-        #     return None
         return tx.multi_sig_address
 
     @staticmethod
