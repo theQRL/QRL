@@ -69,7 +69,10 @@ class CoinBase(Transaction):
     # noinspection PyBroadException
     # Never change this function name to _validate_extended, to keep difference between other txns &
     # Coinbase txn, will hit unimplemented error in case called for an coinbase txn.
-    def validate_extended(self, block_number, dev_config: DevConfig):
+    def _validate_extended(self, state_container: StateContainer):
+        dev_config = state_container.current_dev_config
+        block_number = state_container.block_number
+
         if self.master_addr != dev_config.coinbase_address:
             logger.warning('Master address doesnt match with coinbase_address')
             logger.warning('%s %s', bin2hstr(self.master_addr), bin2hstr(dev_config.coinbase_address))
@@ -86,9 +89,6 @@ class CoinBase(Transaction):
             return False
 
         return self._validate_custom()
-
-    def _validate_extended(self, state_container: StateContainer):
-        raise Exception("Should not be called for a Coinbase Transaction")
 
     def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.master_addr)

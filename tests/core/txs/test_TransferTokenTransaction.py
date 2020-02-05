@@ -172,7 +172,7 @@ class TestTransferTokenTransaction(TestCase):
     @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
     def test_validate_extended(self, m_validate_slave, m_logger):
         """
-        TransferTokenTransaction.validate_extended checks for:
+        TransferTokenTransaction._validate_extended checks for:
         1. valid master/slave
         2. negative fee, negative total token amounts transferred
         3. addr_from has enough funds for the fee

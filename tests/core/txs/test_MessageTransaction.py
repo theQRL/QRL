@@ -99,7 +99,7 @@ class TestMessageTransaction(TestCase):
     @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
     def test_validate_extended(self, m_validate_slave, m_logger):
         """
-        Message.validate_extended checks for:
+        Message._validate_extended checks for:
         1. valid master/slave
         2. negative fee, negative total token amounts transferred
         3. addr_from has enough funds for the fee
@@ -143,11 +143,6 @@ class TestMessageTransaction(TestCase):
         result = tx._validate_extended(state_container)
         self.assertFalse(result)
         m_addr_from_state.balance = 100
-
-        # addr_from_pk has used this OTS key before
-        # m_addr_from_pk_state.ots_key_reuse.return_value = True
-        # result = tx.validate_extended(m_addr_from_state, 0)
-        # self.assertFalse(result)
 
         self.params["message_hash"] = b'T' * 81
 

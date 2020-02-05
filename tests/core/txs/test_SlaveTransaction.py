@@ -58,7 +58,7 @@ class TestSlaveTransaction(TestCase):
     @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
     def test_validate_extended(self, m_validate_slave, m_logger):
         """
-        SlaveTransaction.validate_extended checks for:
+        SlaveTransaction._validate_extended checks for:
         1. valid master/slave
         2. negative fee,
         3. addr_from has enough funds for the fee

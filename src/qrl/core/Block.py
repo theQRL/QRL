@@ -204,10 +204,15 @@ class Block(object):
             return False
 
         try:
+            state_container = chain_manager.new_state_container(set(),
+                                                                self.block_number,
+                                                                False,
+                                                                None)
+
             coinbase_txn = Transaction.from_pbdata(self.transactions[0])
             coinbase_amount = coinbase_txn.amount
 
-            if not coinbase_txn.validate_extended(self.block_number, dev_config):
+            if not coinbase_txn.validate_all(state_container):
                 return False
 
         except Exception as e:

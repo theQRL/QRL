@@ -229,6 +229,11 @@ class Transaction(object, metaclass=ABCMeta):
         return True
 
     def validate_all(self, state_container: StateContainer, check_nonce=True) -> bool:
+        if self.pbdata.WhichOneof('transactionType') == 'coinbase':
+            if not self._validate_extended(state_container):
+                return False
+            return True
+
         if not self.validate(True):  # It also calls _validate_custom
             return False
         if not self.validate_slave(state_container):

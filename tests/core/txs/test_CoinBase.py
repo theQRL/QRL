@@ -86,16 +86,35 @@ class TestCoinBase(TestCase):
         tx = CoinBase.create(config.dev, self.amount, self.alice.address, self.mock_blockheader.block_number)
         tx._data.master_addr = self.alice.address
 
-        result = tx.validate_extended(self.mock_blockheader.block_number, config.dev)
+        addresses_state = {
+            config.dev.coinbase_address: OptimizedAddressState.get_default(config.dev.coinbase_address),
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+        }
+        addresses_state[config.dev.coinbase_address].pbdata.balance = 1000000
+
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=self.mock_blockheader.block_number,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+
+        result = tx._validate_extended(state_container)
         self.assertFalse(result)
 
         tx._data.master_addr = config.dev.coinbase_address
         with patch('qrl.core.txs.CoinBase.CoinBase.addr_to', new_callable=PropertyMock) as m_addr_to:
             m_addr_to.return_value = b'Fake Address'
-            result = tx.validate_extended(self.mock_blockheader.block_number, config.dev)
+            result = tx._validate_extended(state_container)
             self.assertFalse(result)
 
-        result = tx.validate_extended(self.mock_blockheader.block_number, config.dev)
+        result = tx._validate_extended(state_container)
         self.assertTrue(result)
 
     def test_apply_coinbase_txn(self, m_logger):

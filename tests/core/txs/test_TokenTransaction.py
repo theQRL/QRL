@@ -175,58 +175,10 @@ class TestTokenTransaction(TestCase):
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
 
-    # def test_validate_custom(self, m_logger):
-    #     # Token symbol too long
-    #     with self.assertRaises(ValueError):
-    #         tx = self.make_tx(symbol=b'QRLSQRLSQRL')
-    #         tx.sign(self.alice)
-    #
-    #     # Token name too long
-    #     with self.assertRaises(ValueError):
-    #         tx = self.make_tx(name=b'Quantum Resistant LedgerQuantum')
-    #         tx.sign(self.alice)
-    #
-    #     # Token symbol missing
-    #     with self.assertRaises(ValueError):
-    #         tx = self.make_tx(symbol=b'')
-    #         tx.sign(self.alice)
-    #
-    #     # Token name missing
-    #     with self.assertRaises(ValueError):
-    #         tx = self.make_tx(name=b'')
-    #         tx.sign(self.alice)
-    #
-    #     # Empty initial_balances
-    #     with self.assertRaises(ValueError):
-    #         tx = self.make_tx(initial_balances=[])
-    #         tx.sign(self.alice)
-    #
-    #     # Invalid initial balances... 0!
-    #     with self.assertRaises(ValueError):
-    #         initial_balances_0_0 = [qrl_pb2.AddressAmount(address=self.alice.address, amount=0),
-    #                                 qrl_pb2.AddressAmount(address=self.bob.address, amount=0)]
-    #         tx = self.make_tx(initial_balances=initial_balances_0_0)
-    #         tx.sign(self.alice)
-    #
-    #     # Fee is -1
-    #     with patch('qrl.core.txs.TokenTransaction.TokenTransaction.fee', new_callable=PropertyMock) as m_fee:
-    #         m_fee.return_value = -1
-    #         with self.assertRaises(ValueError):
-    #             tx = self.make_tx()
-    #             tx.sign(self.alice)
-    #
-    #     # Invalid initial balances... -1!
-    #     # tx = self.make_tx()
-    #     # tx.sign(self.alice)
-    #     # with patch('qrl.core.txs.TokenTransaction.TokenTransaction.initial_balances', new_callable=PropertyMock) as m_i_balances:
-    #     #     m_i_balances.return_value = [-1, -1]
-    #     #     with self.assertRaises(ValueError):
-    #     #         tx.validate_or_raise()
-
     @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
     def test_validate_extended(self, m_validate_slave, m_logger):
         """
-        TokenTransaction.validate_extended checks for:
+        TokenTransaction._validate_extended checks for:
         1. valid master/slave
         2. from address is valid
         3. owner address is valid

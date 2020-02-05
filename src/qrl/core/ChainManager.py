@@ -398,14 +398,12 @@ class ChainManager:
                 for addr in tx.addrs_to:
                     state_container.addresses_state[addr] = OptimizedAddressState.get_default(addr)
 
-
-
             if not isinstance(coinbase_tx, CoinBase):
                 return False
 
             state_container.addresses_state[coinbase_tx.addr_to] = OptimizedAddressState.get_default(coinbase_tx.addr_to)
 
-            if not coinbase_tx.validate_extended(genesis_block.block_number, config.dev):
+            if not coinbase_tx.validate_all(state_container):
                 return False
 
             coinbase_tx.apply(self._state, state_container)
@@ -783,14 +781,13 @@ class ChainManager:
         multi_sig_spend_txs = dict()
         votes_stats = dict()
 
-        if isinstance(tx, CoinBase):
-            logger.warning("Coinbase txn found in new_state_container txn list")
-            return False
-        slave_addr = Transaction.get_slave(tx)
-        if slave_addr is not None:
-            key = (tx.addr_from, tx.PK)
-            if key not in state_container.slaves.data:
-                slaves.load(key)
+        if not isinstance(tx, CoinBase):
+            slave_addr = Transaction.get_slave(tx)
+            if slave_addr is not None:
+                key = (tx.addr_from, tx.PK)
+                if key not in state_container.slaves.data:
+                    slaves.load(key)
+
         if isinstance(tx, TransferTokenTransaction):
             key = (tx.addr_from, tx.token_txhash)
             if key not in state_container.tokens.data:
@@ -801,7 +798,7 @@ class ChainManager:
                 if key in state_container.tokens.data:
                     continue
                 tokens.load(key)
-        if isinstance(tx, SlaveTransaction):
+        elif isinstance(tx, SlaveTransaction):
             for slave_pk in tx.slave_pks:
                 key = (tx.addr_from, slave_pk)
                 if key not in state_container.slaves.data:
@@ -835,7 +832,7 @@ class ChainManager:
                     if address not in state_container.addresses_state:
                         address_set.add(address)
         elif isinstance(tx, LatticeTransaction):
-            # Load lattice_pk and lattice_pk_tx_hashes
+            # TODO: Load lattice_pk and lattice_pk_tx_hashes
             pass
 
         addresses_state, success = self.get_state_mainchain(address_set,
@@ -852,28 +849,17 @@ class ChainManager:
                                       votes_stats)
 
     def apply_state_changes(self, block, dev_config: DevConfig, batch) -> bool:
-        address_set = set()
-
-        coinbase_tx = Transaction.from_pbdata(block.transactions[0])
-        coinbase_tx.set_affected_address(address_set)
-        state_container = self.new_state_container(address_set,
+        state_container = self.new_state_container(set(),
                                                    block.block_number,
                                                    True,
                                                    batch)
         if state_container is None:
             return False
 
-        if not coinbase_tx.validate_extended(block.block_number, dev_config):
-            logger.warning('Coinbase transaction failed')
-            return False
-
-        # Processing CoinBase Txn
-        coinbase_tx.apply(self._state, state_container)
-
         # Processing Rest of the Transaction
         len_transactions = len(block.transactions)
-        for tx_idx in range(1, len_transactions):
-            tx = Transaction.from_pbdata(block.transactions[tx_idx])
+        for proto_tx in block.transactions:
+            tx = Transaction.from_pbdata(proto_tx)
             if not self.update_state_container(tx, state_container):
                 return False
 

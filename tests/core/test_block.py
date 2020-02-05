@@ -10,6 +10,7 @@ from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss
 from qrl.core import config
 from qrl.generated import qrl_pb2
 from qrl.core.State import State
+from qrl.core.StateContainer import StateContainer
 from qrl.core.ChainManager import ChainManager
 from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.Block import Block
@@ -110,6 +111,8 @@ class TestBlock(TestCase):
             'get_block_is_duplicate.return_value': False,
             'validate_mining_nonce.return_value': True,
             'get_config_by_block_number.return_value': config.dev,
+            'new_state_container.return_value': StateContainer(None, None, None, None, None, None, 5,
+                                                               None, config.dev, False, None, None)
         }
         m_chain_manager.configure_mock(**attrs_all_pass)
         self.block._validate_parent_child_relation = Mock(return_value=True)
@@ -149,7 +152,7 @@ class TestBlock(TestCase):
             self.assertFalse(result)
 
         # There was a problem with the CoinBase TX
-        with patch('qrl.core.txs.CoinBase.CoinBase.validate_extended') as m_validate_extended:
+        with patch('qrl.core.txs.CoinBase.CoinBase._validate_extended') as m_validate_extended:
             m_validate_extended.return_value = False
             result = self.block.validate(m_chain_manager, OrderedDict())
             self.assertFalse(result)
@@ -329,7 +332,7 @@ class TestBlockApplyStateChanges(TestCase):
         self.assertFalse(result)
         m_TransferTransaction_validate_extended.return_value = True
 
-        with patch('qrl.core.txs.CoinBase.CoinBase.validate_extended') as m_validate_extended:
+        with patch('qrl.core.txs.CoinBase.CoinBase._validate_extended') as m_validate_extended:
             m_validate_extended.return_value = False
             result = self.chain_manager.apply_state_changes(block, config.dev, None)
             self.assertFalse(result)
