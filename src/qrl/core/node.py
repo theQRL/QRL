@@ -45,11 +45,10 @@ class POW(ConsensusMechanism):
         self.p2p_factory = p2p_factory  # FIXME: Decouple from p2pFactory. Comms vs node logic
         self.p2p_factory.pow = self  # FIXME: Temporary hack to keep things working while refactoring
 
-        self.miner = Miner(self.pre_block_logic,
+        self.miner = Miner(self.chain_manager,
+                           self.pre_block_logic,
                            self.mining_address,
-                           self.chain_manager,
-                           mining_thread_count,
-                           self.p2p_factory.add_unprocessed_txn)
+                           mining_thread_count)
 
         ########
 
@@ -208,7 +207,8 @@ class POW(ConsensusMechanism):
         keys = list(self.future_blocks.keys())
         for key in keys:
             block = self.future_blocks[key]
-            if block.is_future_block():
+            dev_config = self.chain_manager.get_config_by_block_number(block.block_number)
+            if block.is_future_block(dev_config):
                 return
             self.pre_block_logic(block)
             del self.future_blocks[key]
@@ -220,13 +220,14 @@ class POW(ConsensusMechanism):
 
             if not block.validate(self.chain_manager, self.future_blocks):
                 logger.warning('Block Validation failed for #%s %s', block.block_number, bin2hstr(block.headerhash))
-                return
+                return False
 
-            if block.is_future_block():
+            dev_config = self.chain_manager.get_config_by_block_number(block.block_number)
+            if block.is_future_block(dev_config):
                 delay = abs(block.timestamp - ntp.getTime()) + 1
                 reactor.callLater(delay, self.process_future_blocks)
                 self.add_future_block(block)
-                return
+                return True
 
             logger.debug('Inside add_block')
             result = self.chain_manager.add_block(block)
@@ -240,10 +241,12 @@ class POW(ConsensusMechanism):
 
             if not result:
                 logger.debug('Block Rejected %s %s', block.block_number, bin2hstr(block.headerhash))
-                return
+                return False
 
             reactor.callLater(0, self.broadcast_block, block)
         logger.debug('LOCK - RELEASE - pre_block_logic')
+
+        return result
 
     def broadcast_block(self, block):
         if self.sync_state.state == ESyncState.synced:
@@ -263,9 +266,13 @@ class POW(ConsensusMechanism):
             logger.debug('try get_block_metadata')
             parent_metadata = self.chain_manager.get_block_metadata(parent_block.headerhash)
             logger.debug('try prepare_next_unmined_block_template')
+            dev_config = self.chain_manager.get_config_by_block_number(parent_block.block_number + 1)
             self.miner.prepare_next_unmined_block_template(mining_address=self.mining_address,
                                                            tx_pool=self.chain_manager.tx_pool,
                                                            parent_block=parent_block,
-                                                           parent_difficulty=parent_metadata.block_difficulty)
+                                                           parent_difficulty=parent_metadata.block_difficulty,
+                                                           dev_config=dev_config)
             logger.info('Mining Block #%s', parent_block.block_number + 1)
-            self.miner.start_mining(parent_block, parent_metadata.block_difficulty)
+            self.miner.start_mining(parent_block,
+                                    parent_metadata.block_difficulty,
+                                    dev_config)

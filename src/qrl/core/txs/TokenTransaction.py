@@ -1,9 +1,11 @@
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper
 
-from qrl.core import config
-from qrl.core.AddressState import AddressState
+from qrl.core.State import State
+from qrl.core.StateContainer import StateContainer
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
+from qrl.generated.qrl_pb2 import TokenBalance
 
 
 class TokenTransaction(Transaction):
@@ -79,18 +81,6 @@ class TokenTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
-        if len(self.symbol) > config.dev.max_token_symbol_length:
-            logger.warning('Token Symbol Length exceeds maximum limit')
-            logger.warning('Found Symbol Length %s', len(self.symbol))
-            logger.warning('Expected Symbol length %s', config.dev.max_token_symbol_length)
-            return False
-
-        if len(self.name) > config.dev.max_token_name_length:
-            logger.warning('Token Name Length exceeds maximum limit')
-            logger.warning('Found Name Length %s', len(self.symbol))
-            logger.warning('Expected Name length %s', config.dev.max_token_name_length)
-            return False
-
         if len(self.symbol) == 0:
             logger.warning('Missing Token Symbol')
             return False
@@ -107,13 +97,20 @@ class TokenTransaction(Transaction):
             logger.warning('Token decimals cannot be more than 19')
             return False
 
+        addresses = set()
         sum_of_initial_balances = 0
         for initial_balance in self.initial_balances:
             sum_of_initial_balances += initial_balance.amount
+            addresses.add(initial_balance.address)  # TODO: Hard fork code, check if compatible with older blocks
             if initial_balance.amount <= 0:
                 logger.warning('Invalid Initial Amount in Token Transaction')
                 logger.warning('Address %s | Amount %s', initial_balance.address, initial_balance.amount)
                 return False
+
+        # TODO: Hard fork code, check if compatible with older blocks
+        if len(addresses) != len(self.initial_balances):
+            logger.warning('Invalid Token Initialization. Duplicate address found initial_balance')
+            return False
 
         allowed_decimals = self.calc_allowed_decimals(sum_of_initial_balances // 10 ** self.decimals)
 
@@ -129,104 +126,126 @@ class TokenTransaction(Transaction):
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
-    def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
-        if not self.validate_slave(addr_from_state, addr_from_pk_state):
+    def _validate_extended(self, state_container: StateContainer):
+        if len(self.symbol) > state_container.current_dev_config.max_token_symbol_length:
+            logger.warning('Token Symbol Length exceeds maximum limit')
+            logger.warning('Found Symbol Length %s', len(self.symbol))
+            logger.warning('Expected Symbol length %s', state_container.current_dev_config.max_token_symbol_length)
             return False
 
-        tx_balance = addr_from_state.balance
+        if len(self.name) > state_container.current_dev_config.max_token_name_length:
+            logger.warning('Token Name Length exceeds maximum limit')
+            logger.warning('Found Name Length %s', len(self.symbol))
+            logger.warning('Expected Name length %s', state_container.current_dev_config.max_token_name_length)
+            return False
 
-        if not AddressState.address_is_valid(self.addr_from):
+        if not OptimizedAddressState.address_is_valid(self.addr_from):
             logger.warning('Invalid address addr_from: %s', bin2hstr(self.addr_from))
             return False
 
-        if not AddressState.address_is_valid(self.owner):
+        tx_balance = state_container.addresses_state[self.addr_from].balance
+
+        if not OptimizedAddressState.address_is_valid(self.owner):
             logger.warning('Invalid address owner_addr: %s', bin2hstr(self.owner))
             return False
 
         for address_balance in self.initial_balances:
-            if not AddressState.address_is_valid(address_balance.address):
+            if not OptimizedAddressState.address_is_valid(address_balance.address):
                 logger.warning('Invalid address in initial_balances: %s', bin2hstr(address_balance.address))
                 return False
 
         if tx_balance < self.fee:
-            logger.info('TokenTxn State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
-            logger.info('balance: %s, Fee: %s', tx_balance, self.fee)
-            return False
-
-        if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('TokenTxn State validation failed for %s because: OTS Public key re-use detected',
-                        bin2hstr(self.txhash))
+            logger.warning('TokenTxn State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
+            logger.warning('balance: %s, Fee: %s', tx_balance, self.fee)
             return False
 
         return True
-
-    def apply_state_changes(self, addresses_state):
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
-        owner_processed = False
-        addr_from_processed = False
-        addr_from_pk_processed = False
-
-        for initial_balance in self.initial_balances:
-            if initial_balance.address == self.owner:
-                owner_processed = True
-            if initial_balance.address == self.addr_from:
-                addr_from_processed = True
-            if initial_balance.address == addr_from_pk:
-                addr_from_pk_processed = True
-            if initial_balance.address in addresses_state:
-                addresses_state[initial_balance.address].update_token_balance(self.txhash, initial_balance.amount)
-                addresses_state[initial_balance.address].transaction_hashes.append(self.txhash)
-
-        if self.owner in addresses_state and not owner_processed:
-            addresses_state[self.owner].transaction_hashes.append(self.txhash)
-
-        if self.addr_from in addresses_state:
-            addresses_state[self.addr_from].balance -= self.fee
-            if not addr_from_processed and self.addr_from != self.owner:
-                addresses_state[self.addr_from].transaction_hashes.append(self.txhash)
-
-        if addr_from_pk in addresses_state:
-            if self.addr_from != addr_from_pk and addr_from_pk != self.owner:
-                if not addr_from_pk_processed:
-                    addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
-            addresses_state[addr_from_pk].increase_nonce()
-            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
-
-    def revert_state_changes(self, addresses_state, chain_manager):
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
-        owner_processed = False
-        addr_from_processed = False
-        addr_from_pk_processed = False
-
-        for initial_balance in self.initial_balances:
-            if initial_balance.address == self.owner:
-                owner_processed = True
-            if initial_balance.address == self.addr_from:
-                addr_from_processed = True
-            if initial_balance.address == addr_from_pk:
-                addr_from_pk_processed = True
-            if initial_balance.address in addresses_state:
-                addresses_state[initial_balance.address].update_token_balance(self.txhash,
-                                                                              initial_balance.amount * -1)
-                addresses_state[initial_balance.address].transaction_hashes.remove(self.txhash)
-
-        if self.owner in addresses_state and not owner_processed:
-            addresses_state[self.owner].transaction_hashes.remove(self.txhash)
-
-        if self.addr_from in addresses_state:
-            addresses_state[self.addr_from].balance += self.fee
-            if not addr_from_processed and self.addr_from != self.owner:
-                addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
-
-        if addr_from_pk in addresses_state:
-            if self.addr_from != addr_from_pk and addr_from_pk != self.owner:
-                if not addr_from_pk_processed:
-                    addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
-            addresses_state[addr_from_pk].decrease_nonce()
-            addresses_state[addr_from_pk].unset_ots_key(self.ots_key, chain_manager)
 
     def set_affected_address(self, addresses_set: set):
         super().set_affected_address(addresses_set)
         addresses_set.add(self.owner)
         for initial_balance in self.initial_balances:
             addresses_set.add(initial_balance.address)
+
+    def apply(self,
+              state: State,
+              state_container: StateContainer) -> bool:
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        owner_processed = False
+        addr_from_processed = False
+        addr_from_pk_processed = False
+
+        for initial_balance in self.initial_balances:
+            if initial_balance.address == self.owner:
+                owner_processed = True
+            if initial_balance.address == self.addr_from:
+                addr_from_processed = True
+            if initial_balance.address == addr_from_pk:
+                addr_from_pk_processed = True
+
+            state_container.tokens.data[(initial_balance.address, self.txhash)] = TokenBalance(balance=initial_balance.amount,
+                                                                                               decimals=self.decimals,
+                                                                                               delete=False)
+            address_state = state_container.addresses_state[initial_balance.address]
+            state_container.paginated_tx_hash.insert(address_state, self.txhash)
+            state_container.paginated_tokens_hash.insert(address_state, self.txhash)
+
+        if not owner_processed:
+            address_state = state_container.addresses_state[self.owner]
+            state_container.paginated_tx_hash.insert(address_state, self.txhash)
+
+        address_state = state_container.addresses_state[self.addr_from]
+        address_state.update_balance(state_container, self.fee, subtract=True)
+        if not addr_from_processed and self.addr_from != self.owner:
+            state_container.paginated_tx_hash.insert(address_state, self.txhash)
+
+        address_state = state_container.addresses_state[addr_from_pk]
+        if self.addr_from != addr_from_pk and addr_from_pk != self.owner:
+            if not addr_from_pk_processed:
+                state_container.paginated_tx_hash.insert(address_state, self.txhash)
+        address_state.increase_nonce()
+        state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                       addr_from_pk,
+                                                       self.ots_key)
+
+        return True
+
+    def revert(self,
+               state: State,
+               state_container: StateContainer) -> bool:
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        owner_processed = False
+        addr_from_processed = False
+        addr_from_pk_processed = False
+
+        for initial_balance in self.initial_balances:
+            if initial_balance.address == self.owner:
+                owner_processed = True
+            if initial_balance.address == self.addr_from:
+                addr_from_processed = True
+            if initial_balance.address == addr_from_pk:
+                addr_from_pk_processed = True
+
+            address_state = state_container.addresses_state[initial_balance.address]
+            state_container.tokens.data[(initial_balance.address, self.txhash)] = TokenBalance(balance=0,
+                                                                                               delete=True)
+            state_container.paginated_tx_hash.remove(address_state, self.txhash)
+            state_container.paginated_tokens_hash.remove(address_state, self.txhash)
+
+        if not owner_processed:
+            address_state = state_container.addresses_state[self.owner]
+            state_container.paginated_tx_hash.remove(address_state, self.txhash)
+
+        address_state = state_container.addresses_state[self.addr_from]
+        address_state.update_balance(state_container, self.fee)
+        if not addr_from_processed and self.addr_from != self.owner:
+            state_container.paginated_tx_hash.remove(address_state, self.txhash)
+
+        address_state = state_container.addresses_state[addr_from_pk]
+        if self.addr_from != addr_from_pk and addr_from_pk != self.owner:
+            if not addr_from_pk_processed:
+                state_container.paginated_tx_hash.remove(address_state, self.txhash)
+        address_state.decrease_nonce()
+        state_container.paginated_bitfield.unset_ots_key(state_container.addresses_state, addr_from_pk, self.ots_key)
+
+        return True

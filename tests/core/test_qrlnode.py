@@ -1,9 +1,9 @@
-from unittest import TestCase, expectedFailure
-from mock import Mock, patch, PropertyMock, mock
+from unittest import TestCase
+from mock import Mock, patch, PropertyMock, mock, MagicMock
 
 from qrl.core import config
 from qrl.core.misc import logger
-from qrl.core.AddressState import AddressState
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.ESyncState import ESyncState
@@ -92,7 +92,8 @@ class TestQRLNode(TestCase):
 
         self.qrlnode.set_chain_manager(self.chain_manager)
 
-    def test_monitor_chain_state_no_peer_with_higher_difficulty_found(self):
+    @patch('qrl.core.BlockMetadata.BlockMetadata.get_block_metadata')
+    def test_monitor_chain_state_no_peer_with_higher_difficulty_found(self, mock_get_block_metadata):
         """
         QRLNode.monitor_chain_state() basically:
         1. Tells P2PPeerManager to clean the list of channels/P2PProtocols, i.e. remove any we haven't heard
@@ -105,7 +106,7 @@ class TestQRLNode(TestCase):
         m_block = Mock(autospec=Block, name='mock last Block', block_number=2, headerhash=b'deadbeef')
         m_block_metadata = Mock(autospec=BlockMetadata, cumulative_difficulty=hstr2bin('01'))
         self.qrlnode.peer_manager.get_better_difficulty.return_value = None
-        self.db_state.get_block_metadata.return_value = m_block_metadata
+        mock_get_block_metadata.return_value = m_block_metadata
         self.chain_manager.last_block.return_value = m_block
 
         self.qrlnode.monitor_chain_state()
@@ -113,7 +114,8 @@ class TestQRLNode(TestCase):
         self.qrlnode.peer_manager.monitor_chain_state.assert_called_once()
         self.qrlnode.peer_manager.get_better_difficulty.assert_called_once()
 
-    def test_monitor_chain_state_peer_with_higher_difficulty_found(self):
+    @patch('qrl.core.BlockMetadata.BlockMetadata.get_block_metadata')
+    def test_monitor_chain_state_peer_with_higher_difficulty_found(self, mock_get_block_metadata):
         """
         QRLNode.monitor_chain_state() basically:
         1. Tells P2PPeerManager to clean the list of channels/P2PProtocols, i.e. remove any we haven't heard
@@ -127,7 +129,7 @@ class TestQRLNode(TestCase):
         m_block_metadata = Mock(autospec=BlockMetadata, cumulative_difficulty=hstr2bin('01'))
         m_channel = Mock(autospec=P2PProtocol, addr_remote='1.1.1.1')
         self.qrlnode.peer_manager.get_better_difficulty.return_value = m_channel
-        self.db_state.get_block_metadata.return_value = m_block_metadata
+        mock_get_block_metadata.return_value = m_block_metadata
         self.chain_manager._last_block = m_block
 
         self.qrlnode.monitor_chain_state()
@@ -164,40 +166,48 @@ class TestQRLNode(TestCase):
         with self.assertRaises(ValueError):
             self.qrlnode.get_address_is_used(b'fdsa')
 
-    def test_get_transactions_by_address(self):
+    @patch('qrl.core.PaginatedData.PaginatedData.get_paginated_data')
+    @patch('qrl.core.OptimizedAddressState.OptimizedAddressState.get_optimized_address_state')
+    @patch('qrl.core.TransactionMetadata.TransactionMetadata.get_tx_metadata')
+    def test_get_mini_transactions_by_address(self,
+                                              mock_get_tx_metadata,
+                                              mock_get_optimized_address_state,
+                                              mock_get_paginated_data):
         """
         QRLNode.get_transactions_by_address() returns all the changes in balance caused by a transaction.
         """
-        mock_get_tx_metadata = GetTXMetadata()
+        get_tx_metadata = GetTXMetadata()
 
         xmss = get_alice_xmss()
         xmss2 = get_random_xmss()
-        addr_state = AddressState.get_default(xmss.address)
+        addr_state = OptimizedAddressState.get_default(xmss.address)
         addr_state.pbdata.balance = 100
+        addr_state.pbdata.transaction_hash_count = 3
+        mock_get_optimized_address_state.return_value = addr_state
 
-        tx1 = CoinBase.create(100, xmss.address, 5)
-        mock_get_tx_metadata.register_tx_metadata(tx1, 5)
-        addr_state.transaction_hashes.append(tx1.txhash)
+        tx1 = CoinBase.create(config.dev, 100, xmss.address, 5)
+        get_tx_metadata.register_tx_metadata(tx1, 1)
 
         tx2 = TransferTransaction.create(addrs_to=[xmss2.address],
                                          amounts=[10],
+                                         message_data=None,
                                          fee=1,
                                          xmss_pk=xmss.pk)
         tx2.sign(xmss)
-        mock_get_tx_metadata.register_tx_metadata(tx2, 99)
-        addr_state.transaction_hashes.append(tx2.txhash)
+        get_tx_metadata.register_tx_metadata(tx2, 1)
 
         tx3 = TransferTransaction.create(addrs_to=[xmss.address],
                                          amounts=[100],
+                                         message_data=None,
                                          fee=1,
                                          xmss_pk=xmss2.pk)
         tx3.sign(xmss)
-        mock_get_tx_metadata.register_tx_metadata(tx3, 101)
-        addr_state.transaction_hashes.append(tx3.txhash)
+        get_tx_metadata.register_tx_metadata(tx3, 2)
 
-        self.db_state.get_address_state.return_value = addr_state
-        self.db_state.get_tx_metadata = mock_get_tx_metadata.get_tx_metadata
-        result, balance = self.qrlnode.get_transactions_by_address(alice.address)
+        mock_get_paginated_data.return_value = [tx1.txhash, tx2.txhash, tx3.txhash]
+        mock_get_tx_metadata.side_effect = get_tx_metadata.get_tx_metadata
+        response = self.qrlnode.get_mini_transactions_by_address(alice.address, 3, 1)
+        result, balance = response.mini_transactions, response.balance
         self.assertEqual(len(result), 3)
 
         self.assertEqual(result[0].amount, 100)
@@ -209,21 +219,22 @@ class TestQRLNode(TestCase):
         self.assertEqual(result[2].amount, 100)
         self.assertEqual(result[2].out, False)
 
-        self.assertEqual(balance, 189)
+        self.assertEqual(balance, 100)
 
-    def test_get_address_state(self):
+    @patch('qrl.core.OptimizedAddressState.OptimizedAddressState.get_optimized_address_state')
+    def test_get_address_state(self, mock_get_optimized_address_state):
         """
         QRLNode.get_address_state() asks the DB (State) for an Address's AddressState, like its nonce, ots index...
         It also validates the address before sending it to the State.
         """
-        m_addr_state = Mock(autospec=AddressState)
-        self.db_state.get_address_state.return_value = m_addr_state
+        m_addr_state = Mock(autospec=OptimizedAddressState)
+        mock_get_optimized_address_state.return_value = m_addr_state
         result = self.qrlnode.get_address_state(alice.address)
         self.assertEqual(m_addr_state, result)
 
         # Fetching AddressState for Coinbase Address
-        m_addr_state = Mock(autospec=AddressState)
-        self.db_state.get_address_state.return_value = m_addr_state
+        m_addr_state = Mock(autospec=OptimizedAddressState)
+        mock_get_optimized_address_state.return_value = m_addr_state
         result = self.qrlnode.get_address_state(config.dev.coinbase_address)
         self.assertEqual(m_addr_state, result)
 
@@ -242,9 +253,10 @@ class TestQRLNode(TestCase):
         self.assertEqual(answer, slave.address)
 
     # Just testing that these wrapper functions are doing what they're supposed to do.
-    def test_get_transaction(self):
+    @patch("qrl.core.TransactionMetadata.TransactionMetadata.get_tx_metadata")
+    def test_get_transaction(self, mock_get_tx_metadata):
         self.qrlnode.get_transaction(b'a txhash')
-        self.db_state.get_tx_metadata.assert_called_once_with(b'a txhash')
+        mock_get_tx_metadata.assert_called_once_with(self.db_state, b'a txhash')
 
     def test_get_unconfirmed_transaction(self):
         self.qrlnode.get_unconfirmed_transaction(b'a txhash')
@@ -253,35 +265,40 @@ class TestQRLNode(TestCase):
     def test_get_block_last(self):
         self.assertEqual(self.qrlnode.get_block_last().block_number, 2)
 
-    def test_get_block_from_hash(self):
+    @patch('qrl.core.Block.Block.get_block')
+    def test_get_block_from_hash(self, mock_get_block):
         self.qrlnode.get_block_from_hash(b'a blockhash')
-        self.db_state.get_block.assert_called_once_with(b'a blockhash')
+        mock_get_block.assert_called_once_with(self.db_state, b'a blockhash')
 
-    def test_get_block_from_index(self):
+    @patch('qrl.core.Block.Block.get_block_by_number')
+    def test_get_block_from_index(self, mock_get_block_by_number):
         self.qrlnode.get_block_from_index(3)
-        self.db_state.get_block_by_number.assert_called_once_with(3)
+        mock_get_block_by_number.assert_called_once_with(self.db_state, 3)
 
-    def test_get_blockidx_from_txhash(self):
-        self.db_state.get_tx_metadata.return_value = (Mock(name='Mock TX'), 3)
+    @patch('qrl.core.TransactionMetadata.TransactionMetadata.get_tx_metadata')
+    def test_get_blockidx_from_txhash(self, mock_get_tx_metadata):
+        # self.db_state.get_tx_metadata.return_value = (Mock(name='Mock TX'), 3)
+        mock_get_tx_metadata.return_value = (Mock(name='Mock TX'), 3)
         result = self.qrlnode.get_blockidx_from_txhash(b'a txhash')
         self.assertEqual(result, 3)
 
-        self.db_state.get_tx_metadata.return_value = None
+        mock_get_tx_metadata.return_value = None
         result = self.qrlnode.get_blockidx_from_txhash(b'a txhash')
         self.assertIsNone(result)
 
-    def test_get_block_to_mine(self):
+    @patch('qrl.core.BlockMetadata.BlockMetadata.get_block_metadata')
+    def test_get_block_to_mine(self, m_get_block_metadata):
         m_block = Mock(autospec=Block, name='mock Block')
         m_block_metadata = Mock(autospec=BlockMetadata, name='mock BlockMetadata', block_difficulty=0)
 
         with mock._patch_object(ChainManager, 'last_block') as m_last_block:
             m_last_block.__get__ = Mock(return_value=m_block)
-            self.chain_manager._state.get_block_metadata.return_value = m_block_metadata
+            m_get_block_metadata.return_value = m_block_metadata
 
             self.qrlnode.get_block_to_mine(alice.address)
 
             m_last_block.__get__.assert_called_once()
-            self.chain_manager._state.get_block_metadata.assert_called_once()
+            m_get_block_metadata.assert_called_once()
             self.qrlnode._pow.miner.get_block_to_mine.assert_called_once_with(alice.address, self.chain_manager.tx_pool,
                                                                               m_block, 0)
 
@@ -294,13 +311,14 @@ class TestQRLNode(TestCase):
         ans = self.qrlnode.get_node_info()
         self.assertIsInstance(ans, qrl_pb2.NodeInfo)
 
-    def test_get_latest_transactions(self):
+    @patch('qrl.core.LastTransactions.LastTransactions.get_last_txs')
+    def test_get_latest_transactions(self, mock_get_last_txs):
         """
         This returns the last n txs, just like get_latest_blocks().
         Useful for the Block Explorer, presumably.
         """
         # get_last_txs returns the latest transactions
-        self.db_state.get_last_txs.return_value = [Mock(name='mock TX {}'.format(i), i=i) for i in range(19, -1, -1)]
+        mock_get_last_txs.return_value = [Mock(name='mock TX {}'.format(i), i=i) for i in range(19, -1, -1)]
 
         # Given [0, 1, 2... 19], with offset 0 count 1 should return [19]
         result = self.qrlnode.get_latest_transactions(0, 1)
@@ -313,27 +331,6 @@ class TestQRLNode(TestCase):
         self.assertEqual(result[0].i, 17)
         self.assertEqual(result[1].i, 16)
         self.assertEqual(result[2].i, 15)
-
-    @expectedFailure
-    def test_get_latest_transactions_unconfirmed(self):
-        """
-        This should return the last n unconfirmed txs in the txpool.
-        Useful for the Block Explorer, presumably.
-        FAIL: this returns the first n unconfirmed transactions.
-        """
-        self.chain_manager.tx_pool.transactions = [(0, Mock(name='mock TX {}'.format(i), i=i)) for i in range(0, 20)]
-
-        # Given [0, 1, 2... 19], with offset 0 count 1 should return [19]
-        result = self.qrlnode.get_latest_transactions_unconfirmed(0, 1)
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0].i, 19)
-
-        # Given [0, 1, 2... 19], with offset 2 count 3 should return [15, 16, 17]
-        result = self.qrlnode.get_latest_transactions_unconfirmed(2, 3)
-        self.assertEqual(len(result), 3)
-        self.assertEqual(result[0].i, 15)
-        self.assertEqual(result[1].i, 16)
-        self.assertEqual(result[2].i, 17)
 
     def test_get_block_timeseries(self):
         """
@@ -355,7 +352,7 @@ class TestQRLNode(TestCase):
         def replacement_get_block_datapoint(headerhash_current):
             return m_blockdps.get(headerhash_current)
 
-        self.chain_manager._state.get_block_datapoint = replacement_get_block_datapoint
+        self.chain_manager.get_block_datapoint = replacement_get_block_datapoint
 
         # Get last 5 blocks should return [BlockDatapoint 1, BlockDatapoint 2... BlockDatapoint 5]
         result = self.qrlnode.get_block_timeseries(5)
@@ -385,8 +382,10 @@ class TestQRLNode(TestCase):
         result_converted_from_iterator = [r for r in result]
         self.assertEqual(result_converted_from_iterator, m_blockdps_as_list)
 
-    @patch('qrl.core.qrlnode.ChainManager.height', new_callable=PropertyMock, return_value=3)
-    def test_get_blockheader_and_metadata(self, m_height):
+    @patch('qrl.core.BlockMetadata.BlockMetadata.get_block_metadata')
+    @patch('qrl.core.Block.Block.get_block_by_number')
+    @patch('qrl.core.ChainManager.ChainManager.height', new_callable=PropertyMock, return_value=3)
+    def test_get_blockheader_and_metadata(self, m_height, m_get_block_by_number, m_get_block_metadata):
         blocks = []
         for i in range(0, 4):
             m = Mock(name='mock Block {}'.format(i), i=i)
@@ -400,14 +399,14 @@ class TestQRLNode(TestCase):
             b'3': Mock(name='mock BlockMetadata 3', i=3),
         }
 
-        def replacement_get_block_by_number(idx):
+        def replacement_get_block_by_number(state, idx):
             return blocks[idx]
 
-        def replacement_get_block_metadata(headerhash):
+        def replacement_get_block_metadata(state, headerhash):
             return block_metadata[headerhash]
 
-        self.db_state.get_block_by_number = replacement_get_block_by_number
-        self.db_state.get_block_metadata = replacement_get_block_metadata
+        m_get_block_by_number.side_effect = replacement_get_block_by_number
+        m_get_block_metadata.side_effect = replacement_get_block_metadata
 
         # Because we're just using indexes of a list, we can't actually ever return blocks[0]
         # But this shouldn't be a problem because IRL this uses hashes, not indexes.
@@ -427,7 +426,7 @@ class TestQRLNode(TestCase):
         self.assertEqual(result_metadata, block_metadata[b'3'])
 
         # If get_block_by_number() couldn't find the corresponding block, we should get a (None, None)
-        self.db_state.get_block_by_number = Mock(return_value=None)
+        m_get_block_by_number.side_effect = Mock(return_value=None)
         result_header, result_metadata = self.qrlnode.get_blockheader_and_metadata(2)
         self.assertIsNone(result_header)
         self.assertIsNone(result_metadata)
@@ -493,13 +492,15 @@ class TestQRLNodeProperties(TestCase):
         self.m_chain_manager._last_block = Mock(block_number=256)
         self.assertEqual(self.qrlnode.epoch, (256 // config.dev.blocks_per_epoch))
 
-    def test_uptime_network(self):
+    @patch('qrl.core.Block.Block.get_block_by_number')
+    def test_uptime_network(self, mock_get_block_by_number):
         # If there is no block after the genesis block, this property should return 0
+        mock_get_block_by_number.return_value = None
         self.assertEqual(self.qrlnode.uptime_network, 0)
 
         # However, if there is a block after the genesis block, use its timestamp to calculate our uptime.
         with patch('qrl.core.misc.ntp.getTime') as m_getTime:
-            self.m_chain_manager._state.get_block_by_number.return_value = Mock(timestamp=1000000)
+            mock_get_block_by_number.return_value = Mock(timestamp=1000000)
             m_getTime.return_value = 1500000
             self.assertEqual(self.qrlnode.uptime_network, 500000)
 
@@ -511,19 +512,21 @@ class TestQRLNodeProperties(TestCase):
         self.m_chain_manager._last_block = Mock(block_reward=53)
         self.assertEqual(self.qrlnode.block_last_reward, 53)
 
-    def test_block_time_mean(self):
+    @patch('qrl.core.ChainManager.ChainManager.get_measurement')
+    @patch('qrl.core.BlockMetadata.BlockMetadata.get_block_metadata')
+    def test_block_time_mean(self, mock_get_block_metadata, mock_get_measurement):
         # FIXME
         # For this function to work, last_block() must not return a None. If it does, bad things will happen.
         self.m_chain_manager._last_block = Mock(name='mock Block')
 
         # If this particular function returns None, this property should just return the config value
-        self.m_chain_manager._state.get_block_metadata.return_value = None
-        self.assertEqual(self.qrlnode.block_time_mean, config.dev.mining_setpoint_blocktime)
+        mock_get_block_metadata.return_value = None
+        self.assertEqual(self.qrlnode.block_time_mean, config.dev.block_timing_in_seconds)
 
         # Else, it should consult state.get_measurement()
-        self.m_chain_manager._state.get_block_metadata.return_value = Mock(name='mock BlockMetadata')
+        mock_get_block_metadata.return_value = Mock(name='mock BlockMetadata')
         self.qrlnode.block_time_mean()
-        self.m_chain_manager._state.get_measurement.assert_called_once()
+        mock_get_measurement.assert_called_once()
 
     def test_coin_supply(self):
         with mock._patch_object(ChainManager, 'total_coin_supply') as m_total_coin_supply:

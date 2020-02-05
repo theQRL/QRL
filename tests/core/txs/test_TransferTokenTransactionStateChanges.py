@@ -1,23 +1,35 @@
 from unittest import TestCase
 
-from mock import patch, Mock
+from mock import Mock
 
+from qrl.core import config
+from qrl.core.Indexer import Indexer
 from qrl.core.misc import logger
-from qrl.core.AddressState import AddressState
+from qrl.core.State import State
+from qrl.core.StateContainer import StateContainer
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.ChainManager import ChainManager
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss
+from qrl.generated.qrl_pb2 import TokenBalance
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir
 
 logger.initialize_default()
 
 
-@patch('qrl.core.txs.Transaction.Transaction._revert_state_changes_for_PK')
-@patch('qrl.core.txs.Transaction.Transaction._apply_state_changes_for_PK')
-@patch('qrl.core.txs.Transaction.logger')
 class TestTransferTokenTransactionStateChanges(TestCase):
     def setUp(self):
+        with set_qrl_dir('no_data'):
+            self.state = State()
+
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
+
+        alice_address_state = OptimizedAddressState.get_default(self.alice.address)
+        alice_address_state.pbdata.balance = 100
+        self.addresses_state = {
+            self.alice.address: alice_address_state,
+            self.bob.address: OptimizedAddressState.get_default(self.bob.address)
+        }
 
         self.params = {
             "token_txhash": b'I declare the TEST token',
@@ -29,37 +41,39 @@ class TestTransferTokenTransactionStateChanges(TestCase):
 
         self.unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
 
-    def generate_addresses_state(self, tx):
-        addresses_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
-                                     tokens={self.params["token_txhash"]: 1000}, transaction_hashes=[],
-                                     balance=100),
-            self.bob.address: Mock(autospec=AddressState, name='bob AddressState',
-                                   tokens={self.params["token_txhash"]: 0},
-                                   transaction_hashes=[],
-                                   balance=0),
-        }
-        return addresses_state
-
-    def test_apply_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+    def test_apply_transfer_token_txn(self):
         """
         Alice has 1000 tokens and 100 QRL, Bob has none. Alice sends some tokens to Bob.
         """
         tx = TransferTokenTransaction.create(**self.params)
         tx.sign(self.alice)
-        addresses_state = self.generate_addresses_state(tx)
-        tx.apply_state_changes(addresses_state)
+        addresses_state = dict(self.addresses_state)
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=150)
+        tokens.data[(self.bob.address, tx.token_txhash)] = TokenBalance(balance=0)
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
+        tx.apply(self.state, state_container)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
 
         self.assertEqual(addresses_state[self.alice.address].balance, 99)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
-        addresses_state[self.alice.address].update_token_balance.assert_called_with(b'I declare the TEST token', -100)
-        addresses_state[self.bob.address].update_token_balance.assert_called_with(b'I declare the TEST token', 100)
-        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
-        self.assertEqual([tx.txhash], addresses_state[self.bob.address].transaction_hashes)
 
-        m_apply_state_PK.assert_called_once()
+        self.assertEqual(tokens.data[(self.alice.address, tx.token_txhash)].balance, 50)
+        self.assertEqual(tokens.data[(self.bob.address, tx.token_txhash)].balance, 100)
 
-    def test_apply_state_changes_multi_send(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+    def test_apply_transfer_token_txn_multi_send(self):
         """
         Alice has 1000 tokens and 100 QRL, Bob and Slave have none. Alice sends some tokens to Bob and Slave.
         """
@@ -70,84 +84,108 @@ class TestTransferTokenTransactionStateChanges(TestCase):
 
         tx = TransferTokenTransaction.create(**params)
         tx.sign(self.alice)
-        addresses_state = self.generate_addresses_state(tx)
-        addresses_state[slave.address] = Mock(autospec=AddressState, name='slave AddressState',
-                                              tokens={self.params["token_txhash"]: 0},
-                                              transaction_hashes=[],
-                                              balance=0)
+        addresses_state = dict(self.addresses_state)
+        addresses_state[slave.address] = OptimizedAddressState.get_default(slave.address)
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=200)
+        tokens.data[(self.bob.address, tx.token_txhash)] = TokenBalance(balance=0)
+        tokens.data[(slave.address, tx.token_txhash)] = TokenBalance(balance=0)
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
 
-        tx.apply_state_changes(addresses_state)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
+        tx.apply(self.state, state_container)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
 
         self.assertEqual(addresses_state[self.alice.address].balance, 99)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
         self.assertEqual(addresses_state[slave.address].balance, 0)
-        addresses_state[self.alice.address].update_token_balance.assert_called_with(b'I declare the TEST token', -200)
-        addresses_state[self.bob.address].update_token_balance.assert_called_with(b'I declare the TEST token', 100)
-        addresses_state[slave.address].update_token_balance.assert_called_with(b'I declare the TEST token', 100)
-        self.assertEqual([tx.txhash], addresses_state[self.alice.address].transaction_hashes)
-        self.assertEqual([tx.txhash], addresses_state[self.bob.address].transaction_hashes)
-        self.assertEqual([tx.txhash], addresses_state[slave.address].transaction_hashes)
 
-        m_apply_state_PK.assert_called_once()
+        self.assertEqual(tokens.data[(self.alice.address, tx.token_txhash)].balance, 0)
+        self.assertEqual(tokens.data[(self.bob.address, tx.token_txhash)].balance, 100)
+        self.assertEqual(tokens.data[(slave.address, tx.token_txhash)].balance, 100)
 
-    def test_apply_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
-        """
-        Alice has 1000 tokens and 100 QRL, Bob has none. Alice sends some tokens to Bob.
-        But this node has no AddressState corresponding to these parties.
-        """
-        tx = TransferTokenTransaction.create(**self.params)
-        tx.sign(self.alice)
-        addresses_state = {}
-        tx.apply_state_changes(addresses_state)
-
-        self.assertEqual({}, addresses_state)
-        m_apply_state_PK.assert_called_once()
-
-    def test_apply_state_changes_send_tokens_to_self(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+    def test_apply_transfer_token_txn_send_tokens_to_self(self):
         """
         Alice has 1000 tokens and 100 QRL. She sends some tokens to herself. What happens next?
         """
         self.params["addrs_to"] = [self.alice.address]
         tx = TransferTokenTransaction.create(**self.params)
         tx.sign(self.alice)
-        addresses_state = self.generate_addresses_state(tx)
-        tx.apply_state_changes(addresses_state)
+        addresses_state = dict(self.addresses_state)
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=100)
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
+        tx.apply(self.state, state_container)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
 
         self.assertEqual(addresses_state[self.alice.address].balance, 99)
-        # Unfortunately importing mock.call results in some sort of ValueError so I can't check the arguments.
-        self.assertEqual(addresses_state[self.alice.address].update_token_balance.call_count, 2)
+        self.assertEqual(tokens.data[(self.alice.address, tx.token_txhash)].balance, 100)
 
-        m_apply_state_PK.assert_called_once()
-
-    def test_revert_state_changes(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+    def test_revert_transfer_token_txn(self):
         """
         Alice has 1000 tokens and 100 QRL, Bob has none. Alice sends some tokens to Bob.
         Let's undo this.
         """
         tx = TransferTokenTransaction.create(**self.params)
         tx.sign(self.alice)
-        addresses_state = self.generate_addresses_state(tx)
-        addresses_state[self.alice.address].balance = 99
-        addresses_state[self.alice.address].tokens[self.params["token_txhash"]] = 900
-        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
-        addresses_state[self.bob.address].balance = 0
-        addresses_state[self.bob.address].tokens[self.params["token_txhash"]] = 100
-        addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
+        addresses_state = dict(self.addresses_state)
+        addresses_state[self.alice.address].pbdata.balance = 100
+        addresses_state[self.bob.address].pbdata.balance = 0
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=1000)
+        tokens.data[(self.bob.address, tx.token_txhash)] = TokenBalance(balance=0)
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.alice.address, 0)
 
-        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
+        tx.apply(self.state, state_container)
+        tx.revert(self.state, state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
-        addresses_state[self.alice.address].update_token_balance.assert_called_with(b'I declare the TEST token', 100)
-        addresses_state[self.bob.address].update_token_balance.assert_called_with(b'I declare the TEST token', -100)
-        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
-        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
 
-        m_revert_state_PK.assert_called_once()
+        self.assertEqual(tokens.data[(self.alice.address, tx.token_txhash)].balance, 1000)
+        self.assertEqual(tokens.data[(self.bob.address, tx.token_txhash)].balance, 0)
 
-    def test_revert_state_changes_multi_send(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+    def test_revert_transfer_token_txn_multi_send(self):
         """
-        Alice has 1000 tokens and 100 QRL, Bob and Slave have none. Alice sends some tokens to Bob and Slave.
+        Alice has 1100 tokens and 100 QRL, Bob and Slave have none. Alice sends some tokens to Bob and Slave.
         Undo this.
         """
         slave = get_slave_xmss()
@@ -156,46 +194,75 @@ class TestTransferTokenTransactionStateChanges(TestCase):
 
         tx = TransferTokenTransaction.create(**self.params)
         tx.sign(self.alice)
-        addresses_state = self.generate_addresses_state(tx)
-        addresses_state[self.alice.address].balance = 99
-        addresses_state[self.alice.address].tokens[self.params["token_txhash"]] = 900
-        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
-        addresses_state[self.bob.address].balance = 0
-        addresses_state[self.bob.address].tokens[self.params["token_txhash"]] = 100
-        addresses_state[self.bob.address].transaction_hashes = [tx.txhash]
-        addresses_state[slave.address] = Mock(autospec=AddressState, name='slave AddressState',
-                                              tokens={self.params["token_txhash"]: 100},
-                                              transaction_hashes=[tx.txhash],
-                                              balance=0)
+        addresses_state = dict(self.addresses_state)
+        addresses_state[self.alice.address].pbdata.balance = 100
+        addresses_state[self.bob.address].pbdata.balance = 0
+        addresses_state[slave.address] = OptimizedAddressState.get_default(slave.address)
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=1100)
+        tokens.data[(self.bob.address, tx.token_txhash)] = TokenBalance(balance=0)
+        tokens.data[(slave.address, tx.token_txhash)] = TokenBalance(balance=0)
 
-        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.alice.address, 0)
+
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
+        tx.apply(self.state, state_container)
+        tx.revert(self.state, state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         self.assertEqual(addresses_state[self.bob.address].balance, 0)
         self.assertEqual(addresses_state[slave.address].balance, 0)
-        addresses_state[self.alice.address].update_token_balance.assert_called_with(b'I declare the TEST token', 200)
-        addresses_state[self.bob.address].update_token_balance.assert_called_with(b'I declare the TEST token', -100)
-        addresses_state[slave.address].update_token_balance.assert_called_with(b'I declare the TEST token', -100)
-        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
-        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
-        self.assertEqual([], addresses_state[slave.address].transaction_hashes)
 
-        m_revert_state_PK.assert_called_once()
+        self.assertEqual(tokens.data[(self.alice.address, tx.token_txhash)].balance, 1100)
+        self.assertEqual(tokens.data[(self.bob.address, tx.token_txhash)].balance, 0)
+        self.assertEqual(tokens.data[(slave.address, tx.token_txhash)].balance, 0)
 
-    def test_revert_state_changes_empty_addresses_state(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+    def test_revert_transfer_token_txn_empty_addresses_state(self):
         """
         If we didn't have any AddressStates for the addresses involved in this test, do nothing
         """
         tx = TransferTokenTransaction.create(**self.params)
         tx.sign(self.alice)
-        addresses_state = {}
+        addresses_state = dict(self.addresses_state)
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=100)
+        tokens.data[(self.bob.address, tx.token_txhash)] = TokenBalance(balance=0)
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.alice.address, 0)
 
-        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
+        tx.apply(self.state, state_container)
+        tx.revert(self.state, state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
 
-        self.assertEqual(addresses_state, {})
-        m_revert_state_PK.assert_called_once()
+        self.assertEqual(100, tokens.data[(self.alice.address, tx.token_txhash)].balance)
+        self.assertEqual(0, tokens.data[(self.bob.address, tx.token_txhash)].balance)
 
-    def test_revert_state_changes_send_tokens_to_self(self, m_logger, m_apply_state_PK, m_revert_state_PK):
+    def test_revert_transfer_token_txn_send_tokens_to_self(self):
         """
         Alice has 1000 tokens and 100 QRL. She sends some tokens to herself.
         Can we undo this?
@@ -203,13 +270,29 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         self.params["addrs_to"] = [self.alice.address]
         tx = TransferTokenTransaction.create(**self.params)
         tx.sign(self.alice)
-        addresses_state = self.generate_addresses_state(tx)
-        addresses_state[self.alice.address].balance = 99
-        addresses_state[self.alice.address].transaction_hashes = [tx.txhash]
-        tx.revert_state_changes(addresses_state, self.unused_chain_manager_mock)
+        addresses_state = dict(self.addresses_state)
+        addresses_state[self.alice.address].pbdata.balance = 100
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=100)
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.alice.address, 0)
+
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
+        tx.apply(self.state, state_container)
+        tx.revert(self.state, state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse( self.alice.address, 0))
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         # Unfortunately importing mock.call results in some sort of ValueError so I can't check the arguments.
-        self.assertEqual(addresses_state[self.alice.address].update_token_balance.call_count, 2)
-
-        m_revert_state_PK.assert_called_once()
+        self.assertEqual(tokens.data[(self.alice.address, tx.token_txhash)].balance, 100)

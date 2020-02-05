@@ -74,6 +74,7 @@ class TestP2PTxManagement(TestCase):
         tx = TransferTransaction.create(
             addrs_to=[get_some_address()],
             amounts=[1],
+            message_data=None,
             fee=10,
             xmss_pk=bytes(67))
 

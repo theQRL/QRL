@@ -4,13 +4,17 @@ import simplejson as json
 from mock import patch, PropertyMock, Mock
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core import config
+from qrl.core.Indexer import Indexer
 from qrl.core.misc import logger
-from qrl.core.AddressState import AddressState
+from qrl.core.State import State
+from qrl.core.StateContainer import StateContainer
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.Transaction import Transaction
 from qrl.generated import qrl_pb2
 from tests.core.txs.testdata import test_json_Token, test_signature_Token
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir
 
 logger.initialize_default()
 
@@ -20,6 +24,8 @@ class TestTokenTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestTokenTransaction, self).__init__(*args, **kwargs)
+        with set_qrl_dir('no_data'):
+            self.state = State()
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
         self._decimals = 15
@@ -169,31 +175,151 @@ class TestTokenTransaction(TestCase):
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
 
-    def test_validate_custom(self, m_logger):
+    # def test_validate_custom(self, m_logger):
+    #     # Token symbol too long
+    #     with self.assertRaises(ValueError):
+    #         tx = self.make_tx(symbol=b'QRLSQRLSQRL')
+    #         tx.sign(self.alice)
+    #
+    #     # Token name too long
+    #     with self.assertRaises(ValueError):
+    #         tx = self.make_tx(name=b'Quantum Resistant LedgerQuantum')
+    #         tx.sign(self.alice)
+    #
+    #     # Token symbol missing
+    #     with self.assertRaises(ValueError):
+    #         tx = self.make_tx(symbol=b'')
+    #         tx.sign(self.alice)
+    #
+    #     # Token name missing
+    #     with self.assertRaises(ValueError):
+    #         tx = self.make_tx(name=b'')
+    #         tx.sign(self.alice)
+    #
+    #     # Empty initial_balances
+    #     with self.assertRaises(ValueError):
+    #         tx = self.make_tx(initial_balances=[])
+    #         tx.sign(self.alice)
+    #
+    #     # Invalid initial balances... 0!
+    #     with self.assertRaises(ValueError):
+    #         initial_balances_0_0 = [qrl_pb2.AddressAmount(address=self.alice.address, amount=0),
+    #                                 qrl_pb2.AddressAmount(address=self.bob.address, amount=0)]
+    #         tx = self.make_tx(initial_balances=initial_balances_0_0)
+    #         tx.sign(self.alice)
+    #
+    #     # Fee is -1
+    #     with patch('qrl.core.txs.TokenTransaction.TokenTransaction.fee', new_callable=PropertyMock) as m_fee:
+    #         m_fee.return_value = -1
+    #         with self.assertRaises(ValueError):
+    #             tx = self.make_tx()
+    #             tx.sign(self.alice)
+    #
+    #     # Invalid initial balances... -1!
+    #     # tx = self.make_tx()
+    #     # tx.sign(self.alice)
+    #     # with patch('qrl.core.txs.TokenTransaction.TokenTransaction.initial_balances', new_callable=PropertyMock) as m_i_balances:
+    #     #     m_i_balances.return_value = [-1, -1]
+    #     #     with self.assertRaises(ValueError):
+    #     #         tx.validate_or_raise()
+
+    @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
+    def test_validate_extended(self, m_validate_slave, m_logger):
+        """
+        TokenTransaction.validate_extended checks for:
+        1. valid master/slave
+        2. from address is valid
+        3. owner address is valid
+        4. addresses that own the initial balances are valid
+        5. that the AddressState has enough coins to pay the Transaction fee (because no coins are being transferred)
+        6. OTS key reuse
+        """
+        alice_address_state = OptimizedAddressState.get_default(self.alice.address)
+        alice_address_state.pbdata.balance = 100
+
+        tx = TokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = {
+            alice_address_state.address: alice_address_state
+        }
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        result = tx._validate_extended(state_container)
+        self.assertTrue(result)
+
+        m_validate_slave.return_value = False
+        result = tx.validate_all(state_container)
+        self.assertFalse(result)
+        m_validate_slave.return_value = True
+
+        with patch('qrl.core.txs.TokenTransaction.TokenTransaction.addr_from',
+                   new_callable=PropertyMock) as m_addr_from:
+            m_addr_from.return_value = b'Invalid Address'
+            result = tx._validate_extended(state_container)
+            self.assertFalse(result)
+
+        with patch('qrl.core.txs.TokenTransaction.TokenTransaction.owner', new_callable=PropertyMock) as m_owner:
+            m_owner.return_value = b'Invalid Address'
+            result = tx._validate_extended(state_container)
+            self.assertFalse(result)
+
+        with patch('qrl.core.txs.TokenTransaction.TokenTransaction.initial_balances',
+                   new_callable=PropertyMock) as m_address_balance:
+            m_address_balance.return_value = [qrl_pb2.AddressAmount(address=b'Invalid Address 1', amount=1000),
+                                              qrl_pb2.AddressAmount(address=b'Invalid Address 2', amount=1000)]
+            result = tx._validate_extended(state_container)
+            self.assertFalse(result)
+
+        alice_address_state.pbdata.balance = 0
+        result = tx._validate_extended(state_container)
+        self.assertFalse(result)
+        alice_address_state.pbdata.balance = 100
+
+        addresses_state = {
+            self.alice.address: alice_address_state
+        }
+        # addr_from_pk has used this OTS key before
+        state_container.paginated_bitfield.set_ots_key(addresses_state, alice_address_state.address, tx.ots_key)
+        result = tx.validate_all(state_container)
+        self.assertFalse(result)
+
         # Token symbol too long
-        with self.assertRaises(ValueError):
-            tx = self.make_tx(symbol=b'QRLSQRLSQRL')
-            tx.sign(self.alice)
+        tx = self.make_tx(symbol=b'QRLSQRLSQRL')
+        tx.sign(self.alice)
+        self.assertFalse(tx._validate_extended(state_container))
 
         # Token name too long
-        with self.assertRaises(ValueError):
-            tx = self.make_tx(name=b'Quantum Resistant LedgerQuantum')
-            tx.sign(self.alice)
+        tx = self.make_tx(name=b'Quantum Resistant LedgerQuantum')
+        tx.sign(self.alice)
+        self.assertFalse(tx._validate_extended(state_container))
 
         # Token symbol missing
         with self.assertRaises(ValueError):
             tx = self.make_tx(symbol=b'')
             tx.sign(self.alice)
+            self.assertFalse(tx._validate_extended(state_container))
 
         # Token name missing
         with self.assertRaises(ValueError):
             tx = self.make_tx(name=b'')
             tx.sign(self.alice)
+            tx._validate_extended(state_container)
 
         # Empty initial_balances
         with self.assertRaises(ValueError):
             tx = self.make_tx(initial_balances=[])
             tx.sign(self.alice)
+            self.assertFalse(tx._validate_extended(state_container))
 
         # Invalid initial balances... 0!
         with self.assertRaises(ValueError):
@@ -201,6 +327,7 @@ class TestTokenTransaction(TestCase):
                                     qrl_pb2.AddressAmount(address=self.bob.address, amount=0)]
             tx = self.make_tx(initial_balances=initial_balances_0_0)
             tx.sign(self.alice)
+            self.assertFalse(tx._validate_extended(state_container))
 
         # Fee is -1
         with patch('qrl.core.txs.TokenTransaction.TokenTransaction.fee', new_callable=PropertyMock) as m_fee:
@@ -216,58 +343,6 @@ class TestTokenTransaction(TestCase):
         #     m_i_balances.return_value = [-1, -1]
         #     with self.assertRaises(ValueError):
         #         tx.validate_or_raise()
-
-    @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
-    def test_validate_extended(self, m_validate_slave, m_logger):
-        """
-        TokenTransaction.validate_extended checks for:
-        1. valid master/slave
-        2. from address is valid
-        3. owner address is valid
-        4. addresses that own the initial balances are valid
-        5. that the AddressState has enough coins to pay the Transaction fee (because no coins are being transferred)
-        6. OTS key reuse
-        """
-        tx = TokenTransaction.create(**self.params)
-
-        m_addr_from_state = Mock(autospec=AddressState, name='addr_from State', balance=100)
-        m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk State')
-        m_addr_from_pk_state.ots_key_reuse.return_value = False
-        tx.sign(self.alice)
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
-        self.assertTrue(result)
-
-        m_validate_slave.return_value = False
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
-        self.assertFalse(result)
-
-        m_validate_slave.return_value = True
-        with patch('qrl.core.txs.TokenTransaction.TokenTransaction.addr_from',
-                   new_callable=PropertyMock) as m_addr_from:
-            m_addr_from.return_value = b'Invalid Address'
-            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
-            self.assertFalse(result)
-
-        with patch('qrl.core.txs.TokenTransaction.TokenTransaction.owner', new_callable=PropertyMock) as m_owner:
-            m_owner.return_value = b'Invalid Address'
-            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
-            self.assertFalse(result)
-
-        with patch('qrl.core.txs.TokenTransaction.TokenTransaction.initial_balances',
-                   new_callable=PropertyMock) as m_address_balance:
-            m_address_balance.return_value = [qrl_pb2.AddressAmount(address=b'Invalid Address 1', amount=1000),
-                                              qrl_pb2.AddressAmount(address=b'Invalid Address 2', amount=1000)]
-            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
-            self.assertFalse(result)
-
-        m_addr_from_state.balance = 0
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
-        self.assertFalse(result)
-        m_addr_from_state.balance = 100
-
-        m_addr_from_pk_state.ots_key_reuse.return_value = True
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
-        self.assertFalse(result)
 
     def test_affected_address(self, m_logger):
         tx = TokenTransaction.create(**self.params)

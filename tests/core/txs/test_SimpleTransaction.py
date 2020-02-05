@@ -4,14 +4,17 @@ import simplejson as json
 from mock import patch, PropertyMock, Mock
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core import config
+from qrl.core.Indexer import Indexer
+from qrl.core.State import State
+from qrl.core.StateContainer import StateContainer
 from qrl.core.misc import logger
-from qrl.core.AddressState import AddressState
-from qrl.core.ChainManager import ChainManager
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.TransactionInfo import TransactionInfo
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from tests.core.txs.testdata import test_json_Simple, test_signature_Simple
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, replacement_getTime
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, replacement_getTime, set_qrl_dir
 
 logger.initialize_default()
 
@@ -21,6 +24,9 @@ class TestSimpleTransaction(TestCase):
 
     def __init__(self, *args, **kwargs):
         super(TestSimpleTransaction, self).__init__(*args, **kwargs)
+        with set_qrl_dir('no_data'):
+            self.state = State()
+
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
         self.slave = get_slave_xmss()
@@ -32,14 +38,17 @@ class TestSimpleTransaction(TestCase):
         self.tx = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
+        self.tx._data.nonce = 1
 
     def test_create(self, m_logger):
         # Alice sending coins to Bob
         tx = TransferTransaction.create(addrs_to=[self.bob.address],
                                         amounts=[100],
+                                        message_data=None,
                                         fee=1,
                                         xmss_pk=self.alice.pk)
         self.assertTrue(tx)
@@ -48,6 +57,7 @@ class TestSimpleTransaction(TestCase):
         with self.assertRaises(ValueError):
             TransferTransaction.create(addrs_to=[self.bob.address],
                                        amounts=[-100],
+                                       message_data=None,
                                        fee=1,
                                        xmss_pk=self.alice.pk)
 
@@ -55,12 +65,14 @@ class TestSimpleTransaction(TestCase):
         with self.assertRaises(ValueError):
             TransferTransaction.create(addrs_to=[self.bob.address],
                                        amounts=[-100],
+                                       message_data=None,
                                        fee=-1,
                                        xmss_pk=self.alice.pk)
 
     def test_to_json(self, m_logger):
         tx = TransferTransaction.create(addrs_to=[self.bob.address],
                                         amounts=[100],
+                                        message_data=None,
                                         fee=1,
                                         xmss_pk=self.alice.pk)
         txjson = tx.to_json()
@@ -103,6 +115,7 @@ class TestSimpleTransaction(TestCase):
         tx = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
@@ -120,6 +133,7 @@ class TestSimpleTransaction(TestCase):
         tx = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
@@ -187,35 +201,39 @@ class TestSimpleTransaction(TestCase):
         3. OTS key reuse from AddressState
         :return:
         """
-        m_addr_state = Mock(autospec=AddressState, balance=200)
-        m_addr_from_pk_state = Mock(autospec=AddressState)
-        m_addr_from_pk_state.ots_key_reuse.return_value = False
+        alice_address_state = OptimizedAddressState.get_default(self.alice.address)
+        addresses_state = {
+            self.alice.address: alice_address_state
+        }
+        alice_address_state.pbdata.balance = 200
 
         self.tx.validate_slave = Mock(autospec=Transaction.validate_slave, return_value=True)
 
         self.tx.sign(self.alice)
-
-        result = self.tx.validate_extended(m_addr_state, m_addr_from_pk_state)
-
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        result = self.tx.validate_all(state_container)
         self.assertTrue(result)
 
         # Suppose there was ots key reuse. The function should then return false.
-        m_addr_from_pk_state.ots_key_reuse.return_value = True
-        result = self.tx.validate_extended(m_addr_state, m_addr_from_pk_state)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.tx.addr_from, self.tx.ots_key)
+        result = self.tx.validate_all(state_container)
         self.assertFalse(result)
 
-        # Reset conditions from above
-        m_addr_from_pk_state.ots_key_reuse.return_value = False
-        # Suppose the slave XMSS address does not have permission for this type of Transaction. It should return False.
-        self.tx.validate_slave.return_value = False
-        result = self.tx.validate_extended(m_addr_state, m_addr_from_pk_state)
-        self.assertFalse(result)
-
-        # Reset conditions from above
-        self.tx.validate_slave.return_value = True
         # Suppose the address doesn't have enough coins.
-        m_addr_state.balance = 99
-        result = self.tx.validate_extended(m_addr_state, m_addr_from_pk_state)
+        alice_address_state.pbdata.balance = 99
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.tx.addr_from, self.tx.ots_key)
+        result = self.tx.validate_all(state_container)
         self.assertFalse(result)
 
     def test_validate_transaction_pool(self, m_logger):
@@ -228,6 +246,7 @@ class TestSimpleTransaction(TestCase):
         tx2 = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
@@ -249,6 +268,7 @@ class TestSimpleTransaction(TestCase):
         tx2 = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=5,
             xmss_pk=self.alice.pk
         )
@@ -276,6 +296,7 @@ class TestSimpleTransaction(TestCase):
         tx2 = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.bob.pk
         )
@@ -290,87 +311,120 @@ class TestSimpleTransaction(TestCase):
         result = tx.validate_transaction_pool(transaction_pool)
         self.assertTrue(result)
 
-    def test_apply_state_changes(self, m_logger):
+    def test_apply_transfer_txn(self, m_logger):
         """
         apply_state_changes() is the part that actually updates everybody's balances.
         Then it forwards the addresses_state to _apply_state_changes_for_PK(), which updates everybody's addresses's
         nonce, OTS key index, and associated TX hashes
         If there is no AddressState for a particular Address, nothing is done.
         """
+        self.tx.sign(self.alice)
+        ots_key = self.alice.ots_index - 1
         addresses_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
-                                     balance=200),
-            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[], balance=0),
-            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+            self.bob.address: OptimizedAddressState.get_default(self.bob.address),
+            self.slave.address: OptimizedAddressState.get_default(self.slave.address)
         }
-        self.tx._apply_state_changes_for_PK = Mock(autospec=TransferTransaction._apply_state_changes_for_PK)
-
-        self.tx.apply_state_changes(addresses_state)
+        addresses_state[self.alice.address].pbdata.balance = 200
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
+        self.tx.apply(self.state, state_container)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
 
         # Now Alice should have 99 coins left (200 - 100 - 1) and Bob should have 100 coins.
         self.assertEqual(99, addresses_state[self.alice.address].balance)
         self.assertEqual(100, addresses_state[self.bob.address].balance)
-        self.tx._apply_state_changes_for_PK.assert_called_once()
 
-        # If there are no AddressStates related to the Addresses in this transaction, do nothing.
-        self.tx._apply_state_changes_for_PK.reset_mock()
-        addresses_state_dummy = {
-            b'a': 'ABC',
-            b'b': 'DEF'
-        }
-        self.tx.apply_state_changes(addresses_state_dummy)
-        self.assertEqual(addresses_state_dummy, {b'a': 'ABC', b'b': 'DEF'})
-        self.tx._apply_state_changes_for_PK.assert_called_once()
-
-    def test_apply_state_changes_tx_sends_to_self(self, m_logger):
+    def test_apply_transfer_txn_tx_sends_to_self(self, m_logger):
         """
         If you send coins to yourself, you should only lose the fee for the Transaction.
         """
         addresses_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
-                                     balance=200),
-            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[], balance=0),
-            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+            self.bob.address: OptimizedAddressState.get_default(self.bob.address),
+            self.slave.address: OptimizedAddressState.get_default(self.slave.address)
         }
+        addresses_state[self.alice.address].pbdata.balance = 200
+
         tx = TransferTransaction.create(
             addrs_to=[self.alice.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
-        tx._apply_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
-
-        tx.apply_state_changes(addresses_state)
+        tx.sign(self.alice)
+        ots_key = self.alice.ots_index - 1
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
+        tx.apply(self.state, state_container)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
 
         self.assertEqual(199, addresses_state[self.alice.address].balance)
-        self.assertIn(tx.txhash, addresses_state[self.alice.address].transaction_hashes)
+        storage_key = state_container.paginated_tx_hash.generate_key(self.alice.address, 1)
+        self.assertIn(tx.txhash, state_container.paginated_tx_hash.key_value[storage_key])
 
-    def test_apply_state_changes_multi_send(self, m_logger):
+    def test_apply_transfer_txn_multi_send(self, m_logger):
         """
         Test that apply_state_changes() also works with multiple recipients.
         """
         addresses_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState', transaction_hashes=[],
-                                     balance=200),
-            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[], balance=0),
-            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+            self.bob.address: OptimizedAddressState.get_default(self.bob.address),
+            self.slave.address: OptimizedAddressState.get_default(self.slave.address)
         }
+        addresses_state[self.alice.address].pbdata.balance = 200
 
         tx_multisend = TransferTransaction.create(
             addrs_to=[self.bob.address, self.slave.address],
             amounts=[20, 20],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
-        tx_multisend._apply_state_changes_for_PK = Mock(autospec=TransferTransaction._apply_state_changes_for_PK)
+        tx_multisend.sign(self.alice)
+        ots_key = self.alice.ots_index - 1
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
+        tx_multisend.apply(self.state, state_container)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
 
-        tx_multisend.apply_state_changes(addresses_state)
-
-        # Now Alice should have 159 coins left (200 - 20 - 20 - 1) and Bob should have 100 coins.
         self.assertEqual(159, addresses_state[self.alice.address].balance)
         self.assertEqual(20, addresses_state[self.bob.address].balance)
         self.assertEqual(20, addresses_state[self.slave.address].balance)
-        tx_multisend._apply_state_changes_for_PK.assert_called_once()
 
     def test_apply_state_changes_for_PK(self, m_logger):
         """
@@ -380,15 +434,29 @@ class TestSimpleTransaction(TestCase):
         txs that address is associated with.
         :return:
         """
-        addr_state = {
-            self.alice.address: Mock(autospec=AddressState)
+        addresses_state = {
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address)
         }
-        old_ots_index = self.alice.ots_index
         self.tx.sign(self.alice)
-        self.tx._apply_state_changes_for_PK(addr_state)
+        ots_key = self.alice.ots_index - 1
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
 
-        addr_state[self.alice.address].increase_nonce.assert_called_once()
-        addr_state[self.alice.address].set_ots_key.assert_called_once_with(old_ots_index)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
+        self.tx._apply_state_changes_for_PK(state_container)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
+
+        self.assertEqual(1, addresses_state[self.alice.address].nonce)
 
     def test_apply_state_changes_for_PK_master_slave_XMSS(self, m_logger):
         """
@@ -398,162 +466,261 @@ class TestSimpleTransaction(TestCase):
         tx = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.slave.pk,
             master_addr=self.alice.address
         )
-        addr_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState'),
-            self.slave.address: Mock(autospec=AddressState, name='slave AddressState')
+        addresses_state = {
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+            self.slave.address: OptimizedAddressState.get_default(self.slave.address)
         }
-        old_ots_index = self.slave.ots_index
         tx.sign(self.slave)
-        tx._apply_state_changes_for_PK(addr_state)
+        ots_key = self.slave.ots_index - 1
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
 
-        addr_state[self.slave.address].increase_nonce.assert_called_once()
-        addr_state[self.slave.address].set_ots_key.assert_called_once_with(old_ots_index)
-        addr_state[self.slave.address].transaction_hashes.append.assert_called_once()
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.slave.address, ots_key))
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, self.alice.ots_index))
+        tx._apply_state_changes_for_PK(state_container)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.slave.address, ots_key))
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, self.alice.ots_index))
 
-    def test_revert_state_changes(self, m_logger):
+        self.assertEqual(1, addresses_state[self.slave.address].nonce)
+        self.assertEqual(0, addresses_state[self.alice.address].nonce)
+
+    def test_revert_transfer_txn(self, m_logger):
         """
         Alice has sent 100 coins to Bob, using 1 as Transaction fee. Now we need to undo this.
         """
+        self.tx.sign(self.alice)
+        ots_key = self.alice.ots_index - 1
+
         addresses_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
-                                     transaction_hashes=[self.tx.txhash],
-                                     balance=99),
-            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[self.tx.txhash],
-                                   balance=100),
-            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+            self.bob.address: OptimizedAddressState.get_default(self.bob.address)
         }
+        addresses_state[self.alice.address].pbdata.balance = 200
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state,
+                                                       self.alice.address,
+                                                       ots_key)
+        state_container.paginated_bitfield.put_addresses_bitfield(None)
 
-        unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
-        self.tx._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
-
-        self.tx.revert_state_changes(addresses_state, unused_chain_manager_mock)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address,
+                                                                                      ots_key))
+        self.tx.apply(self.state, state_container)
+        self.tx.revert(self.state, state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address,
+                                                                                            ots_key))
+        self.assertEqual(0, addresses_state[self.alice.address].nonce)
 
         self.assertEqual(200, addresses_state[self.alice.address].balance)
         self.assertEqual(0, addresses_state[self.bob.address].balance)
-        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
-        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
 
-        self.tx._revert_state_changes_for_PK.assert_called_once()
+        storage_key = state_container.paginated_tx_hash.generate_key(self.alice.address, 1)
+        self.assertEqual([], state_container.paginated_tx_hash.key_value[storage_key])
 
-        # If there are no AddressStates related to the Addresses in this transaction, do nothing.
-        self.tx._revert_state_changes_for_PK.reset_mock()
-        addresses_state_dummy = {
-            b'a': 'ABC',
-            b'b': 'DEF'
-        }
-        self.tx.revert_state_changes(addresses_state_dummy, unused_chain_manager_mock)
-        self.assertEqual(addresses_state_dummy, {b'a': 'ABC', b'b': 'DEF'})
-        self.tx._revert_state_changes_for_PK.assert_called_once()
+        storage_key = state_container.paginated_tx_hash.generate_key(self.bob.address, 1)
+        self.assertEqual([], state_container.paginated_tx_hash.key_value[storage_key])
 
-    def test_revert_state_changes_multi_send(self, m_logger):
+    def test_revert_transfer_txn_multi_send(self, m_logger):
         """
         Alice has sent 20 coins to Bob and Slave each, using 1 as Transaction fee. Now we need to undo this.
         """
-        addresses_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
-                                     transaction_hashes=[self.tx.txhash],
-                                     balance=159),
-            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[self.tx.txhash],
-                                   balance=20),
-            self.slave.address: Mock(autospec=AddressState, name='slave AddressState',
-                                     transaction_hashes=[self.tx.txhash], balance=20)
-        }
-        unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
-
         tx_multisend = TransferTransaction.create(
             addrs_to=[self.bob.address, self.slave.address],
             amounts=[20, 20],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
-        tx_multisend._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
+        tx_multisend.sign(self.alice)
+        ots_key = self.alice.ots_index - 1
 
-        tx_multisend.revert_state_changes(addresses_state, unused_chain_manager_mock)
+        addresses_state = {
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+            self.bob.address: OptimizedAddressState.get_default(self.bob.address),
+            self.slave.address: OptimizedAddressState.get_default(self.slave.address)
+        }
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.alice.address, ots_key)
+        state_container.paginated_bitfield.put_addresses_bitfield(None)
+        addresses_state[self.alice.address].pbdata.balance = 200
+        addresses_state[self.bob.address].pbdata.balance = 0
+        addresses_state[self.slave.address].pbdata.balance = 0
+
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
+        tx_multisend.apply(self.state, state_container)
+        tx_multisend.revert(self.state, state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
 
         self.assertEqual(200, addresses_state[self.alice.address].balance)
         self.assertEqual(0, addresses_state[self.bob.address].balance)
         self.assertEqual(0, addresses_state[self.slave.address].balance)
-        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
-        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
-        self.assertEqual([], addresses_state[self.slave.address].transaction_hashes)
 
-        tx_multisend._revert_state_changes_for_PK.assert_called_once()
+        storage_key = state_container.paginated_tx_hash.generate_key(self.alice.address, 1)
+        self.assertEqual([], state_container.paginated_tx_hash.key_value[storage_key])
 
-    def test_revert_state_changes_tx_sends_to_self(self, m_logger):
+        storage_key = state_container.paginated_tx_hash.generate_key(self.bob.address, 1)
+        self.assertEqual([], state_container.paginated_tx_hash.key_value[storage_key])
+
+        storage_key = state_container.paginated_tx_hash.generate_key(self.slave.address, 1)
+        self.assertEqual([], state_container.paginated_tx_hash.key_value[storage_key])
+
+    def test_revert_transfer_txn_tx_sends_to_self(self, m_logger):
         """
         Alice sent coins to herself, but she still lost the Transaction fee. Undo this.
         """
         addresses_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState',
-                                     transaction_hashes=[self.tx.txhash],
-                                     balance=199),
-            self.bob.address: Mock(autospec=AddressState, name='bob AddressState', transaction_hashes=[],
-                                   balance=0),
-            self.slave.address: Mock(autospec=AddressState, name='slave AddressState', transaction_hashes=[], balance=0)
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+            self.bob.address: OptimizedAddressState.get_default(self.bob.address)
         }
-
-        unused_chain_manager_mock = Mock(autospec=ChainManager, name='unused ChainManager')
+        addresses_state[self.alice.address].pbdata.balance = 200
 
         tx = TransferTransaction.create(
             addrs_to=[self.alice.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
+        tx.sign(self.alice)
+        ots_key = self.alice.ots_index - 1
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.alice.address, ots_key)
+        state_container.paginated_bitfield.put_addresses_bitfield(None)
 
-        tx._revert_state_changes_for_PK = Mock(autospec=TransferTransaction._revert_state_changes_for_PK)
-
-        tx.revert_state_changes(addresses_state, unused_chain_manager_mock)
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
+        tx.apply(self.state, state_container)
+        tx.revert(self.state, state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
 
         self.assertEqual(200, addresses_state[self.alice.address].balance)
         self.assertEqual(0, addresses_state[self.bob.address].balance)
-        self.assertEqual([], addresses_state[self.alice.address].transaction_hashes)
-        self.assertEqual([], addresses_state[self.bob.address].transaction_hashes)
-
-        tx._revert_state_changes_for_PK.assert_called_once()
 
     def test_revert_state_changes_for_PK(self, m_logger):
         """
         This is just an undo function.
         :return:
         """
+        addresses_state = {
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address)
+        }
+        addresses_state[self.alice.address].pbdata.balance = 101
+        addresses_state[self.alice.address].pbdata.nonce = 1
+
         tx = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )
-        addr_state = {
-            self.alice.address: Mock(autospec=AddressState)
-        }
         tx.sign(self.alice)
-        tx._revert_state_changes_for_PK(addr_state, Mock(name='unused State Mock'))
+        ots_key = self.alice.ots_index - 1
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.alice.address, ots_key)
+        state_container.paginated_bitfield.put_addresses_bitfield(None)
 
-        addr_state[self.alice.address].decrease_nonce.assert_called_once()
-        addr_state[self.alice.address].unset_ots_key.assert_called_once()
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
+        tx._apply_state_changes_for_PK(state_container)
+        tx._revert_state_changes_for_PK(state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, ots_key))
 
     def test_revert_state_changes_for_PK_master_slave_XMSS(self, m_logger):
+        addresses_state = {
+            self.alice.address: OptimizedAddressState.get_default(self.alice.address),
+            self.slave.address: OptimizedAddressState.get_default(self.slave.address)
+        }
+        addresses_state[self.alice.address].pbdata.balance = 101
+        addresses_state[self.slave.address].pbdata.nonce = 1
+
         tx = TransferTransaction.create(
             addrs_to=[self.bob.address],
             amounts=[100],
+            message_data=None,
             fee=1,
             xmss_pk=self.slave.pk,
             master_addr=self.alice.address
         )
-        addr_state = {
-            self.alice.address: Mock(autospec=AddressState, name='alice AddressState'),
-            self.slave.address: Mock(autospec=AddressState, name='slave AddressState')
-        }
         tx.sign(self.slave)
-        tx._revert_state_changes_for_PK(addr_state, Mock(name='unused State Mock'))
+        ots_key = self.slave.ots_index - 1
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        state_container.paginated_bitfield.set_ots_key(addresses_state, self.slave.address, ots_key)
+        state_container.paginated_bitfield.put_addresses_bitfield(None)
 
-        addr_state[self.slave.address].decrease_nonce.assert_called_once()
-        addr_state[self.slave.address].unset_ots_key.assert_called_once()
-        addr_state[self.slave.address].transaction_hashes.remove.assert_called_once()
+        self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.slave.address, ots_key))
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, self.alice.ots_index))
+        tx._apply_state_changes_for_PK(state_container)
+        tx._revert_state_changes_for_PK(state_container)
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.slave.address, ots_key))
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, self.alice.ots_index))
 
     def test_affected_address(self, m_logger):
         # The default transaction params involve only two addresses.
@@ -566,6 +733,7 @@ class TestSimpleTransaction(TestCase):
         tx = TransferTransaction.create(
             addrs_to=[self.bob.address, self.slave.address],
             amounts=[100, 100],
+            message_data=None,
             fee=1,
             xmss_pk=self.alice.pk
         )

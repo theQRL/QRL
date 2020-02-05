@@ -5,6 +5,7 @@
 from pyqrllib.pyqrllib import QRLHelper, bin2hstr
 
 from qrl.core import config
+from qrl.core.State import State
 from qrl.generated import qrl_pb2
 
 
@@ -234,3 +235,42 @@ class AddressState(object):
 
     def serialize(self):
         return self._data.SerializeToString()
+
+    @staticmethod
+    def put_addresses_state(state: State, addresses_state: dict, batch=None):
+        """
+        :param addresses_state:
+        :param batch:
+        :return:
+        """
+        for address in addresses_state:
+            address_state = addresses_state[address]
+            AddressState.put_address_state(state, address_state, batch)
+
+    @staticmethod
+    def put_address_state(state: State, address_state, batch=None):
+        data = address_state.pbdata.SerializeToString()
+        state._db.put_raw(address_state.address, data, batch)
+
+    @staticmethod
+    def get_address_state(state: State, address: bytes):
+        try:
+            data = state._db.get_raw(address)
+            pbdata = qrl_pb2.AddressState()
+            pbdata.ParseFromString(bytes(data))
+            address_state = AddressState(pbdata)
+            return address_state
+        except KeyError:
+            return AddressState.get_default(address)
+
+    @staticmethod
+    def return_all_addresses(state: State) -> list:
+        addresses = []
+        for key, data in state._db.db:
+            if key[0] != b'Q':
+                continue
+            pbdata = qrl_pb2.AddressState()
+            pbdata.ParseFromString(bytes(data))
+            address_state = AddressState(pbdata)
+            addresses.append(address_state)
+        return addresses

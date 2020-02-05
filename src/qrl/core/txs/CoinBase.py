@@ -1,7 +1,9 @@
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core import config
-from qrl.core.AddressState import AddressState
+from qrl.core.config import DevConfig
+from qrl.core.State import State
+from qrl.core.StateContainer import StateContainer
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
 
@@ -31,9 +33,9 @@ class CoinBase(Transaction):
                self.amount.to_bytes(8, byteorder='big', signed=False)
 
     @staticmethod
-    def create(amount, miner_address, block_number):
+    def create(dev_config: DevConfig, amount, miner_address, block_number):
         transaction = CoinBase()
-        transaction._data.master_addr = config.dev.coinbase_address
+        transaction._data.master_addr = dev_config.coinbase_address
         transaction._data.coinbase.addr_to = miner_address
         transaction._data.coinbase.amount = amount
         transaction._data.nonce = block_number + 1
@@ -65,46 +67,57 @@ class CoinBase(Transaction):
         return True
 
     # noinspection PyBroadException
-    def validate_extended(self, block_number: int):
-        if self.master_addr != config.dev.coinbase_address:
+    # Never change this function name to _validate_extended, to keep difference between other txns &
+    # Coinbase txn, will hit unimplemented error in case called for an coinbase txn.
+    def validate_extended(self, block_number, dev_config: DevConfig):
+        if self.master_addr != dev_config.coinbase_address:
             logger.warning('Master address doesnt match with coinbase_address')
-            logger.warning('%s %s', bin2hstr(self.master_addr), bin2hstr(config.dev.coinbase_address))
+            logger.warning('%s %s', bin2hstr(self.master_addr), bin2hstr(dev_config.coinbase_address))
             return False
 
-        if not AddressState.address_is_valid(self.addr_to):
-            logger.warning('Invalid address addr_from: %s addr_to: %s', bin2hstr(self.master_addr), bin2hstr(self.addr_to))
+        if not OptimizedAddressState.address_is_valid(self.addr_to):
+            logger.warning('Invalid address addr_from: %s addr_to: %s',
+                           bin2hstr(self.master_addr), bin2hstr(self.addr_to))
             return False
 
         if self.nonce != block_number + 1:
-            logger.warning('Nonce %s doesnt match with block_number %s', self.nonce, block_number)
+            logger.warning('Nonce %s doesnt match with block_number %s',
+                           self.nonce, block_number)
             return False
 
         return self._validate_custom()
 
-    def apply_state_changes(self, addresses_state):
-        if self.addr_to in addresses_state:
-            addresses_state[self.addr_to].balance += self.amount
-            addresses_state[self.addr_to].transaction_hashes.append(self.txhash)
-
-        addr_from = config.dev.coinbase_address
-
-        if self.master_addr in addresses_state:
-            addresses_state[self.master_addr].balance -= self.amount
-            addresses_state[self.master_addr].transaction_hashes.append(self.txhash)
-            addresses_state[addr_from].increase_nonce()
-
-    def revert_state_changes(self, addresses_state, chain_manager):
-        if self.addr_to in addresses_state:
-            addresses_state[self.addr_to].balance -= self.amount
-            addresses_state[self.addr_to].transaction_hashes.remove(self.txhash)
-
-        addr_from = config.dev.coinbase_address
-
-        if self.master_addr in addresses_state:
-            addresses_state[self.master_addr].balance += self.amount
-            addresses_state[self.master_addr].transaction_hashes.remove(self.txhash)
-            addresses_state[addr_from].decrease_nonce()
+    def _validate_extended(self, state_container: StateContainer):
+        raise Exception("Should not be called for a Coinbase Transaction")
 
     def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.master_addr)
         addresses_set.add(self.addr_to)
+
+    def apply(self,
+              state: State,
+              state_container: StateContainer) -> bool:
+        address_state = state_container.addresses_state[self.addr_to]
+        address_state.update_balance(state_container, self.amount)
+        state_container.paginated_tx_hash.insert(address_state, self.txhash)
+
+        address_state = state_container.addresses_state[self.master_addr]
+        address_state.update_balance(state_container, self.amount, subtract=True)
+        address_state.increase_nonce()
+        state_container.paginated_tx_hash.insert(address_state, self.txhash)
+
+        return True
+
+    def revert(self,
+               state: State,
+               state_container: StateContainer) -> bool:
+        address_state = state_container.addresses_state[self.addr_to]
+        address_state.update_balance(state_container, self.amount, subtract=True)
+        state_container.paginated_tx_hash.remove(address_state, self.txhash)
+
+        address_state = state_container.addresses_state[self.master_addr]
+        address_state.update_balance(state_container, self.amount)
+        address_state.decrease_nonce()
+        state_container.paginated_tx_hash.remove(address_state, self.txhash)
+
+        return True

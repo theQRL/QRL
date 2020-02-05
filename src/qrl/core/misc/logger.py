@@ -33,6 +33,7 @@ def initialize_default(force_console_output=False, log_level=logging.DEBUG):
     handler = logging.StreamHandler(logging_target)
     handler.setFormatter(logging.Formatter(LOG_FORMAT_FULL, None))
     logger.addHandler(handler)
+    set_unhandled_exception_handler()
     return handler
 
 

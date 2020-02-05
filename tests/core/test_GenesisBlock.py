@@ -21,5 +21,6 @@ class TestGenesisBlock(TestCase):
 
             self.assertIsNotNone(gb)
             self.assertEqual(0, gb.block_number)
+
             self.assertEqual(config.user.genesis_prev_headerhash, gb.prev_headerhash)
             self.assertEqual(1, len(gb.genesis_balance))

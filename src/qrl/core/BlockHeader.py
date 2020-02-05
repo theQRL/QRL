@@ -4,7 +4,7 @@ import functools
 from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import shake128, bin2hstr
 
-from qrl.core import config
+from qrl.core.config import DevConfig, user as user_config
 from qrl.core.formulas import block_reward
 from qrl.core.misc import ntp, logger
 from qrl.crypto.Qryptonight import Qryptonight
@@ -17,6 +17,8 @@ class BlockHeader(object):
         >>> BlockHeader() is not None
         True
         """
+        self._seed_hash = None
+        self._seed_height = None
         self._data = protobuf_blockheader
         if protobuf_blockheader is None:
             self._data = qrl_pb2.BlockHeader()
@@ -33,10 +35,6 @@ class BlockHeader(object):
     @property
     def block_number(self):
         return self._data.block_number
-
-    @property
-    def epoch(self):
-        return self._data.block_number // config.dev.blocks_per_epoch
 
     @property
     def timestamp(self):
@@ -70,16 +68,13 @@ class BlockHeader(object):
     def mining_nonce(self):
         return self._data.mining_nonce
 
-    @property
-    def nonce_offset(self):
-        return config.dev.mining_nonce_offset
+    def nonce_offset(self, dev_config: DevConfig):
+        return dev_config.mining_nonce_offset
 
-    @property
-    def extra_nonce_offset(self):
-        return config.dev.extra_nonce_offset
+    def extra_nonce_offset(self, dev_config: DevConfig):
+        return dev_config.extra_nonce_offset
 
-    @property
-    def mining_blob(self) -> bytes:
+    def mining_blob(self, dev_config: DevConfig) -> bytes:
         blob = self.block_number.to_bytes(8, byteorder='big', signed=False) \
                + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
                + self.prev_headerhash \
@@ -88,12 +83,13 @@ class BlockHeader(object):
                + self.tx_merkle_root
 
         # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool + 5 bytes for pool (17 bytes)
-        blob = bytes(shake128(config.dev.mining_blob_size - 18, blob))
+        blob = bytes(shake128(dev_config.mining_blob_size_in_bytes - 18, blob))
 
         zero = 0
         blob = zero.to_bytes(1, byteorder='big', signed=False) + blob
 
-        if len(blob) < self.nonce_offset:
+        nonce_offset = self.nonce_offset(dev_config)
+        if len(blob) < nonce_offset:
             raise Exception("Mining blob size below 56 bytes")
 
         # Now insert mining nonce and extra nonce in offset 56 for compatibility
@@ -102,26 +98,32 @@ class BlockHeader(object):
             self.extra_nonce.to_bytes(8, byteorder='big', signed=False) + \
             zero.to_bytes(5, byteorder='big', signed=False)
 
-        blob = blob[:self.nonce_offset] + mining_nonce_bytes + blob[self.nonce_offset:]
+        blob = blob[:nonce_offset] + mining_nonce_bytes + blob[nonce_offset:]
 
         return bytes(blob)
 
     @staticmethod
     @functools.lru_cache(maxsize=5)
-    def _get_qryptonight_hash(blob):
+    def _get_qryptonight_hash(block_number, seed_height, seed_hash, blob):
         qn = Qryptonight()
-        qnhash = bytes(qn.hash(blob))
+        qnhash = bytes(qn.hash(block_number, seed_height, seed_hash, blob))
         return qnhash
 
-    def generate_headerhash(self):
-        return self._get_qryptonight_hash(self.mining_blob)
+    def generate_headerhash(self, dev_config: DevConfig):
+        return self._get_qryptonight_hash(self.block_number,
+                                          self._seed_height,
+                                          self._seed_hash,
+                                          self.mining_blob(dev_config))
 
     @staticmethod
-    def create(blocknumber: int,
+    def create(dev_config: DevConfig,
+               blocknumber: int,
                prev_headerhash: bytes,
                prev_timestamp: int,
                hashedtransactions: bytes,
-               fee_reward: int):
+               fee_reward: int,
+               seed_height: int,
+               seed_hash: bytes):
         bh = BlockHeader()
         bh._data.block_number = blocknumber
 
@@ -141,62 +143,67 @@ class BlockHeader(object):
         bh._data.merkle_root = hashedtransactions
         bh._data.reward_fee = fee_reward
 
-        bh._data.reward_block = bh.block_reward_calc(blocknumber)
+        bh._data.reward_block = bh.block_reward_calc(blocknumber, dev_config)
 
-        bh.set_nonces(0, 0)
+        bh._seed_hash = seed_hash
+        bh._seed_height = seed_height
+        bh.set_nonces(dev_config, 0, 0)
         return bh
 
-    def update_merkle_root(self, hashedtransactions: bytes):
+    def update_merkle_root(self, dev_config: DevConfig, hashedtransactions: bytes):
         self._data.merkle_root = hashedtransactions
-        self.set_nonces(0, 0)
+        self.set_nonces(dev_config, 0, 0)
 
-    def set_nonces(self, mining_nonce, extra_nonce=0):
+    def set_nonces(self, dev_config: DevConfig, mining_nonce, extra_nonce=0):
         self._data.mining_nonce = mining_nonce
         self._data.extra_nonce = extra_nonce
-        self._data.hash_header = self.generate_headerhash()
+        self._data.hash_header = self.generate_headerhash(dev_config)
 
-    def set_mining_nonce_from_blob(self, blob):
-        mining_nonce_bytes = blob[self.nonce_offset: self.nonce_offset + 4]
+    def set_mining_nonce_from_blob(self, blob, dev_config: DevConfig):
+        nonce_offset = self.nonce_offset(dev_config)
+        extra_nonce_offset = self.extra_nonce_offset(dev_config)
+
+        mining_nonce_bytes = blob[nonce_offset: nonce_offset + 4]
         mining_nonce = int.from_bytes(mining_nonce_bytes, byteorder='big', signed=False)
 
-        extra_nonce_bytes = blob[self.extra_nonce_offset: self.extra_nonce_offset + 8]
+        extra_nonce_bytes = blob[extra_nonce_offset: extra_nonce_offset + 8]
         extra_nonce = int.from_bytes(extra_nonce_bytes, byteorder='big', signed=False)
 
-        self.set_nonces(mining_nonce, extra_nonce)
+        self.set_nonces(dev_config, mining_nonce, extra_nonce)
 
     @staticmethod
-    def block_reward_calc(block_number):
+    def block_reward_calc(block_number, dev_config: DevConfig):
         """
         return block reward for the block_n
         :return:
         """
         if block_number == 0:
-            return config.dev.supplied_coins
-        return int(block_reward(block_number))
+            return dev_config.supplied_coins
+        return int(block_reward(block_number, dev_config))
 
-    def validate(self, fee_reward, coinbase_amount, tx_merkle_root):
+    def validate(self, fee_reward, coinbase_amount, tx_merkle_root, dev_config: DevConfig):
         current_time = ntp.getTime()
-        allowed_timestamp = current_time + config.dev.block_lead_timestamp
+        allowed_timestamp = current_time + dev_config.block_lead_timestamp
         if self.timestamp > allowed_timestamp:
             logger.warning('BLOCK timestamp is more than the allowed block lead timestamp')
             logger.warning('Block timestamp %s ', self.timestamp)
             logger.warning('threshold timestamp %s', allowed_timestamp)
             return False
 
-        if self.timestamp < config.user.genesis_timestamp:
+        if self.timestamp < user_config.genesis_timestamp:
             logger.warning('Timestamp lower than genesis timestamp')
-            logger.warning('Genesis Timestamp %s', config.user.genesis_timestamp)
+            logger.warning('Genesis Timestamp %s', user_config.genesis_timestamp)
             logger.warning('Block Timestamp %s', self.timestamp)
             return False
 
-        generated_hash = self.generate_headerhash()
+        generated_hash = self.generate_headerhash(dev_config)
         if generated_hash != self.headerhash:
             logger.warning('received:   {}'.format(bin2hstr(self.headerhash)))
             logger.warning('calculated: {}'.format(bin2hstr(generated_hash)))
             logger.warning('Headerhash false for block: failed validation')
             return False
 
-        if self.block_reward != self.block_reward_calc(self.block_number):
+        if self.block_reward != self.block_reward_calc(self.block_number, dev_config):
             logger.warning('Block reward incorrect for block: failed validation')
             return False
 
@@ -241,11 +248,11 @@ class BlockHeader(object):
         Parse(json_data, pbdata)
         return BlockHeader(pbdata)
 
-    def verify_blob(self, blob: bytes) -> bool:
-        mining_nonce_offset = config.dev.mining_nonce_offset
+    def verify_blob(self, blob: bytes, dev_config: DevConfig) -> bool:
+        mining_nonce_offset = dev_config.mining_nonce_offset
         blob = blob[:mining_nonce_offset] + blob[mining_nonce_offset + 17:]
 
-        actual_blob = self.mining_blob
+        actual_blob = self.mining_blob(dev_config)
         actual_blob = actual_blob[:mining_nonce_offset] + actual_blob[mining_nonce_offset + 17:]
 
         if blob != actual_blob:

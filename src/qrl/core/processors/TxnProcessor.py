@@ -8,6 +8,8 @@ from qrl.core import ChainManager
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.SlaveTransaction import SlaveTransaction
 
 
 class TxnProcessor:
@@ -30,27 +32,7 @@ class TxnProcessor:
 
         tx, timestamp = tx_timestamp
 
-        if not tx.validate():
-            return False
-
-        addr_from_state = self.chain_manager.get_address_state(address=tx.addr_from)
-        addr_from_pk_state = addr_from_state
-
-        addr_from_pk = Transaction.get_slave(tx)
-        if addr_from_pk:
-            addr_from_pk_state = self.chain_manager.get_address_state(address=addr_from_pk)
-
-        is_valid_state = tx.validate_extended(addr_from_state=addr_from_state,
-                                              addr_from_pk_state=addr_from_pk_state)
-
-        if not is_valid_state:
-            logger.info('>>>TX %s failed is_valid_state', bin2hstr(tx.txhash))
-            return False
-
-        is_valid_pool_state = tx.validate_transaction_pool(self.transaction_pool_obj.transaction_pool)
-
-        if not is_valid_pool_state:
-            logger.info('>>>TX %s failed is_valid_pool_state', bin2hstr(tx.txhash))
+        if not self.chain_manager.validate_all(tx, check_nonce=False):
             return False
 
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))

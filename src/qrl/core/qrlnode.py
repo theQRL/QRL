@@ -8,7 +8,8 @@ from pyqrllib.pyqrllib import QRLHelper, bin2hstr
 from twisted.internet import reactor
 
 from qrl.core import config
-from qrl.core.AddressState import AddressState
+from qrl.core.OptimizedAddressState import OptimizedAddressState
+from qrl.core.MultiSigAddressState import MultiSigAddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.ESyncState import ESyncState
@@ -20,6 +21,10 @@ from qrl.core.p2p.p2pPeerManager import P2PPeerManager
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.txs.CoinBase import CoinBase
+from qrl.core.txs.multisig.MultiSigCreate import MultiSigCreate
+from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
+from qrl.core.txs.multisig.MultiSigVote import MultiSigVote
+from qrl.core.txs.LatticeTransaction import LatticeTransaction
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
@@ -115,9 +120,10 @@ class QRLNode:
 
         prev_block_metadata = self._chain_manager.get_block_metadata(block.prev_headerhash)
         if prev_block_metadata is None:
-            return config.dev.mining_setpoint_blocktime
+            return config.dev.block_timing_in_seconds
 
-        movavg = self._chain_manager.get_measurement(block.timestamp,
+        movavg = self._chain_manager.get_measurement(config.dev,
+                                                     block.timestamp,
                                                      block.prev_headerhash,
                                                      prev_block_metadata)
         return movavg
@@ -216,11 +222,55 @@ class QRLNode:
     ####################################################
 
     @staticmethod
+    def create_multi_sig_txn(signatories: list,
+                             weights: list,
+                             threshold: int,
+                             fee: int,
+                             xmss_pk: bytes,
+                             master_addr: bytes):
+        return MultiSigCreate.create(signatories=signatories,
+                                     weights=weights,
+                                     threshold=threshold,
+                                     fee=fee,
+                                     xmss_pk=xmss_pk,
+                                     master_addr=master_addr)
+
+    @staticmethod
+    def create_multi_sig_spend_txn(multi_sig_address: bytes,
+                                   addrs_to: list,
+                                   amounts: list,
+                                   expiry_block_number: int,
+                                   fee: int,
+                                   xmss_pk: bytes,
+                                   master_addr: bytes):
+        return MultiSigSpend.create(multi_sig_address=multi_sig_address,
+                                    addrs_to=addrs_to,
+                                    amounts=amounts,
+                                    expiry_block_number=expiry_block_number,
+                                    fee=fee,
+                                    xmss_pk=xmss_pk,
+                                    master_addr=master_addr)
+
+    @staticmethod
+    def create_multi_sig_vote_txn(shared_key: bytes,
+                                  unvote: bool,
+                                  fee: int,
+                                  xmss_pk: bytes,
+                                  master_addr: bytes):
+        return MultiSigVote.create(shared_key=shared_key,
+                                   unvote=unvote,
+                                   fee=fee,
+                                   xmss_pk=xmss_pk,
+                                   master_addr=master_addr)
+
+    @staticmethod
     def create_message_txn(message_hash: bytes,
+                           addr_to: bytes,
                            fee: int,
                            xmss_pk: bytes,
                            master_addr: bytes):
         return MessageTransaction.create(message_hash=message_hash,
+                                         addr_to=addr_to,
                                          fee=fee,
                                          xmss_pk=xmss_pk,
                                          master_addr=master_addr)
@@ -260,6 +310,7 @@ class QRLNode:
     def create_send_tx(self,
                        addrs_to: list,
                        amounts: list,
+                       message_data: bytes,
                        fee: int,
                        xmss_pk: bytes,
                        master_addr: bytes) -> TransferTransaction:
@@ -270,6 +321,7 @@ class QRLNode:
 
         return TransferTransaction.create(addrs_to=addrs_to,
                                           amounts=amounts,
+                                          message_data=message_data,
                                           fee=fee,
                                           xmss_pk=xmss_pk,
                                           master_addr=master_addr)
@@ -285,6 +337,22 @@ class QRLNode:
                                        fee=fee,
                                        xmss_pk=xmss_pk,
                                        master_addr=master_addr)
+
+    def create_lattice_tx(self,
+                          pk1: bytes,
+                          pk2: bytes,
+                          pk3: bytes,
+                          pk4: bytes,
+                          fee: int,
+                          xmss_pk: bytes,
+                          master_addr: bytes) -> LatticeTransaction:
+        return LatticeTransaction.create(pk1=pk1,
+                                         pk2=pk2,
+                                         pk3=pk3,
+                                         pk4=pk4,
+                                         fee=fee,
+                                         xmss_pk=xmss_pk,
+                                         master_addr=master_addr)
 
     # FIXME: Rename this appropriately
     def submit_send_tx(self, tx) -> bool:
@@ -304,27 +372,158 @@ class QRLNode:
         return bytes(QRLHelper.getAddress(xmss_pk))
 
     def get_address_is_used(self, address: bytes) -> bool:
-        if not AddressState.address_is_valid(address):
+        if not OptimizedAddressState.address_is_valid(address):
             raise ValueError("Invalid Address")
 
         return self._chain_manager.get_address_is_used(address)
 
-    def get_address_state(self, address: bytes) -> AddressState:
-        if address != config.dev.coinbase_address and not AddressState.address_is_valid(address):
+    def get_address_state(self, address: bytes) -> OptimizedAddressState:
+        if address != config.dev.coinbase_address and not OptimizedAddressState.address_is_valid(address):
             raise ValueError("Invalid Address")
 
-        address_state = self._chain_manager.get_address_state(address)
+        address_state = self._chain_manager.get_optimized_address_state(address)
 
         return address_state
+
+    def get_multi_sig_address_state(self, address: bytes) -> MultiSigAddressState:
+        if not MultiSigAddressState.address_is_valid(address):
+            raise ValueError("Invalid Address")
+
+        multi_sig_address_state = self._chain_manager.get_multi_sig_address_state(address)
+
+        return multi_sig_address_state
+
+    def get_ots(self, address: bytes, page_from: int,  page_count: int, unused_ots_index_from: int) -> (list, Optional[int], bool):
+        bitfields = list()
+        for page in range(page_from, page_from + page_count):
+            bitfield = self._chain_manager.get_bitfield(address, page)
+            bitfields.append(qrl_pb2.OTSBitfieldByPage(ots_bitfield=bitfield, page_number=page))
+
+        unused_ots_index = self._chain_manager.get_unused_ots_index2(address, unused_ots_index_from)
+        unused_ots_index_found = unused_ots_index is not None
+
+        return bitfields, unused_ots_index, unused_ots_index_found
+
+    def is_slave(self, master_address: bytes, slave_pk: bytes):
+        return self._chain_manager.is_slave(master_address, slave_pk)
 
     def get_all_address_state(self) -> list:
         return self._chain_manager.get_all_address_state()
 
-    def get_transactions_by_address(self, address: bytes):
-        address_state = self._chain_manager.get_address_state(address)
+    def _load_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        address_state = self._chain_manager.get_optimized_address_state(address)
+        start_item_index = max(0, address_state.transaction_hash_count() - item_per_page * page_number)
+        end_item_index = min(address_state.transaction_hash_count(), start_item_index + item_per_page)
+
+        transaction_hashes = self._chain_manager.get_transaction_hashes(address,
+                                                                        start_item_index)
+        actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
+        transaction_hashes = transaction_hashes[start_item_index-actual_start_item_index:]
+        while actual_start_item_index < end_item_index:
+            actual_start_item_index += config.dev.data_per_page
+            transaction_hashes.extend(self._chain_manager.get_transaction_hashes(address,
+                                                                                 actual_start_item_index))
+        return transaction_hashes[:item_per_page][-1::-1]
+
+    def _load_multi_sig_spend_txn_hashes(self,
+                                         address: bytes,
+                                         item_per_page: int,
+                                         page_number: int,
+                                         mode: int) -> list:
+        if OptimizedAddressState.address_is_valid(address):
+            address_state = self._chain_manager.get_optimized_address_state(address)
+        elif MultiSigAddressState.address_is_valid(address):
+            address_state = self._chain_manager.get_multi_sig_address_state(address)
+        else:
+            return []
+
+        start_item_index = max(0, address_state.multi_sig_spend_count() - item_per_page * page_number)
+        end_item_index = min(address_state.multi_sig_spend_count(), start_item_index + item_per_page)
+
+        if mode > 0:
+            start_item_index = 0
+            end_item_index = address_state.multi_sig_spend_count()
+
+        transaction_hashes = self._chain_manager.get_multi_sig_spend_txn_hashes(address,
+                                                                                start_item_index)
+        actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
+        multi_sig_spend_txn_hashes = transaction_hashes[start_item_index - actual_start_item_index:]
+        while actual_start_item_index < end_item_index and len(multi_sig_spend_txn_hashes) < item_per_page:
+            actual_start_item_index += config.dev.data_per_page
+            multi_sig_spend_txn_hashes.extend(self._chain_manager.get_multi_sig_spend_txn_hashes(address,
+                                                                                                 actual_start_item_index))
+        return multi_sig_spend_txn_hashes[:item_per_page][-1::-1]
+
+    def _load_token_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        address_state = self._chain_manager.get_optimized_address_state(address)
+        start_item_index = max(0, address_state.tokens_count() - item_per_page * page_number)
+        end_item_index = min(address_state.tokens_count(), start_item_index + item_per_page)
+
+        transaction_hashes = self._chain_manager.get_token_transaction_hashes(address,
+                                                                              start_item_index)
+        actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
+        token_transaction_hashes = transaction_hashes[start_item_index-actual_start_item_index:]
+        while actual_start_item_index < end_item_index:
+            actual_start_item_index += config.dev.data_per_page
+            token_transaction_hashes.extend(self._chain_manager.get_token_transaction_hashes(address,
+                                                                                             actual_start_item_index))
+        return token_transaction_hashes[:item_per_page][-1::-1]
+
+    def _load_slave_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        address_state = self._chain_manager.get_optimized_address_state(address)
+        start_item_index = max(0, address_state.slaves_count() - item_per_page * page_number)
+        end_item_index = min(address_state.slaves_count(), start_item_index + item_per_page)
+
+        if start_item_index < 0:
+            return []
+
+        transaction_hashes = self._chain_manager.get_slave_transaction_hashes(address,
+                                                                              start_item_index)
+        actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
+        token_transaction_hashes = transaction_hashes[start_item_index-actual_start_item_index:]
+        while actual_start_item_index < end_item_index:
+            actual_start_item_index += config.dev.data_per_page
+            token_transaction_hashes.extend(self._chain_manager.get_slave_transaction_hashes(address,
+                                                                                             actual_start_item_index))
+        return token_transaction_hashes[:item_per_page][-1::-1]
+
+    def _load_lattice_pks_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        address_state = self._chain_manager.get_optimized_address_state(address)
+        start_item_index = max(0, address_state.lattice_pk_count() - item_per_page * page_number)
+        end_item_index = min(address_state.lattice_pk_count(), start_item_index + item_per_page)
+
+        transaction_hashes = self._chain_manager.get_lattice_pks_transaction_hashes(address,
+                                                                                    start_item_index)
+        actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
+        lattice_pks_transaction_hashes = transaction_hashes[start_item_index - actual_start_item_index:]
+        while actual_start_item_index < end_item_index:
+            actual_start_item_index += config.dev.data_per_page
+            lattice_pks_transaction_hashes.extend(self._chain_manager.get_lattice_pks_transaction_hashes(address,
+                                                                                                         actual_start_item_index))
+        return lattice_pks_transaction_hashes[:item_per_page][-1::-1]
+
+    def _load_multi_sig_addresses(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        address_state = self._chain_manager.get_optimized_address_state(address)
+        start_item_index = max(0, address_state.multi_sig_address_count() - item_per_page * page_number)
+        end_item_index = min(address_state.multi_sig_address_count(), start_item_index + item_per_page)
+
+        multi_sig_addresses = self._chain_manager.get_multi_sig_addresses(address,
+                                                                          start_item_index)
+        actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
+        multi_sig_addresses = multi_sig_addresses[start_item_index - actual_start_item_index:]
+        while actual_start_item_index < end_item_index:
+            actual_start_item_index += config.dev.data_per_page
+            multi_sig_addresses.extend(self._chain_manager.get_multi_sig_addresses(address,
+                                                                                   actual_start_item_index))
+        return multi_sig_addresses[:item_per_page][-1::-1]
+
+    def get_mini_transactions_by_address(self, address: bytes, item_per_page: int, page_number: int):
+        if item_per_page == 0:
+            return None
         mini_transactions = []
-        balance = 0
-        for tx_hash in address_state.transaction_hashes:
+        transaction_hashes = self._load_transaction_hashes(address, item_per_page, page_number)
+        response = qrl_pb2.GetMiniTransactionsByAddressResp()
+        for tx_hash in transaction_hashes:
             mini_transaction = qrl_pb2.MiniTransaction()
             mini_transaction.transaction_hash = bin2hstr(tx_hash)
             tx, _ = self._chain_manager.get_tx_metadata(tx_hash)
@@ -348,9 +547,154 @@ class QRLNode:
                 mini_transaction.out = True
             mini_transaction.amount = abs(amount)
             mini_transactions.append(mini_transaction)
-            balance += amount
 
-        return mini_transactions, balance
+        response.mini_transactions.extend(mini_transactions)
+        response.balance = self._chain_manager.get_address_balance(address)
+        return response
+
+    def get_transactions_by_address(self, address: bytes, item_per_page: int, page_number: int):
+        if item_per_page == 0:
+            return None
+        transaction_hashes = self._load_transaction_hashes(address,
+                                                           item_per_page,
+                                                           page_number)
+
+        response = qrl_pb2.GetTransactionsByAddressResp()
+        for tx_hash in transaction_hashes:
+            tx, block_number = self._chain_manager.get_tx_metadata(tx_hash)
+            b = self.get_block_from_index(block_number)
+            transaction_detail = qrl_pb2.GetTransactionResp(tx=tx.pbdata,
+                                                            confirmations=self.block_height - block_number + 1,
+                                                            block_number=block_number,
+                                                            block_header_hash=b.headerhash,
+                                                            timestamp=b.timestamp,
+                                                            addr_from=tx.addr_from)
+            response.transactions_detail.extend([transaction_detail])
+
+        return response
+
+    def get_multi_sig_spend_txs_by_address(self,
+                                           address: bytes,
+                                           item_per_page: int,
+                                           page_number: int,
+                                           filter_type: int):
+        # filter_type = 0 |  No Filter (default)
+        # filter_type = 1 |  Executed Only (All executed are considered to be expired)
+        # filter_type = 2 |  Non Executed
+        # filter_type = 3 |  Expired
+        # filter_type = 4 |  Non Expired
+        # filter_type = 5 |  Non Executed & Expired
+        # filter_type = 6 |  Non Executed & Non Expired
+
+        if item_per_page == 0:
+            return None
+
+        transaction_hashes = self._load_multi_sig_spend_txn_hashes(address,
+                                                                   item_per_page,
+                                                                   page_number,
+                                                                   filter_type)
+
+        response = qrl_pb2.GetMultiSigSpendTxsByAddressResp()
+
+        for tx_hash in transaction_hashes:
+            if filter_type in (1, 2, 5, 6):
+                vote_stats = self._chain_manager.get_vote_stats(tx_hash)
+                if filter_type == 1 and not vote_stats.executed:
+                    continue
+                if filter_type in (2, 5, 6) and vote_stats.executed:
+                    continue
+            tx, block_number = self._chain_manager.get_tx_metadata(tx_hash)
+
+            current_block_number = self._chain_manager.height
+
+            is_expired = tx.expiry_block_number <= current_block_number
+            if filter_type in (4, 6):
+                if is_expired:
+                    continue
+
+            if filter_type in (3, 5):
+                if not is_expired:
+                    continue
+
+            b = self.get_block_from_index(block_number)
+            transaction_detail = qrl_pb2.GetTransactionResp(tx=tx.pbdata,
+                                                            confirmations=self.block_height - block_number + 1,
+                                                            block_number=block_number,
+                                                            block_header_hash=b.headerhash,
+                                                            timestamp=b.timestamp,
+                                                            addr_from=tx.addr_from)
+            response.transactions_detail.extend([transaction_detail])
+
+        return response
+
+    def get_vote_stats(self, multi_sig_spend_tx_hash: bytes):
+        vote_stats = self._chain_manager.get_vote_stats(multi_sig_spend_tx_hash)
+        return qrl_pb2.GetVoteStatsResp(vote_stats=vote_stats)
+
+    def get_tokens_by_address(self, address: bytes, item_per_page: int, page_number: int):
+        if item_per_page == 0:
+            return None
+        token_hashes = self._load_token_transaction_hashes(address, item_per_page, page_number)
+
+        response = qrl_pb2.GetTokensByAddressResp()
+        for tx_hash in token_hashes:
+            tx, _ = self._chain_manager.get_tx_metadata(tx_hash)
+            balance = self._chain_manager.get_token(address, tx.txhash)
+            transaction_detail = qrl_pb2.TokenDetail(token_txhash=tx.txhash,
+                                                     name=tx.name,
+                                                     symbol=tx.symbol,
+                                                     balance=balance)
+            response.tokens_detail.extend([transaction_detail])
+
+        return response
+
+    def get_slaves_by_address(self, address: bytes, item_per_page: int, page_number: int):
+        if item_per_page > config.dev.data_per_page or item_per_page == 0:
+            return None
+        slave_hashes = self._load_slave_transaction_hashes(address, item_per_page, page_number)
+
+        response = qrl_pb2.GetSlavesByAddressResp()
+        for tx_hash in slave_hashes:
+            tx, _ = self._chain_manager.get_tx_metadata(tx_hash)
+            for index in range(0, len(tx.slave_pks)):
+                transaction_detail = qrl_pb2.SlaveDetail(slave_address=bytes(QRLHelper.getAddress(tx.slave_pks[index])),
+                                                         access_type=tx.access_types[index])
+                response.slaves_detail.extend([transaction_detail])
+
+        return response
+
+    def get_lattice_pks_by_address(self, address: bytes, item_per_page: int, page_number: int):
+        if item_per_page > config.dev.data_per_page or item_per_page == 0:
+            return None
+        lattice_pk_hashes = self._load_lattice_pks_transaction_hashes(address, item_per_page, page_number)
+
+        response = qrl_pb2.GetLatticePKsByAddressResp()
+        for tx_hash in lattice_pk_hashes:
+            tx, _ = self._chain_manager.get_tx_metadata(tx_hash)
+            transaction_detail = qrl_pb2.LatticePKsDetail(pk1=tx.pk1,
+                                                          pk2=tx.pk2,
+                                                          pk3=tx.pk3,
+                                                          pk4=tx.pk4)
+            response.lattice_pks_detail.extend([transaction_detail])
+
+        return response
+
+    def get_multi_sig_addresses_by_address(self, address: bytes, item_per_page: int, page_number: int):
+        if item_per_page > config.dev.data_per_page or item_per_page == 0:
+            return None
+        multi_sig_addresses = self._load_multi_sig_addresses(address,
+                                                             item_per_page,
+                                                             page_number)
+
+        response = qrl_pb2.GetMultiSigAddressesByAddressResp()
+        for multi_sig_address in multi_sig_addresses:
+            multi_sig_detail = qrl_pb2.MultiSigDetail(
+                address=multi_sig_address,
+                balance=self._chain_manager.get_multi_sig_address_state(multi_sig_address).balance,
+            )
+            response.multi_sig_detail.extend([multi_sig_detail])
+
+        return response
 
     def get_transaction(self, query_hash: bytes):
         """

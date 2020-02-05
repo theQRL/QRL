@@ -15,6 +15,7 @@ six==1.11
 click==6.7
 pyqrllib>=0.99.3,<1.1.0
 pyqryptonight>=0.99.3,<1.1.0
+pyqrandomx>=0.0.0,<1.0.0
 Flask==0.12.3
 json-rpc==1.10.8
 cryptography==2.3

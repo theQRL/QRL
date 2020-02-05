@@ -161,6 +161,7 @@ def getblocktemplate(reserve_size, wallet_address):
         'difficulty': grpc_response.difficulty,
         'height': grpc_response.height,
         'reserved_offset': grpc_response.reserved_offset,
+        'seed_hash': grpc_response.seed_hash,
         'status': 'OK'
     }
 
@@ -205,6 +206,7 @@ def transfer(destinations, fee, mixin, unlock_time):
 
     tx = TransferTransaction.create(addrs_to=addrs_to,
                                     amounts=amounts,
+                                    message_data=None,
                                     fee=fee,
                                     xmss_pk=xmss.pk,
                                     master_addr=payment_slaves[0])

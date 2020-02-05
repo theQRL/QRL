@@ -7,6 +7,7 @@ from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
 from qrl.core.qrlnode import QRLNode
+from qrl.crypto.Qryptonight import Qryptonight
 from qrl.generated import qrlmining_pb2
 from qrl.generated.qrlmining_pb2_grpc import MiningAPIServicer
 from qrl.services.grpcHelper import GrpcExceptionWrapper
@@ -17,6 +18,7 @@ class MiningAPIService(MiningAPIServicer):
 
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
+        self._qn = Qryptonight()
 
     @GrpcExceptionWrapper(qrlmining_pb2.GetBlockMiningCompatibleResp, StatusCode.UNKNOWN)
     def GetBlockMiningCompatible(self,
@@ -64,6 +66,8 @@ class MiningAPIService(MiningAPIServicer):
             response.difficulty = blocktemplate_blob_and_difficulty[1]
             response.height = self.qrlnode.block_height + 1
             response.reserved_offset = config.dev.extra_nonce_offset
+            seed_block_number = self._qn.get_seed_height(response.height)
+            response.seed_hash = bin2hstr(self.qrlnode.get_block_header_hash_by_number(seed_block_number))
 
         return response
 

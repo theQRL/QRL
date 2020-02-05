@@ -3,8 +3,6 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
 import faulthandler
-import logging
-import threading
 from os.path import expanduser
 
 from mock import MagicMock
@@ -15,26 +13,11 @@ from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.misc import ntp, logger, logger_twisted
+from qrl.core.misc import ntp, logger, set_logger
 from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
 from qrl.core import config
 from qrl.core.State import State
-
-LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s|%(thread_id)s| %(levelname)s : %(message)s'
-
-
-class ContextFilter(logging.Filter):
-    def __init__(self, node_state, version):
-        super(ContextFilter, self).__init__()
-        self.node_state = node_state
-        self.version = version
-
-    def filter(self, record):
-        record.node_state = "{:<8}".format(self.node_state.state.name)
-        record.version = self.version
-        record.thread_id = "{:<11}".format(threading.current_thread().name)
-        return True
 
 
 def parse_arguments():
@@ -58,21 +41,6 @@ def parse_arguments():
     parser.add_argument('--mocknet', dest='mocknet', action='store_true', default=False,
                         help="Enables default mocknet settings")
     return parser.parse_args()
-
-
-def set_logger(args, sync_state):
-    log_level = logging.INFO
-    if args.logLevel:
-        log_level = getattr(logging, args.logLevel)
-    logger.initialize_default(force_console_output=not args.quiet).setLevel(log_level)
-    custom_filter = ContextFilter(sync_state, config.dev.version)
-    logger.logger.addFilter(custom_filter)
-    file_handler = logger.log_to_file()
-    file_handler.addFilter(custom_filter)
-    file_handler.setLevel(logging.DEBUG)
-    logger.set_colors(not args.no_colors, LOG_FORMAT_CUSTOM)
-    logger.set_unhandled_exception_handler()
-    logger_twisted.enable_twisted_log_observer()
 
 
 def get_mining_address(mining_address: str):
@@ -113,7 +81,7 @@ def main():
         config.user.mining_enabled = True
         config.user.mining_thread_count = 1
         config.user.mining_pause = 500
-        config.dev.mining_setpoint_blocktime = 1
+        config.dev.block_timing_in_seconds = 1
         config.user.genesis_difficulty = 2
 
         # Mocknet mining address
@@ -143,7 +111,7 @@ def main():
     qrlnode = QRLNode(mining_address=mining_address)
     qrlnode.set_chain_manager(chain_manager)
 
-    set_logger(args, qrlnode.sync_state)
+    set_logger.set_logger(args, qrlnode.sync_state)
 
     #######
     # NOTE: Keep assigned to a variable or might get collected
@@ -161,5 +129,4 @@ def main():
     elif args.mining_address or args.mining_thread_count:
         logger.warning('Mining is not enabled but you sent some "mining related" param via CLI')
 
-    # FIXME: This will be removed once we move away from Twisted
     reactor.run()
