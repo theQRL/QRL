@@ -444,6 +444,7 @@ class TestCLI(TestCase):
             "--master=",
             "--dsts={}".format(qaddr_1),
             "--amounts=1",
+            "--message_data=",
             "--fee=0",
             "--ots_key_index=0"
         ])
@@ -458,6 +459,7 @@ class TestCLI(TestCase):
             "--master=",
             "--dsts={}".format(qaddr_1),
             "--amounts=1",
+            "--message_data=",
             "--fee=0",
             "--ots_key_index=0"
         ])
@@ -471,6 +473,7 @@ class TestCLI(TestCase):
             "--master={}".format(qaddr_2),
             "--dsts={}".format(qaddr_1),
             "--amounts=1",
+            "--message_data=",
             "--fee=0",
             "--ots_key_index=0"
         ])
@@ -486,6 +489,7 @@ class TestCLI(TestCase):
             "--master=",
             "--dsts={}".format(" ".join(dsts)),
             "--amounts={}".format(" ".join(amounts)),
+            "--message_data=",
             "--fee=0",
             "--ots_key_index=0"
         ])
@@ -516,7 +520,7 @@ class TestCLI(TestCase):
         # Simplest use case
         self.runner.invoke(qrl_cli, ["wallet_encrypt"], input='password\npassword\n')
         result = self.runner.invoke(qrl_cli, ["tx_transfer", "--src=0", "--master=", "--dsts={}".format(qaddr_1),
-                                              "--amounts=1", "--fee=0", "--ots_key_index=0"],
+                                              "--amounts=1", "--message_data=", "--fee=0", "--ots_key_index=0"],
                                     input='password\n')
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
@@ -549,6 +553,7 @@ class TestCLI(TestCase):
             "--master=",
             "--dsts={}".format(qaddr_1),
             "--amounts=1",
+            "--message_data=",
             "--fee=0",
             "--ots_key_index=16"], input='16')
         self.assertEqual(result.exit_code, 1)
@@ -563,6 +568,7 @@ class TestCLI(TestCase):
             "--master=",
             "--dsts={}".format(" ".join(dsts)),
             "--amounts={}".format(" ".join(amounts)),
+            "--message_data=",
             "--fee=0",
             "--ots_key_index=0"
         ])
