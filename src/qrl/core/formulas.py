@@ -21,7 +21,9 @@ def get_total_blocks(dev_config: DevConfig):
 def calc_coeff(dev_config: DevConfig) -> Decimal:
     """
     block reward calculation. Decay curve: 200 years
-    >>> calc_coeff()
+
+    >>> from qrl.core import config
+    >>> calc_coeff(config.dev)
     Decimal('1.664087503734056374552843909E-7')
     """
     return dev_config.coin_remaining_at_genesis.ln() / get_total_blocks(dev_config)
@@ -35,13 +37,14 @@ def remaining_emission(block_n, dev_config: DevConfig) -> Decimal:
     :param block_n:
     :return:
 
-    >>> remaining_emission(0)
+    >>> from qrl.core import config
+    >>> remaining_emission(0, config.dev)
     Decimal('40000000000000000')
-    >>> remaining_emission(1)
+    >>> remaining_emission(1, config.dev)
     Decimal('39999993343650538')
-    >>> remaining_emission(2)
+    >>> remaining_emission(2, config.dev)
     Decimal('39999986687302185')
-    >>> remaining_emission(100)
+    >>> remaining_emission(100, config.dev)
     Decimal('39999334370536850')
     """
     coeff = calc_coeff(dev_config)
@@ -53,15 +56,16 @@ def block_reward(block_number: int, dev_config: DevConfig) -> Decimal:
     """
     :return: Block reward in shors for block number
 
-    >>> block_reward(1)
+    >>> from qrl.core import config
+    >>> block_reward(1, config.dev)
     Decimal('6656349462')
-    >>> block_reward(2)
+    >>> block_reward(2, config.dev)
     Decimal('6656348353')
-    >>> block_reward(3)
+    >>> block_reward(3, config.dev)
     Decimal('6656347246')
     >>> N = 40
-    >>> tmp_sum = sum(block_reward(b) for b in range(1, N))
-    >>> tmp_est = remaining_emission(0) - remaining_emission(N-1)
+    >>> tmp_sum = sum(block_reward(b, config.dev) for b in range(1, N))
+    >>> tmp_est = remaining_emission(0, config.dev) - remaining_emission(N-1, config.dev)
     >>> tmp_est - tmp_sum
     Decimal('0')
     """
