@@ -117,7 +117,10 @@ class ChainManager:
 
     def is_slave(self, master_address: bytes, slave_pk: bytes) -> bool:
         with self.lock:
-            return self._state.get_slave_pk_access_type(master_address, slave_pk) == 0
+            slave_meta_data = self._state.get_slave_pk_access_type(master_address, slave_pk)
+            if slave_meta_data:
+                return slave_meta_data.access_type == 0
+            return False
 
     def get_slave_pk_access_type(self, address: bytes, slave_pk: bytes) -> qrl_pb2.SlaveMetadata:
         with self.lock:
@@ -413,11 +416,6 @@ class ChainManager:
                 tx.apply(self._state, state_container)
 
             state_container.paginated_tx_hash.put_paginated_data(None)
-            state_container.tokens.put()
-            self._state.put_tokens_hash(state_container.tokens.data, state_container.addresses_state)
-
-            state_container.slaves.put()
-            self._state.put_slaves_hash(state_container.slaves.data, state_container.addresses_state)
 
             AddressState.put_addresses_state(self._state, state_container.addresses_state)
             state_container.paginated_bitfield.put_addresses_bitfield(None)
@@ -448,16 +446,6 @@ class ChainManager:
                 logger.warning("Migrated Block %s/%s", self.height, height)
             state_migration.state_migration_step_2(self._state)
 
-    def _apply_block(self, block: Block, dev_config: DevConfig, batch) -> bool:
-        # address_set = self._state.prepare_address_list(block)  # Prepare list for current block
-        # addresses_state = self._state.get_state_mainchain(address_set)
-        # if not block.apply_state_changes(addresses_state):
-        #     return False
-        if not self.apply_state_changes(block, dev_config, batch):
-            return False
-        # self._state.put_addresses_state(addresses_state, batch)
-        return True
-
     # TODO: Update re-org limit when dev_config is updated
     def _update_chainstate(self, block: Block, batch):
         self._last_block = block
@@ -480,7 +468,7 @@ class ChainManager:
         batch = self._state.batch
 
         if self._last_block.headerhash == block.prev_headerhash:
-            if not self._apply_block(block, dev_config, batch):
+            if not self._apply_state_changes(block, batch):
                 return False
 
         Block.put_block(self._state, block, batch)
@@ -609,7 +597,7 @@ class ChainManager:
 
                 batch = self._state.batch
 
-                if not self._apply_block(block, config.dev, batch):
+                if not self._apply_state_changes(block, batch):
                     return False
 
                 self._update_chainstate(block, batch)
@@ -848,7 +836,7 @@ class ChainManager:
                                       multi_sig_spend_txs,
                                       votes_stats)
 
-    def apply_state_changes(self, block, dev_config: DevConfig, batch) -> bool:
+    def _apply_state_changes(self, block, batch) -> bool:
         state_container = self.new_state_container(set(),
                                                    block.block_number,
                                                    True,
