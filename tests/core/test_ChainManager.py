@@ -173,7 +173,6 @@ class TestChainManagerReal(TestCase):
             block_1.set_nonces(config.dev, 129, 0)
 
             # Uncomment only to determine the correct mining_nonce of above blocks
-            from qrl.core.PoWValidator import PoWValidator
             # while not PoWValidator().validate_mining_nonce(self.state, block_1.blockheader, False):
             #     block_1.set_nonces(block_1.mining_nonce + 1)
             #     print(block_1.mining_nonce)
@@ -3506,8 +3505,8 @@ class TestChainManagerReal(TestCase):
                              block_1.fee_reward +
                              block_1.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta)
-                             + multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta) +
+                             multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
@@ -3554,8 +3553,8 @@ class TestChainManagerReal(TestCase):
                              block_2.fee_reward +
                              block_2.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta)
-                             + multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta) +
+                             multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
@@ -3615,8 +3614,8 @@ class TestChainManagerReal(TestCase):
                              block_3.fee_reward +
                              block_3.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta)
-                             + multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta) +
+                             multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
@@ -3678,8 +3677,8 @@ class TestChainManagerReal(TestCase):
                              block_4.fee_reward +
                              block_4.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta)
-                             + multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta) +
+                             multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
@@ -3745,16 +3744,16 @@ class TestChainManagerReal(TestCase):
                              block_5.fee_reward +
                              block_5.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta)
-                             + multi_sig_spend1.amounts[0]
-                             + multi_sig_spend2.amounts[1])
+                             100 * int(config.dev.shor_per_quanta) +
+                             multi_sig_spend1.amounts[0] +
+                             multi_sig_spend2.amounts[1])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount
-                             + transfer_transaction2.total_amount
-                             - multi_sig_spend1.total_amount
-                             - multi_sig_spend2.total_amount)
+                             transfer_transaction1.total_amount +
+                             transfer_transaction2.total_amount -
+                             multi_sig_spend1.total_amount -
+                             multi_sig_spend2.total_amount)
 
             # Check Txns in State
             vote_stats = self.chain_manager.get_vote_stats(multi_sig_spend1.txhash)
@@ -3881,8 +3880,8 @@ class TestChainManagerReal(TestCase):
                              block_4.fee_reward +
                              block_4.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta)
-                             + multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta) +
+                             multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
