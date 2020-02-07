@@ -135,7 +135,7 @@ class TestMessageTransaction(TestCase):
         # fee = -1
         with patch('qrl.core.txs.MessageTransaction.MessageTransaction.fee', new_callable=PropertyMock) as m_fee:
             m_fee.return_value = -1
-            result = tx._validate_extended(state_container)
+            result = tx._validate_custom()
             self.assertFalse(result)
 
         # balance = 0, cannot pay the Transaction fee
