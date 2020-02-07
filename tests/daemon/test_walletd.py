@@ -16,6 +16,7 @@ from qrl.core.qrlnode import QRLNode
 from qrl.generated.qrl_pb2_grpc import add_PublicAPIServicer_to_server
 from qrl.services.PublicAPIService import PublicAPIService
 from qrl.core.ChainManager import ChainManager
+from qrl.core.AddressState import AddressState
 from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.txs.MessageTransaction import MessageTransaction
@@ -105,147 +106,167 @@ class TestWalletD(TestCase):
         with set_qrl_dir("wallet_ver1") and set_qrl_dir('no_data'):
             state = State()
             chain_manager = ChainManager(state)
-            qrlnode = QRLNode(mining_address=b'')
-            qrlnode.set_chain_manager(chain_manager)
+            qrl_node = QRLNode(mining_address=b'')
+            qrl_node.set_chain_manager(chain_manager)
 
             public_api_server = grpc.server(ThreadPoolExecutor(max_workers=1), maximum_concurrent_rpcs=1)
 
-            add_PublicAPIServicer_to_server(PublicAPIService(qrlnode), public_api_server)
+            add_PublicAPIServicer_to_server(PublicAPIService(qrl_node), public_api_server)
             public_api_server.add_insecure_port("{0}:{1}".format(config.user.public_api_host,
                                                                  config.user.public_api_port))
             public_api_server.start()
 
             walletd = WalletD()
-            m = MockFunction()
-
-            walletd.get_address_state = m.get
 
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address_with_slaves(height=10)
+            master_address = walletd.qaddress_to_address(qaddress)
             walletd.encrypt_wallet(self.passphrase)
             walletd.unlock_wallet(self.passphrase)
 
-            master_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
-            m.put(qaddress, master_addr_state)
-
             slaves = walletd.get_slave_list(qaddress)
 
-            slaves_state = {
-                (master_addr_state.address, bytes(hstr2bin(slaves[0][0].pk))): (0, b'txhash0'),
-                (master_addr_state.address, bytes(hstr2bin(slaves[0][1].pk))): (0, b'txhash0'),
-                (master_addr_state.address, bytes(hstr2bin(slaves[0][2].pk))): (0, b'txhash0'),
-            }
-            state.put_slaves(slaves_state)
+            state_container = chain_manager.new_state_container({master_address,
+                                                                 walletd.qaddress_to_address(slaves[0][0].qaddress),
+                                                                 walletd.qaddress_to_address(slaves[0][1].qaddress),
+                                                                 walletd.qaddress_to_address(slaves[0][2].qaddress)},
+                                                                5,
+                                                                True,
+                                                                None)
+
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[0][0].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash0')
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[0][1].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash0')
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[0][2].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash0')
+            state_container.slaves.put(None)
 
             self.assertEqual(len(slaves), 1)
             self.assertEqual(len(slaves[0]), 3)
 
-            slave00_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[0][0].qaddress))
-            slave01_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[0][1].qaddress))
-            slave02_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[0][2].qaddress))
-            addresses_bitfield = dict()
-            addresses_state = {
-                slave00_addr_state.address: slave00_addr_state,
-                slave01_addr_state.address: slave01_addr_state,
-                slave02_addr_state.address: slave02_addr_state,
-            }
-
             self.assertEqual(slaves[0][0].index, 0)
             for i in range(0, 1024):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave00_addr_state.address, i)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[0][0].qaddress),
+                                                               i)
             walletd._wallet.set_slave_ots_index(0, 0, 0, 1020)
-            m.put(slaves[0][0].qaddress, slave00_addr_state)
 
             self.assertEqual(slaves[0][1].index, 0)
             for i in range(0, 1024):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave01_addr_state.address, i)
-            m.put(slaves[0][1].qaddress, slave01_addr_state)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[0][1].qaddress),
+                                                               i)
+            walletd._wallet.set_slave_ots_index(0, 0, 1, 1020)
 
             self.assertEqual(slaves[0][2].index, 5)
             for i in range(5, 1000):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave02_addr_state.address, i)
-            state.put_addresses_bitfield(addresses_bitfield)
-            m.put(slaves[0][2].qaddress, slave02_addr_state)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[0][2].qaddress),
+                                                               i)
+            walletd._wallet.set_slave_ots_index(0, 0, 2, 1018)
+
+            state_container.paginated_bitfield.put_addresses_bitfield(None)
+            AddressState.put_addresses_state(state, state_container.addresses_state)
 
             walletd.get_slave(qaddress)
             slaves = walletd.get_slave_list(qaddress)
             self.assertEqual(len(slaves), 2)
             walletd._wallet.set_slave_ots_index(0, 0, 2, 1019)
 
-            slave10_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[1][0].qaddress))
-            slave11_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[1][1].qaddress))
-            slave12_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[1][2].qaddress))
-            slaves_state = {
-                (master_addr_state.address, bytes(hstr2bin(slaves[1][0].pk))): (0, b'txhash1'),
-                (master_addr_state.address, bytes(hstr2bin(slaves[1][1].pk))): (0, b'txhash1'),
-                (master_addr_state.address, bytes(hstr2bin(slaves[1][2].pk))): (0, b'txhash1'),
-            }
-            state.put_slaves(slaves_state)
-            addresses_bitfield = dict()
-            addresses_state = {
-                slave10_addr_state.address: slave10_addr_state,
-                slave11_addr_state.address: slave11_addr_state,
-                slave12_addr_state.address: slave12_addr_state,
-            }
+            state_container = chain_manager.new_state_container({master_address,
+                                                                 walletd.qaddress_to_address(slaves[1][0].qaddress),
+                                                                 walletd.qaddress_to_address(slaves[1][1].qaddress),
+                                                                 walletd.qaddress_to_address(slaves[1][2].qaddress)},
+                                                                5,
+                                                                True,
+                                                                None)
+
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[1][0].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash1')
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[1][1].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash1')
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[1][2].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash1')
+            state_container.slaves.put(None)
 
             self.assertEqual(slaves[1][0].index, 0)
             for i in range(0, 1024):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave10_addr_state.address, i)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[1][0].qaddress),
+                                                               i)
             walletd._wallet.set_slave_ots_index(0, 1, 0, 1020)
-            m.put(slaves[1][0].qaddress, slave10_addr_state)
 
             self.assertEqual(slaves[1][1].index, 0)
             for i in range(0, 1024):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave11_addr_state.address, i)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[1][1].qaddress),
+                                                               i)
             walletd._wallet.set_slave_ots_index(0, 1, 1, 1020)
-            m.put(slaves[1][1].qaddress, slave11_addr_state)
 
             self.assertEqual(slaves[1][2].index, 5)
             for i in range(5, 1000):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave12_addr_state.address, i)
-            state.put_addresses_bitfield(addresses_bitfield)
-            m.put(slaves[1][2].qaddress, slave12_addr_state)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[1][2].qaddress),
+                                                               i)
+            walletd._wallet.set_slave_ots_index(0, 1, 2, 1018)
+            state_container.paginated_bitfield.put_addresses_bitfield(None)
+            AddressState.put_addresses_state(state, state_container.addresses_state)
 
             walletd.get_slave(qaddress)
             slaves = walletd.get_slave_list(qaddress)
             self.assertEqual(len(slaves), 3)
             walletd._wallet.set_slave_ots_index(0, 1, 2, 1019)
 
-            slave20_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[2][0].qaddress))
-            slave21_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[2][1].qaddress))
-            slave22_addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(slaves[2][2].qaddress))
-            slaves_state = {
-                (master_addr_state.address, bytes(hstr2bin(slaves[2][0].pk))): (0, b'txhash2'),
-                (master_addr_state.address, bytes(hstr2bin(slaves[2][1].pk))): (0, b'txhash2'),
-                (master_addr_state.address, bytes(hstr2bin(slaves[2][2].pk))): (0, b'txhash2'),
-            }
-            state.put_slaves(slaves_state)
-            addresses_bitfield = dict()
-            addresses_state = {
-                slave20_addr_state.address: slave20_addr_state,
-                slave21_addr_state.address: slave21_addr_state,
-                slave22_addr_state.address: slave22_addr_state,
-            }
+            state_container = chain_manager.new_state_container({master_address,
+                                                                 walletd.qaddress_to_address(slaves[2][0].qaddress),
+                                                                 walletd.qaddress_to_address(slaves[2][1].qaddress),
+                                                                 walletd.qaddress_to_address(slaves[2][2].qaddress)},
+                                                                5,
+                                                                True,
+                                                                None)
+
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[2][0].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash2')
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[2][1].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash2')
+            state_container.slaves.data[(master_address,
+                                         bytes(hstr2bin(slaves[2][2].pk)))] = qrl_pb2.SlaveMetadata(access_type=0,
+                                                                                                    tx_hash=b'txhash2')
+            state_container.slaves.put(None)
 
             self.assertEqual(slaves[2][0].index, 0)
             for i in range(0, 1024):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave20_addr_state.address, i)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[2][0].qaddress),
+                                                               i)
             walletd._wallet.set_slave_ots_index(0, 2, 0, 1020)
-            m.put(slaves[2][0].qaddress, slave20_addr_state)
 
             self.assertEqual(slaves[2][1].index, 0)
             for i in range(0, 1024):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave21_addr_state.address, i)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[2][1].qaddress),
+                                                               i)
             walletd._wallet.set_slave_ots_index(0, 2, 1, 1020)
-            m.put(slaves[2][1].qaddress, slave20_addr_state)
 
             self.assertEqual(slaves[2][2].index, 5)
             for i in range(5, 1000):
-                state.set_ots_key(addresses_bitfield, addresses_state, slave22_addr_state.address, i)
-            state.put_addresses_bitfield(addresses_bitfield)
-            m.put(slaves[2][2].qaddress, slave22_addr_state)
+                state_container.paginated_bitfield.set_ots_key(state_container.addresses_state,
+                                                               walletd.qaddress_to_address(slaves[2][2].qaddress),
+                                                               i)
+            walletd._wallet.set_slave_ots_index(0, 2, 2, 1018)
+            state_container.paginated_bitfield.put_addresses_bitfield(None)
+            AddressState.put_addresses_state(state, state_container.addresses_state)
 
             walletd.get_slave(qaddress)
             slaves = walletd.get_slave_list(qaddress)
