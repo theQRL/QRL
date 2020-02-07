@@ -264,7 +264,7 @@ class TestBlockApplyStateChanges(TestCase):
 
         self.chain_manager.get_optimized_address_state = get_optimized_address_state.get
         block = Block.create(**self.block_attrs)
-        result = self.chain_manager.apply_state_changes(block, config.dev, None)
+        result = self.chain_manager._apply_state_changes(block, None)
         self.assertTrue(result)
 
     def test_extra_coinbase_tx(self,
@@ -282,7 +282,7 @@ class TestBlockApplyStateChanges(TestCase):
         self.block_attrs["transactions"] = [self.tx1, coinbase_extra, self.tx2]
 
         block = Block.create(**self.block_attrs)
-        result = self.chain_manager.apply_state_changes(block, config.dev, None)
+        result = self.chain_manager._apply_state_changes(block, None)
         self.assertFalse(result)
 
     def test_bad_nonce_or_ots_reused(self,
@@ -300,16 +300,16 @@ class TestBlockApplyStateChanges(TestCase):
         get_optimized_address_state.put(self.slave_addrstate_attrs.address, self.slave_addrstate_attrs)
 
         block = Block.create(**self.block_attrs)
-        result = self.chain_manager.apply_state_changes(block, config.dev, None)
+        result = self.chain_manager._apply_state_changes(block, None)
         self.assertFalse(result)
         self.slave_addrstate_attrs.pbdata.nonce = 5
 
         # Now we pretend that Alice's OTS key has been reused.
-        result = self.chain_manager.apply_state_changes(block, config.dev, None)
+        result = self.chain_manager._apply_state_changes(block, None)
         self.assertFalse(result)
 
         # Now we pretend that Slave's OTS key has been reused.
-        result = self.chain_manager.apply_state_changes(block, config.dev, None)
+        result = self.chain_manager._apply_state_changes(block, None)
         self.assertFalse(result)
 
     def test_tx_validation_fails(self,
@@ -326,18 +326,18 @@ class TestBlockApplyStateChanges(TestCase):
         block = Block.create(**self.block_attrs)
 
         m_TransferTransaction_validate.return_value = False
-        result = self.chain_manager.apply_state_changes(block, config.dev, None)
+        result = self.chain_manager._apply_state_changes(block, None)
         self.assertFalse(result)
         m_TransferTransaction_validate.return_value = True
 
         m_TransferTransaction_validate_extended.return_value = False
-        result = self.chain_manager.apply_state_changes(block, config.dev, None)
+        result = self.chain_manager._apply_state_changes(block, None)
         self.assertFalse(result)
         m_TransferTransaction_validate_extended.return_value = True
 
         with patch('qrl.core.txs.CoinBase.CoinBase._validate_extended') as m_validate_extended:
             m_validate_extended.return_value = False
-            result = self.chain_manager.apply_state_changes(block, config.dev, None)
+            result = self.chain_manager._apply_state_changes(block, None)
             self.assertFalse(result)
 
     def test_put_block_number_mapping(self,

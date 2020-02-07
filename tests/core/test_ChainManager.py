@@ -4365,9 +4365,9 @@ class TestChainManager(TestCase):
         with self.assertRaises(Exception):
             self.chain_manager._get_fork_point(block_2)
 
-    def test_try_branch_add_block_fails_if_apply_block_fails(self):
-        # ChainManager._try_branch_add_block() should fail if ChainManager._apply_block() fails
-        self.chain_manager._apply_block = Mock(return_value=False)
+    def test_try_branch_add_block_fails_if_apply_state_changes_fails(self):
+        # ChainManager._try_branch_add_block() should fail if ChainManager._apply_state_changes() fails
+        self.chain_manager._apply_state_changes = Mock(return_value=False)
 
         block = create_m_block(50, self.genesis_block, alice.address)
 
@@ -4394,7 +4394,7 @@ class TestChainManager(TestCase):
         self.assertFalse(ans)
 
     @patch('qrl.core.Block.Block', autospec=True)
-    def test_add_chain_fails_if_apply_block_fails(self, mock_block_deserialize):
+    def test_add_chain_fails_if_apply_state_changes_fails(self, mock_block_deserialize):
         block_1 = create_m_block(1, self.genesis_block, alice.address)
         block_2 = create_m_block(2, block_1, alice.address)
 
@@ -4410,7 +4410,7 @@ class TestChainManager(TestCase):
         )
 
         # we want to add_chain(block_*_alt chain), but for some reason applying a Block to the State didn't work.
-        self.chain_manager._apply_block = Mock(return_value=False)
+        self.chain_manager._apply_state_changes = Mock(return_value=False)
         ans = self.chain_manager.add_chain([block_1_alt.headerhash, block_2_alt.headerhash], fork_state)
         self.assertFalse(ans)
 
