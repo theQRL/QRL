@@ -291,7 +291,7 @@ class State:
         for address in slave_hashes:
             full_hashes = slave_hashes[address]
             start = 0
-            hashes = full_hashes[start:start+config.dev.data_per_page]
+            hashes = full_hashes[start:start + config.dev.data_per_page]
             address_state = addresses_state[address]
             while hashes:
                 address_state.update_slaves_count(len(hashes))
@@ -339,7 +339,7 @@ class State:
         for address in token_hashes:
             full_hashes = token_hashes[address]
             start = 0
-            hashes = full_hashes[start:start+config.dev.data_per_page]
+            hashes = full_hashes[start:start + config.dev.data_per_page]
             address_state = addresses_state[address]
             while hashes:
                 self.put_token_transaction_hashes(address, address_state.tokens_count, hashes, batch)

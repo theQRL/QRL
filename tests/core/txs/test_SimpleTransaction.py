@@ -529,7 +529,7 @@ class TestSimpleTransaction(TestCase):
         state_container.paginated_bitfield.put_addresses_bitfield(None)
 
         self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address,
-                                                                                      ots_key))
+                                                                                           ots_key))
         self.tx.apply(self.state, state_container)
         self.tx.revert(self.state, state_container)
         self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address,

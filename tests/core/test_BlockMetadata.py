@@ -47,4 +47,3 @@ class TestTokenMetadata(TestCase):
                         b'"cumulativeDifficulty": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="\n}'
 
         self.assertEqual(tmp_json, expected_json)
-

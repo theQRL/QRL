@@ -37,7 +37,7 @@ class DB:
     def open(self, db_dir=None):
         if db_dir:
             self.db_dir = db_dir
-        self.db = plyvel.DB(self.db_dir, max_open_files=1000, lru_cache_size=5*1024)
+        self.db = plyvel.DB(self.db_dir, max_open_files=1000, lru_cache_size=5 * 1024)
 
     def RangeIter(self, key_obj_start, key_obj_end):
         if not isinstance(key_obj_start, bytes):

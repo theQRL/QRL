@@ -291,7 +291,7 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         self.assertTrue(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
         tx.apply(self.state, state_container)
         tx.revert(self.state, state_container)
-        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse( self.alice.address, 0))
+        self.assertFalse(state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(self.alice.address, 0))
 
         self.assertEqual(addresses_state[self.alice.address].balance, 100)
         # Unfortunately importing mock.call results in some sort of ValueError so I can't check the arguments.

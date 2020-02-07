@@ -57,14 +57,14 @@ class TestPaginatedData(TestCase):
             alice_address_state = OptimizedAddressState.get_default(address=self.alice.address)
 
             for i in range(0, 10):
-                p.insert(alice_address_state, b'p_tx_hash_'+i.to_bytes(8, byteorder='big', signed=False))
+                p.insert(alice_address_state, b'p_tx_hash_' + i.to_bytes(8, byteorder='big', signed=False))
                 self.assertEqual(alice_address_state.get_counter_by_name(p.name), i + 1)
 
             p.put_paginated_data(None)
             self.assertEqual(alice_address_state.get_counter_by_name(p.name), 10)
 
             for i in range(10, 25):
-                p.insert(alice_address_state, b'p_tx_hash_'+i.to_bytes(8, byteorder='big', signed=False))
+                p.insert(alice_address_state, b'p_tx_hash_' + i.to_bytes(8, byteorder='big', signed=False))
                 self.assertEqual(alice_address_state.get_counter_by_name(p.name), i + 1)
 
             p.put_paginated_data(None)
@@ -81,15 +81,15 @@ class TestPaginatedData(TestCase):
 
             self.assertEqual(len(pages_data[0]), 10)
             for i in range(0, 10):
-                self.assertEqual(pages_data[0][i], b'p_tx_hash_'+i.to_bytes(8, byteorder='big', signed=False))
+                self.assertEqual(pages_data[0][i], b'p_tx_hash_' + i.to_bytes(8, byteorder='big', signed=False))
 
             self.assertEqual(len(pages_data[1]), 10)
             for i in range(10, 20):
-                self.assertEqual(pages_data[1][i - 10], b'p_tx_hash_'+i.to_bytes(8, byteorder='big', signed=False))
+                self.assertEqual(pages_data[1][i - 10], b'p_tx_hash_' + i.to_bytes(8, byteorder='big', signed=False))
 
             self.assertEqual(len(pages_data[2]), 5)
             for i in range(20, 25):
-                self.assertEqual(pages_data[2][i - 20], b'p_tx_hash_'+i.to_bytes(8, byteorder='big', signed=False))
+                self.assertEqual(pages_data[2][i - 20], b'p_tx_hash_' + i.to_bytes(8, byteorder='big', signed=False))
 
     @patch('qrl.core.config.DevConfig.data_per_page', new_callable=PropertyMock, return_value=10)
     def test_revert_paginated_data(self, mock_dev_config):
@@ -99,7 +99,7 @@ class TestPaginatedData(TestCase):
             alice_address_state = OptimizedAddressState.get_default(address=self.alice.address)
 
             for i in range(0, 25):
-                p.insert(alice_address_state, b'p_tx_hash_'+i.to_bytes(8, byteorder='big', signed=False))
+                p.insert(alice_address_state, b'p_tx_hash_' + i.to_bytes(8, byteorder='big', signed=False))
             p.put_paginated_data(None)
 
             full_hash = []
@@ -135,7 +135,7 @@ class TestPaginatedData(TestCase):
             alice_address_state = OptimizedAddressState.get_default(address=self.alice.address)
 
             for i in range(0, 25):
-                p.insert(alice_address_state, b'p_tx_hash_'+i.to_bytes(8, byteorder='big', signed=False))
+                p.insert(alice_address_state, b'p_tx_hash_' + i.to_bytes(8, byteorder='big', signed=False))
 
             p.put_paginated_data(None)
 

@@ -17,7 +17,7 @@ class StateMigration:
         :return:
         """
         if state.is_older_state_version():
-            db_dir_v1 = os.path.join(config.user.data_dir, config.dev.db_name+"2")
+            db_dir_v1 = os.path.join(config.user.data_dir, config.dev.db_name + '2')
             self._tmp_state = State(state._db)
             state._db = db.DB(db_dir_v1)
             return True

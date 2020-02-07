@@ -857,7 +857,6 @@ class ChainManager:
             return False
 
         # Processing Rest of the Transaction
-        len_transactions = len(block.transactions)
         for proto_tx in block.transactions:
             tx = Transaction.from_pbdata(proto_tx)
             if not self.update_state_container(tx, state_container):

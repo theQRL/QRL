@@ -267,7 +267,8 @@ class TestBlockApplyStateChanges(TestCase):
         result = self.chain_manager.apply_state_changes(block, config.dev, None)
         self.assertTrue(result)
 
-    def test_extra_coinbase_tx(self, m_TransferTransaction_validate,
+    def test_extra_coinbase_tx(self,
+                               m_TransferTransaction_validate,
                                m_TransferTransaction_validate_extended,
                                m_TransferTransaction_apply_state_changes,
                                m_CoinBase_apply_state_changes):
@@ -284,7 +285,8 @@ class TestBlockApplyStateChanges(TestCase):
         result = self.chain_manager.apply_state_changes(block, config.dev, None)
         self.assertFalse(result)
 
-    def test_bad_nonce_or_ots_reused(self, m_TransferTransaction_validate,
+    def test_bad_nonce_or_ots_reused(self,
+                                     m_TransferTransaction_validate,
                                      m_TransferTransaction_validate_extended,
                                      m_TransferTransaction_apply_state_changes,
                                      m_CoinBase_apply_state_changes):
@@ -310,7 +312,8 @@ class TestBlockApplyStateChanges(TestCase):
         result = self.chain_manager.apply_state_changes(block, config.dev, None)
         self.assertFalse(result)
 
-    def test_tx_validation_fails(self, m_TransferTransaction_validate,
+    def test_tx_validation_fails(self,
+                                 m_TransferTransaction_validate,
                                  m_TransferTransaction_validate_extended,
                                  m_TransferTransaction_apply_state_changes,
                                  m_CoinBase_apply_state_changes):
@@ -337,7 +340,8 @@ class TestBlockApplyStateChanges(TestCase):
             result = self.chain_manager.apply_state_changes(block, config.dev, None)
             self.assertFalse(result)
 
-    def test_put_block_number_mapping(self, m_TransferTransaction_validate,
+    def test_put_block_number_mapping(self,
+                                      m_TransferTransaction_validate,
                                       m_TransferTransaction_validate_extended,
                                       m_TransferTransaction_apply_state_changes,
                                       m_CoinBase_apply_state_changes):
@@ -348,7 +352,8 @@ class TestBlockApplyStateChanges(TestCase):
                          read_bm.SerializeToString())
         self.assertIsNone(Block.get_block_by_number(self.state, 4))
 
-    def test_get_block_number_mapping(self, m_TransferTransaction_validate,
+    def test_get_block_number_mapping(self,
+                                      m_TransferTransaction_validate,
                                       m_TransferTransaction_validate_extended,
                                       m_TransferTransaction_apply_state_changes,
                                       m_CoinBase_apply_state_changes):
@@ -359,15 +364,17 @@ class TestBlockApplyStateChanges(TestCase):
         self.assertEqual(bm.SerializeToString(),
                          read_bm.SerializeToString())
 
-    def test_get_block_by_number(self, m_TransferTransaction_validate,
-                                m_TransferTransaction_validate_extended,
-                                m_TransferTransaction_apply_state_changes,
-                                m_CoinBase_apply_state_changes):
+    def test_get_block_by_number(self,
+                                 m_TransferTransaction_validate,
+                                 m_TransferTransaction_validate_extended,
+                                 m_TransferTransaction_apply_state_changes,
+                                 m_CoinBase_apply_state_changes):
         bm = qrl_pb2.BlockNumberMapping()
         Block.put_block_number_mapping(self.state, 0, bm, None)
         self.assertIsNone(Block.get_block_by_number(self.state, 4))
 
-    def test_last_block(self, m_TransferTransaction_validate,
+    def test_last_block(self,
+                        m_TransferTransaction_validate,
                         m_TransferTransaction_validate_extended,
                         m_TransferTransaction_apply_state_changes,
                         m_CoinBase_apply_state_changes):

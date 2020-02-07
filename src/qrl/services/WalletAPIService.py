@@ -383,9 +383,7 @@ class WalletAPIService(WalletAPIServicer):
     @GrpcExceptionWrapper(qrlwallet_pb2.OTSResp)
     def GetOTS(self, request: qrlwallet_pb2.OTSReq, context) -> qrlwallet_pb2.OTSResp:
         try:
-            ots_bitfield_by_page, \
-            next_unused_ots_index, \
-            unused_ots_index_found = self._walletd.get_ots(request.address)
+            ots_bitfield_by_page, next_unused_ots_index, unused_ots_index_found = self._walletd.get_ots(request.address)
             resp = qrlwallet_pb2.OTSResp(ots_bitfield_by_page=ots_bitfield_by_page,
                                          next_unused_ots_index=next_unused_ots_index,
                                          unused_ots_index_found=unused_ots_index_found)

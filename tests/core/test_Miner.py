@@ -273,7 +273,6 @@ class TestMinerWithRealTransactionPool(TestCase):
         self.parent_difficulty = StringToUInt256('0')  # tuple (0,0,0,0,0...) length 32
 
         self.m_pre_block_logic = Mock(spec=POW.pre_block_logic, name='hello')
-        m_add_unprocessed_txn_fn = create_autospec(P2PFactory.add_unprocessed_txn)
         mining_thread_count = 1
 
         self.miner = Miner(self.chain_manager,

@@ -62,7 +62,6 @@ class TestMultiSigVote(TestCase):
                                  unvote=False,
                                  fee=0,
                                  xmss_pk=self.alice.pk)
-        tx.sign(self.alice)
         txjson = tx.to_json()
         self.assertEqual(json.loads(test_json_MultiSigVote), json.loads(txjson))
 

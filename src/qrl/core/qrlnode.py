@@ -393,7 +393,11 @@ class QRLNode:
 
         return multi_sig_address_state
 
-    def get_ots(self, address: bytes, page_from: int,  page_count: int, unused_ots_index_from: int) -> (list, Optional[int], bool):
+    def get_ots(self,
+                address: bytes,
+                page_from: int,
+                page_count: int,
+                unused_ots_index_from: int) -> (list, Optional[int], bool):
         bitfields = list()
         for page in range(page_from, page_from + page_count):
             bitfield = self._chain_manager.get_bitfield(address, page)
@@ -418,7 +422,7 @@ class QRLNode:
         transaction_hashes = self._chain_manager.get_transaction_hashes(address,
                                                                         start_item_index)
         actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
-        transaction_hashes = transaction_hashes[start_item_index-actual_start_item_index:]
+        transaction_hashes = transaction_hashes[start_item_index - actual_start_item_index:]
         while actual_start_item_index < end_item_index:
             actual_start_item_index += config.dev.data_per_page
             transaction_hashes.extend(self._chain_manager.get_transaction_hashes(address,
@@ -462,7 +466,7 @@ class QRLNode:
         transaction_hashes = self._chain_manager.get_token_transaction_hashes(address,
                                                                               start_item_index)
         actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
-        token_transaction_hashes = transaction_hashes[start_item_index-actual_start_item_index:]
+        token_transaction_hashes = transaction_hashes[start_item_index - actual_start_item_index:]
         while actual_start_item_index < end_item_index:
             actual_start_item_index += config.dev.data_per_page
             token_transaction_hashes.extend(self._chain_manager.get_token_transaction_hashes(address,
@@ -480,7 +484,7 @@ class QRLNode:
         transaction_hashes = self._chain_manager.get_slave_transaction_hashes(address,
                                                                               start_item_index)
         actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
-        token_transaction_hashes = transaction_hashes[start_item_index-actual_start_item_index:]
+        token_transaction_hashes = transaction_hashes[start_item_index - actual_start_item_index:]
         while actual_start_item_index < end_item_index:
             actual_start_item_index += config.dev.data_per_page
             token_transaction_hashes.extend(self._chain_manager.get_slave_transaction_hashes(address,

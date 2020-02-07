@@ -19,4 +19,3 @@ class QRandomX(object, metaclass=Singleton):
     def hash(self, block_height, seed_height, seed_hash, blob):
         with self.lock:
             return bytes(self._qrx.hash(block_height, seed_height, seed_hash, blob, 0))
-

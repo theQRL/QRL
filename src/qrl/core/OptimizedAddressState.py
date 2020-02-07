@@ -253,4 +253,3 @@ class OptimizedAddressState(object):
             return address_state
         except KeyError:
             return OptimizedAddressState.get_default(address)
-
