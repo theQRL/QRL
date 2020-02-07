@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
+from qrl.core.misc import logger
 from qrl.core.State import State
 from qrl.core.LastTransactions import LastTransactions
 from qrl.core.txs.Transaction import Transaction
@@ -46,7 +47,7 @@ class TransactionMetadata:
         return TransactionMetadata(pbdata)
 
     @staticmethod
-    def put_tx_metadata(state: State, txn: Transaction, block_number: int, timestamp: int, batch):
+    def put_tx_metadata(state: State, txn: Transaction, block_number: int, timestamp: int, batch) -> bool:
         try:
             tm = TransactionMetadata.create(tx=txn,
                                             block_number=block_number,
@@ -55,7 +56,10 @@ class TransactionMetadata:
                               tm.serialize(),
                               batch)
         except Exception:
-            pass
+            logger.warning("Error writing tx metadata")
+            return False
+
+        return True
 
     @staticmethod
     def get_tx_metadata(state: State, txhash: bytes):
@@ -79,25 +83,31 @@ class TransactionMetadata:
         LastTransactions._remove_last_tx(state, block, batch)
 
     @staticmethod
-    def update_tx_metadata(state: State, block, batch):
+    def update_tx_metadata(state: State, block, batch) -> bool:
         fee_reward = 0
-        # TODO (cyyber): Move To State Cache, instead of writing directly
+
         for protobuf_txn in block.transactions:
             txn = Transaction.from_pbdata(protobuf_txn)
             fee_reward += txn.fee
-            TransactionMetadata.put_tx_metadata(state,
-                                                txn,
-                                                block.block_number,
-                                                block.timestamp,
-                                                batch)
+            if not TransactionMetadata.put_tx_metadata(state,
+                                                       txn,
+                                                       block.block_number,
+                                                       block.timestamp,
+                                                       batch):
+                return False
 
         txn = Transaction.from_pbdata(block.transactions[0])  # Coinbase Transaction
         state._update_total_coin_supply(txn.amount - fee_reward, batch)
         LastTransactions._update_last_tx(state, block, batch)
 
+        return True
+
     @staticmethod
-    def remove_tx_metadata(state: State, txn, batch):
+    def remove_tx_metadata(state: State, txn, batch) -> bool:
         try:
             state._db.delete(txn.txhash, batch)
         except KeyError:
-            pass
+            logger.warning("Error removing tx metadata")
+            return False
+
+        return True
