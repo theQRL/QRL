@@ -83,7 +83,8 @@ class TransferTokenTransaction(Transaction):
                 return False
 
         if self.fee < 0:
-            raise ValueError('TransferTokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            logger.info('TransferTokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            return False
 
         if len(self.addrs_to) != len(self.amounts):
             logger.warning('[TransferTokenTransaction] Mismatch number of addresses to & amounts')

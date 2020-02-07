@@ -62,7 +62,8 @@ class MultiSigVote(Transaction):
 
     def _validate_custom(self):
         if self.fee < 0:
-            raise ValueError('MultiSigVote [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            logger.warning('MultiSigVote [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            return False
 
         return True
 

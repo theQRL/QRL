@@ -93,7 +93,8 @@ class MultiSigSpend(Transaction):
                 return False
 
         if self.fee < 0:
-            raise ValueError('MultiSigSpend [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            logger.warning('MultiSigSpend [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            return False
 
         if len(self.addrs_to) == 0:
             logger.warning('[MultiSigSpend] No addrs_to found')

@@ -82,7 +82,8 @@ class MultiSigCreate(Transaction):
                 return False
 
         if self.fee < 0:
-            raise ValueError('MultiSigCreate [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            logger.warning('MultiSigCreate [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            return False
 
         if self.total_weight < self.threshold:
             logger.warning('[MultiSigCreate] Validation failed for %s because: Insufficient weight',

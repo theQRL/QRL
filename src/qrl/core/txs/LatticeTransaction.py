@@ -56,6 +56,10 @@ class LatticeTransaction(Transaction):
         return transaction
 
     def _validate_custom(self) -> bool:
+        if self.fee < 0:
+            logger.info('State validation failed for %s because: Negative send', bin2hstr(self.txhash))
+            return False
+
         return True
 
     def _validate_extended(self, state_container: StateContainer) -> bool:
@@ -85,10 +89,6 @@ class LatticeTransaction(Transaction):
             return False
 
         tx_balance = state_container.addresses_state[self.addr_from].balance
-
-        if self.fee < 0:
-            logger.info('State validation failed for %s because: Negative send', bin2hstr(self.txhash))
-            return False
 
         if tx_balance < self.fee:
             logger.info('State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))

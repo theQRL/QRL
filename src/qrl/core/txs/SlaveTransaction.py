@@ -68,7 +68,9 @@ class SlaveTransaction(Transaction):
                 logger.warning('Invalid Access type %s', access_type)
                 return False
 
-        # TODO: Add Maximum PK size limit
+        if self.fee < 0:
+            logger.info('Slave: State validation failed for %s because: Negative send', bin2hstr(self.txhash))
+            return False
 
         return True
 
@@ -82,10 +84,6 @@ class SlaveTransaction(Transaction):
             return False
 
         tx_balance = state_container.addresses_state[self.addr_from].balance
-
-        if self.fee < 0:
-            logger.info('Slave: State validation failed for %s because: Negative send', bin2hstr(self.txhash))
-            return False
 
         if tx_balance < self.fee:
             logger.info('Slave: State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))

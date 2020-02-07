@@ -55,6 +55,10 @@ class MessageTransaction(Transaction):
             logger.warning('[MessageTransaction] Invalid address addr_to: %s', bin2hstr(self.addr_to))
             return False
 
+        if self.fee < 0:
+            logger.info('State validation failed for %s because: Negative send', bin2hstr(self.txhash))
+            return False
+
         return True
 
     def _validate_extended(self, state_container: StateContainer) -> bool:
@@ -69,10 +73,6 @@ class MessageTransaction(Transaction):
             return False
 
         tx_balance = state_container.addresses_state[self.addr_from].balance
-
-        if self.fee < 0:
-            logger.info('State validation failed for %s because: Negative send', bin2hstr(self.txhash))
-            return False
 
         if tx_balance < self.fee:
             logger.info('State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
