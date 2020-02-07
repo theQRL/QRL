@@ -23,7 +23,6 @@ from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.daemon.helper.DaemonHelper import WalletDecryptionError
 from qrl.core.misc import logger
 from tests.misc.helper import set_qrl_dir, get_alice_xmss, get_bob_xmss
-from tests.misc.MockHelper.mock_function import MockFunction
 
 
 logger.initialize_default()
