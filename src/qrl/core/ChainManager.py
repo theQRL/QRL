@@ -437,7 +437,6 @@ class ChainManager:
             logger.warning("Start blockheight %s", start_blocknumber)
             for block_number in range(start_blocknumber, height):
                 block = state_migration.block_from_state_version_0(block_number)
-                dev_config = self.get_config_by_block_number(block_number)
                 self.add_block(block, check_stale=False)
                 if block_number % 1000 == 0:
                     logger.warning("Migrated Block %s/%s", block_number, height)
