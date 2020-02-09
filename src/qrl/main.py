@@ -102,10 +102,10 @@ def main():
             logger.warning('%s', args.mining_address)
             return False
 
-    if args.measurement > -1:
-        persistent_state.get_measurement = MagicMock(return_value=args.measurement)
-
     chain_manager = ChainManager(state=persistent_state)
+    if args.measurement > -1:
+        chain_manager.get_measurement = MagicMock(return_value=args.measurement)
+
     chain_manager.load(Block.deserialize(GenesisBlock().serialize()))
 
     qrlnode = QRLNode(mining_address=mining_address)
