@@ -478,7 +478,7 @@ class DevConfig(object):
                current_block_number: int,
                ignore_check=False,
                ignore_singleton=False):
-        chain = qrl_pb2.DevConfig.Chain(reorg_limit=10,
+        chain = qrl_pb2.DevConfig.Chain(reorg_limit=300,
                                         max_coin_supply=105000000,
                                         complete_emission_time_span_in_years=200)
         block_size_controller = qrl_pb2.DevConfig.Block.BlockSizeController(number_of_blocks_analyze=10,
