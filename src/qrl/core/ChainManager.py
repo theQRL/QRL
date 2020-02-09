@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import sys
 import threading
 from typing import Optional, Tuple
 from math import ceil
@@ -433,11 +434,13 @@ class ChainManager:
         if is_state_migration_needed:
             logger.warning("Please Wait... Starting State Migration From Version 0 to %s", self._state.state_version)
             height = state_migration.height_from_state_version_0()
-            start_blocknumber = self._state.get_mainchain_height() + 1
-            logger.warning("Start blockheight %s", start_blocknumber)
-            for block_number in range(start_blocknumber, height):
+            start_block_number = self._state.get_mainchain_height() + 1
+            logger.warning("Start blockheight %s", start_block_number)
+            for block_number in range(start_block_number, height + 1):
                 block = state_migration.block_from_state_version_0(block_number)
-                self.add_block(block, check_stale=False)
+                if not self.add_block(block, check_stale=False):
+                    print("System Exitting, due to migration failure")
+                    sys.exit(1)
                 if block_number % 1000 == 0:
                     logger.warning("Migrated Block %s/%s", block_number, height)
 
@@ -445,7 +448,6 @@ class ChainManager:
                 logger.warning("Migrated Block %s/%s", self.height, height)
             state_migration.state_migration_step_2(self._state)
 
-    # TODO: Update re-org limit when dev_config is updated
     def _update_chainstate(self, block: Block, batch):
         self._last_block = block
         self._update_block_number_mapping(block, batch)
@@ -664,10 +666,12 @@ class ChainManager:
                 return False
 
             if self.get_block_is_duplicate(block):
+                logger.warning("Duplicate Block found #%s", block.block_number)
                 return False
 
             block_flag = self._add_block(block, check_stale=check_stale)
             if not block_flag:
+                logger.warning("[ChainManager] Failed to Add Block #%s", block.block_number)
                 return False
 
             logger.info('Added Block #%s %s', block.block_number, bin2hstr(block.headerhash))
