@@ -17,7 +17,6 @@ from qrl.generated.qrl_pb2_grpc import add_PublicAPIServicer_to_server
 from qrl.services.PublicAPIService import PublicAPIService
 from qrl.core.ChainManager import ChainManager
 from qrl.core.AddressState import AddressState
-from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.daemon.helper.DaemonHelper import WalletDecryptionError
@@ -474,7 +473,7 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
                                                 unused_ots_index_found=True))
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -503,7 +502,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -538,7 +537,7 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -568,7 +567,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
 
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
@@ -596,7 +595,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
 
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
@@ -633,7 +632,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
 
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
@@ -665,7 +664,7 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.GetOTS = Mock(
@@ -691,7 +690,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
 
             # addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
             walletd._public_stub.GetAddressState = Mock(
@@ -713,7 +712,7 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
                                                 unused_ots_index_found=True))
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -747,7 +746,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
 
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
@@ -777,7 +776,7 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
                                                 unused_ots_index_found=True))
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -804,7 +803,7 @@ class TestWalletD(TestCase):
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.IsSlave = Mock(
                 return_value=qrl_pb2.IsSlaveResp(result=True))
             walletd._public_stub.GetOTS = Mock(
@@ -840,7 +839,7 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
                                                 unused_ots_index_found=True))
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -889,7 +888,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
 
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
@@ -935,7 +934,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -984,7 +983,7 @@ class TestWalletD(TestCase):
 
             walletd.add_new_address(height=8)
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -1028,7 +1027,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
 
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
@@ -1069,7 +1068,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
 
@@ -1109,7 +1108,7 @@ class TestWalletD(TestCase):
                                                 unused_ots_index_found=True))
 
             qaddress = walletd.add_new_address_with_slaves(height=8)
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
 
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
