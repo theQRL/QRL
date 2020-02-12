@@ -136,8 +136,7 @@ class Miner:
         block_size_limit = self._chain_manager.get_block_size_limit(last_block, dev_config)
 
         transactions = []
-        state_container = self._chain_manager.new_state_container([],
-                                                                  set(),
+        state_container = self._chain_manager.new_state_container(set(),
                                                                   last_block.block_number,
                                                                   True,
                                                                   None)
