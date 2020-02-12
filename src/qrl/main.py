@@ -81,7 +81,7 @@ def main():
         config.user.mining_enabled = True
         config.user.mining_thread_count = 1
         config.user.mining_pause = 500
-        config.dev.block_timing_in_seconds = 1
+        config.dev.pbdata.block.block_timing_in_seconds = 1
         config.user.genesis_difficulty = 2
 
         # Mocknet mining address
