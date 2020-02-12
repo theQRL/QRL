@@ -26,6 +26,8 @@ service PublicAPI
 
     rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
 
+    rpc GetOptimizedAddressState (GetAddressStateReq) returns (GetOptimizedAddressStateResp);
+
     rpc GetMultiSigAddressState (GetMultiSigAddressStateReq) returns (GetMultiSigAddressStateResp);
 
     rpc IsSlave (IsSlaveReq) returns (IsSlaveResp);
@@ -218,6 +220,10 @@ message GetAddressStateReq {
 }
 
 message GetAddressStateResp {
+    AddressState state = 1;
+}
+
+message GetOptimizedAddressStateResp {
     OptimizedAddressState state = 1;
 }
 

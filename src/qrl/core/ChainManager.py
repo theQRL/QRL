@@ -100,8 +100,47 @@ class ChainManager:
             return self._state.get_address_is_used(address)
 
     def get_address_state(self, address: bytes) -> AddressState:
-        with self.lock:
-            return AddressState.get_address_state(self._state, address)
+        """
+        Transform Optimized Address State into Older Address State format
+        """
+        optimized_address_state = self.get_optimized_address_state(address)
+        ots_bitfield = [b'\x00'] * int(ceil((2 ** optimized_address_state.height) / 8))
+        tokens = dict()
+        slave_pks_access_type = dict()
+
+        max_bitfield_page = (2 ** optimized_address_state.height) // config.dev.ots_tracking_per_page
+
+        offset = 0
+        for page in range(1, max_bitfield_page + 1):
+            page_data = self.get_bitfield(address, page)
+            for data in page_data:
+                ots_bitfield[offset] = data
+                offset += 1
+            offset = (page - 1) * config.dev.ots_tracking_per_page
+
+        for page in range(1, optimized_address_state.tokens_count() + 1):
+            page_data = self.get_token_transaction_hashes(address, page)
+            for token_txn_hash in page_data:
+                token_balance = self.get_token(address, token_txn_hash)
+                tokens[token_txn_hash] = token_balance.balance
+
+        for page in range(1, optimized_address_state.slaves_count() + 1):
+            page_data = self.get_slave_transaction_hashes(address, page)
+            for slave_txn_hash in page_data:
+                tx, _ = self.get_tx_metadata(slave_txn_hash)
+                for slave_pk in tx.slave_pks:
+                    slave_meta_data = self.get_slave_pk_access_type(address, slave_pk)
+                    slave_pks_access_type[slave_pk] = slave_meta_data.access_type
+
+        addr_state = AddressState.create(address=optimized_address_state.address,
+                                         nonce=optimized_address_state.nonce,
+                                         balance=optimized_address_state.balance,
+                                         ots_bitfield=ots_bitfield,
+                                         tokens=tokens,
+                                         slave_pks_access_type=slave_pks_access_type,
+                                         ots_counter=0)
+
+        return addr_state
 
     def get_optimized_address_state(self, address: bytes) -> OptimizedAddressState:
         with self.lock:
@@ -161,7 +200,7 @@ class ChainManager:
         with self.lock:
             return VoteStats.get_state(state=self._state, shared_key=multi_sig_spend_txn_hash)
 
-    def get_token(self, address: bytes, token_txhash: bytes) -> list:
+    def get_token(self, address: bytes, token_txhash: bytes) -> qrl_pb2.TokenBalance:
         with self.lock:
             return self._state.get_token(address, token_txhash)
 

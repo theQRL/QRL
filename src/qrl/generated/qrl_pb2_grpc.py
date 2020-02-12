@@ -47,6 +47,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetAddressStateReq.SerializeToString,
         response_deserializer=qrl__pb2.GetAddressStateResp.FromString,
         )
+    self.GetOptimizedAddressState = channel.unary_unary(
+        '/qrl.PublicAPI/GetOptimizedAddressState',
+        request_serializer=qrl__pb2.GetAddressStateReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetOptimizedAddressStateResp.FromString,
+        )
     self.GetMultiSigAddressState = channel.unary_unary(
         '/qrl.PublicAPI/GetMultiSigAddressState',
         request_serializer=qrl__pb2.GetMultiSigAddressStateReq.SerializeToString,
@@ -246,6 +251,12 @@ class PublicAPIServicer(object):
     raise NotImplementedError('Method not implemented!')
 
   def GetAddressState(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
+  def GetOptimizedAddressState(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -470,6 +481,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetAddressState,
           request_deserializer=qrl__pb2.GetAddressStateReq.FromString,
           response_serializer=qrl__pb2.GetAddressStateResp.SerializeToString,
+      ),
+      'GetOptimizedAddressState': grpc.unary_unary_rpc_method_handler(
+          servicer.GetOptimizedAddressState,
+          request_deserializer=qrl__pb2.GetAddressStateReq.FromString,
+          response_serializer=qrl__pb2.GetOptimizedAddressStateResp.SerializeToString,
       ),
       'GetMultiSigAddressState': grpc.unary_unary_rpc_method_handler(
           servicer.GetMultiSigAddressState,

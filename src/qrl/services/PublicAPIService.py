@@ -109,6 +109,13 @@ class PublicAPIService(PublicAPIServicer):
         address_state = self.qrlnode.get_address_state(request.address)
         return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
 
+    @GrpcExceptionWrapper(qrl_pb2.GetOptimizedAddressStateResp)
+    def GetOptimizedAddressState(self,
+                                 request: qrl_pb2.GetAddressStateReq,
+                                 context) -> qrl_pb2.GetOptimizedAddressStateResp:
+        address_state = self.qrlnode.get_optimized_address_state(request.address)
+        return qrl_pb2.GetOptimizedAddressStateResp(state=address_state.pbdata)
+
     @GrpcExceptionWrapper(qrl_pb2.GetMultiSigAddressStateResp)
     def GetMultiSigAddressState(self,
                                 request: qrl_pb2.GetMultiSigAddressStateReq,
@@ -293,7 +300,7 @@ class PublicAPIService(PublicAPIServicer):
         try:
             if AddressState.address_is_valid(query):
                 if self.qrlnode.get_address_is_used(query):
-                    address_state = self.qrlnode.get_address_state(query)
+                    address_state = self.qrlnode.get_optimized_address_state(query)
                     if address_state is not None:
                         answer.found = True
                         answer.address_state.CopyFrom(address_state.pbdata)
@@ -507,7 +514,7 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.GetBalanceResp)
     def GetBalance(self, request: qrl_pb2.GetBalanceReq, context) -> qrl_pb2.GetBalanceResp:
         logger.debug("[PublicAPI] GetBalance")
-        address_state = self.qrlnode.get_address_state(request.address)
+        address_state = self.qrlnode.get_optimized_address_state(request.address)
         response = qrl_pb2.GetBalanceResp(balance=address_state.balance)
         return response
 
@@ -517,7 +524,7 @@ class PublicAPIService(PublicAPIServicer):
         response = qrl_pb2.GetBalanceResp(balance=0)
 
         for address in request.addresses:
-            address_state = self.qrlnode.get_address_state(address)
+            address_state = self.qrlnode.get_optimized_address_state(address)
             response.balance += address_state.balance
 
         return response

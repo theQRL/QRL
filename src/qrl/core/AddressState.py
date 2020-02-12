@@ -231,6 +231,9 @@ class AddressState(object):
         if not QRLHelper.addressIsValid(address):
             return False
 
+        if address[0:1] == b'\x11':
+            return False
+
         return True
 
     def serialize(self):

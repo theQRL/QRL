@@ -201,3 +201,15 @@ class State:
             logger.error('[get_slave_pk_access_type] %s', e)
 
         return None
+
+    def get_token(self, address: bytes, token_txhash: bytes) -> qrl_pb2.TokenBalance:
+        try:
+            token_balance = qrl_pb2.TokenBalance()
+            token_balance.ParseFromString(self._db.get_raw(self.generate_token_key(address, token_txhash)))
+            return token_balance
+        except KeyError:
+            pass
+        except Exception as e:
+            logger.error('[get_token] %s', e)
+
+        return None

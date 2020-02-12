@@ -8,6 +8,7 @@ from pyqrllib.pyqrllib import QRLHelper, bin2hstr
 from twisted.internet import reactor
 
 from qrl.core import config
+from qrl.core.AddressState import AddressState
 from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.MultiSigAddressState import MultiSigAddressState
 from qrl.core.Block import Block
@@ -377,7 +378,15 @@ class QRLNode:
 
         return self._chain_manager.get_address_is_used(address)
 
-    def get_address_state(self, address: bytes) -> OptimizedAddressState:
+    def get_address_state(self, address: bytes) -> AddressState:
+        if address != config.dev.coinbase_address and not AddressState.address_is_valid(address):
+            raise ValueError("Invalid Address")
+
+        address_state = self._chain_manager.get_address_state(address)
+
+        return address_state
+
+    def get_optimized_address_state(self, address: bytes) -> OptimizedAddressState:
         if address != config.dev.coinbase_address and not OptimizedAddressState.address_is_valid(address):
             raise ValueError("Invalid Address")
 
