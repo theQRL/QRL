@@ -17,7 +17,8 @@ class QRandomXMiner(QRXMiner):
                  chain_manager,
                  pre_block_logic,
                  mining_address: bytes,
-                 mining_thread_count):
+                 mining_thread_count,
+                 lock):
         super().__init__()
         self._qn = QRandomX()
         self._chain_manager = chain_manager
@@ -30,7 +31,7 @@ class QRandomXMiner(QRXMiner):
         self._seed_block = None
         self.setForcedSleep(user_config.mining_pause)
         self._dev_config = None
-        self.lock = threading.RLock()
+        self.lock = lock
 
     def get_seed_block(self, block_number):
         # TODO: Verify when seed height is changed also add unit test for edge case

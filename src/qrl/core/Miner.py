@@ -26,14 +26,18 @@ class Miner:
                  pre_block_logic,
                  mining_address: bytes,
                  mining_thread_count):
+        self.lock = threading.RLock()
+
         self.qryptonight_7_miner = CNv1Miner(pre_block_logic,
                                              mining_address,
-                                             mining_thread_count)
+                                             mining_thread_count,
+                                             self.lock)
 
         self.qrandomx_miner = QRandomXMiner(chain_manager,
                                             pre_block_logic,
                                             mining_address,
-                                            mining_thread_count)
+                                            mining_thread_count,
+                                            self.lock)
         self._qn = Qryptonight()
         self._chain_manager = chain_manager
         self._pre_block_logic = pre_block_logic
@@ -43,7 +47,6 @@ class Miner:
         self._measurement = None
 
         self._current_miner = self.qrandomx_miner
-        self.lock = threading.RLock()
 
     def isRunning(self):
         return self._current_miner.isRunning

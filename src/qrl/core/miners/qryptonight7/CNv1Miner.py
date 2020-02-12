@@ -15,7 +15,8 @@ class CNv1Miner(Qryptominer):
     def __init__(self,
                  pre_block_logic,
                  mining_address: bytes,
-                 mining_thread_count):
+                 mining_thread_count,
+                 lock):
         super().__init__()
 
         self.pre_block_logic = pre_block_logic  # FIXME: Circular dependency with node.py
@@ -26,7 +27,7 @@ class CNv1Miner(Qryptominer):
         self._mining_block = None
         self.setForcedSleep(user_config.mining_pause)
         self._dev_config = None
-        self.lock = threading.RLock()
+        self.lock = lock
 
     def start_mining(self,
                      mining_block: Block,
