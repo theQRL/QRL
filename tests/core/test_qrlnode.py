@@ -222,24 +222,24 @@ class TestQRLNode(TestCase):
         self.assertEqual(balance, 100)
 
     @patch('qrl.core.OptimizedAddressState.OptimizedAddressState.get_optimized_address_state')
-    def test_get_address_state(self, mock_get_optimized_address_state):
+    def test_get_optimized_address_state(self, mock_get_optimized_address_state):
         """
         QRLNode.get_address_state() asks the DB (State) for an Address's AddressState, like its nonce, ots index...
         It also validates the address before sending it to the State.
         """
         m_addr_state = Mock(autospec=OptimizedAddressState)
         mock_get_optimized_address_state.return_value = m_addr_state
-        result = self.qrlnode.get_address_state(alice.address)
+        result = self.qrlnode.get_optimized_address_state(alice.address)
         self.assertEqual(m_addr_state, result)
 
         # Fetching AddressState for Coinbase Address
         m_addr_state = Mock(autospec=OptimizedAddressState)
         mock_get_optimized_address_state.return_value = m_addr_state
-        result = self.qrlnode.get_address_state(config.dev.coinbase_address)
+        result = self.qrlnode.get_optimized_address_state(config.dev.coinbase_address)
         self.assertEqual(m_addr_state, result)
 
         with self.assertRaises(ValueError):
-            self.qrlnode.get_address_state(b'fdsa')
+            self.qrlnode.get_optimized_address_state(b'fdsa')
 
     def test_get_addr_from(self):
         """

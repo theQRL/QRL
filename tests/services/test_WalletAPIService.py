@@ -7,7 +7,7 @@ from mock import Mock, patch
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
 from qrl.core.misc import logger
-from qrl.core.OptimizedAddressState import OptimizedAddressState
+from qrl.core.AddressState import AddressState
 from qrl.daemon.walletd import WalletD
 from qrl.generated import qrlwallet_pb2, qrl_pb2
 from qrl.services.WalletAPIService import WalletAPIService
@@ -137,7 +137,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(
@@ -174,7 +174,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(
@@ -207,7 +207,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.GetOTS = Mock(
@@ -220,7 +220,7 @@ class TestWalletAPI(TestCase):
                                                                             signer_address=qaddress,
                                                                             ots_index=0), context=None)
 
-            self.assertEqual(resp.code, 0)
+            self.assertEqual(0, resp.code)
             self.assertIsNotNone(resp.tx)
 
     def test_relayMessageTxnBySlave(self):
@@ -233,7 +233,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(
@@ -257,7 +257,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(
@@ -298,7 +298,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(
@@ -332,7 +332,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(
@@ -370,7 +370,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(
@@ -401,7 +401,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(
@@ -437,7 +437,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
-            addr_state = OptimizedAddressState.get_default(walletd.qaddress_to_address(qaddress))
+            addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
             walletd._public_stub.IsSlave = Mock(

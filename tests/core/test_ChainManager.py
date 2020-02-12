@@ -182,9 +182,9 @@ class TestChainManagerReal(TestCase):
             self.assertTrue(result)
             self.assertEqual(self.chain_manager.last_block, block_1)
 
-            bob_addr_state = self.chain_manager.get_address_state(bob.address)
-            alice_addr_state = self.chain_manager.get_address_state(alice.address)
-            random_addr_state = self.chain_manager.get_address_state(random_xmss.address)
+            bob_addr_state = self.chain_manager.get_optimized_address_state(bob.address)
+            alice_addr_state = self.chain_manager.get_optimized_address_state(alice.address)
+            random_addr_state = self.chain_manager.get_optimized_address_state(random_xmss.address)
 
             self.assertEqual(bob_addr_state.balance, 0)
             self.assertEqual(alice_addr_state.balance,
@@ -292,8 +292,8 @@ class TestChainManagerReal(TestCase):
             self.assertEqual(self.chain_manager.last_block.serialize(), block_2.serialize())
 
             # Now we are on the forked chain, Bob is no longer Alice's slave.
-            alice_state = self.chain_manager.get_address_state(alice.address)
-            self.assertFalse(str(bob.pk) in alice_state.slave_pks_access_type)
+            bob_access_type = self.chain_manager.get_slave_pk_access_type(alice.address, bob.pk)
+            self.assertIsNone(bob_access_type)
 
     @set_default_balance_size()
     @set_hard_fork_block_number()
