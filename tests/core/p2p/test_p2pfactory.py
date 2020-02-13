@@ -142,19 +142,19 @@ class TestP2PFactory(TestCase):
         is_block_present() returns True if block's headerhash is in our blockchain, or if it is known and will be
         processed in the future (POW.future_blocks, OrderedDict())
         """
-        self.factory.pow.future_blocks = OrderedDict()
-        self.factory._chain_manager._state.get_block.return_value = False
-        result = self.factory.is_block_present(b'1234')
-        self.assertFalse(result)
+        with patch.object(Block, 'get_block', return_value=False):
+            self.factory.pow.future_blocks = OrderedDict()
+            result = self.factory.is_block_present(b'1234')
+            self.assertFalse(result)
 
-        self.factory.pow.future_blocks = OrderedDict({b'1234': 'Some data'})
-        result = self.factory.is_block_present(b'1234')
-        self.assertTrue(result)
+            self.factory.pow.future_blocks = OrderedDict({b'1234': 'Some data'})
+            result = self.factory.is_block_present(b'1234')
+            self.assertTrue(result)
 
-        self.factory.pow.future_blocks = OrderedDict()
-        self.factory._chain_manager._state.get_block.return_value = True
-        result = self.factory.is_block_present(b'1234')
-        self.assertTrue(result)
+        with patch.object(Block, 'get_block', return_value=True):
+            self.factory.pow.future_blocks = OrderedDict()
+            result = self.factory.is_block_present(b'1234')
+            self.assertTrue(result)
 
     def test_connect_peer_already_connected(self, m_reactor, m_logger):
         """
@@ -591,23 +591,22 @@ class TestP2PFactoryPeerFetchBlock(TestCase):
         2. we've reached the end of the peer's NodeHeaderHash.
         Then it will ask the peer for the next block after that.
         """
-        self.factory._chain_manager._state.get_block.return_value = Block()
+        with patch.object(Block, 'get_block', return_value=Block()):
+            self.factory.peer_fetch_block()
 
-        self.factory.peer_fetch_block()
-
-        self.assertEqual(self.factory._chain_manager._state.get_block.call_count, 3)
-        self.channel_1.send_fetch_block.assert_called_once_with(3)
+            self.assertEqual(Block.get_block.call_count, 3)
+            self.channel_1.send_fetch_block.assert_called_once_with(3)
 
     def test_peer_fetch_block_we_are_synced(self, m_reactor, m_logger):
         """
         If is_syncing_finished() is True, then let's not ask for more blocks.
         """
-        self.factory._chain_manager._state.get_block.return_value = Block()
-        self.factory.is_syncing_finished.return_value = True
+        with patch.object(Block, 'get_block', return_value=Block()):
+            self.factory.is_syncing_finished.return_value = True
 
-        self.factory.peer_fetch_block()
+            self.factory.peer_fetch_block()
 
-        self.channel_1.send_fetch_block.assert_not_called()
+            self.channel_1.send_fetch_block.assert_not_called()
 
     def test_peer_fetch_block_block_not_found_and_retry(self, m_reactor, m_logger):
         """

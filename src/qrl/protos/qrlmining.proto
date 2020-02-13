@@ -48,6 +48,7 @@ message GetBlockToMineResp {
     uint64 difficulty = 2; // difficulty that the new block should meet
     uint64 height = 3;
     uint32 reserved_offset = 4;
+    string seed_hash = 5;
 }
 
 message SubmitMinedBlockReq {

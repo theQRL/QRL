@@ -1,15 +1,19 @@
 from unittest import TestCase
 
 import simplejson as json
-from mock import patch, PropertyMock, Mock
+from mock import patch, PropertyMock
 from pyqrllib.pyqrllib import bin2hstr
 
+from qrl.core import config
+from qrl.core.Indexer import Indexer
 from qrl.core.misc import logger
-from qrl.core.AddressState import AddressState
+from qrl.core.OptimizedAddressState import OptimizedAddressState
+from qrl.core.State import State
+from qrl.core.StateContainer import StateContainer
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from tests.core.txs.testdata import test_json_TransferToken, test_signature_TransferToken
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir
 
 logger.initialize_default()
 
@@ -18,6 +22,8 @@ logger.initialize_default()
 class TestTransferTokenTransaction(TestCase):
 
     def setUp(self):
+        with set_qrl_dir('no_data'):
+            self.state = State()
         self.alice = get_alice_xmss()
         self.bob = get_bob_xmss()
 
@@ -142,16 +148,6 @@ class TestTransferTokenTransaction(TestCase):
             with self.assertRaises(ValueError):
                 tx.validate_or_raise()
 
-        params = self.default_params()
-        params["addrs_to"] = [self.bob.address, slave.address, self.alice.address]
-        params["amounts"] = [2, 3, 5]
-        tx = TransferTokenTransaction.create(**params)
-        tx.sign(self.alice)
-        with patch('qrl.core.txs.TransferTokenTransaction.config', autospec=True) as m_config:
-            m_config.dev.transaction_multi_output_limit = 1
-            with self.assertRaises(ValueError):
-                tx.validate_or_raise()
-
         # TX signing already fails if addrs_to and amounts are unequal length
         params = self.default_params()
         tx = TransferTokenTransaction.create(**params)
@@ -176,7 +172,7 @@ class TestTransferTokenTransaction(TestCase):
     @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
     def test_validate_extended(self, m_validate_slave, m_logger):
         """
-        TransferTokenTransaction.validate_extended checks for:
+        TransferTokenTransaction._validate_extended checks for:
         1. valid master/slave
         2. negative fee, negative total token amounts transferred
         3. addr_from has enough funds for the fee
@@ -184,23 +180,39 @@ class TestTransferTokenTransaction(TestCase):
         5. if addr_from has enough tokens
         6. addr_from ots_key reuse
         """
-        m_addr_from_state = Mock(autospec=AddressState, name='addr_from State', balance=100)
-        m_addr_from_state.is_token_exists.return_value = True
-        m_addr_from_state.get_token_balance.return_value = 1000
-
-        m_addr_from_pk_state = Mock(autospec=AddressState, name='addr_from_pk State')
-        m_addr_from_pk_state.ots_key_reuse.return_value = False
+        alice_address_state = OptimizedAddressState.get_default(self.alice.address)
+        alice_address_state.pbdata.balance = 100
 
         params = self.default_params()
         tx = TransferTokenTransaction.create(**params)
         tx.sign(self.alice)
 
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        addresses_state = {
+            alice_address_state.address: alice_address_state
+        }
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        result = tx._validate_extended(state_container)
         self.assertTrue(result)
 
         # Invalid master XMSS/slave XMSS relationship
         m_validate_slave.return_value = False
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        state_container.tokens = Indexer(b'token', None)
+        state_container.tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+        result = tx.validate_all(state_container)
         self.assertFalse(result)
         m_validate_slave.return_value = True
 
@@ -208,38 +220,65 @@ class TestTransferTokenTransaction(TestCase):
         with patch('qrl.core.txs.TransferTokenTransaction.TransferTokenTransaction.fee',
                    new_callable=PropertyMock) as m_fee:
             m_fee.return_value = -1
-            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            tokens = Indexer(b'token', None)
+            tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+            state_container.tokens = tokens
+            result = tx._validate_extended(state_container)
             self.assertFalse(result)
 
         # total_amount = -1
         with patch('qrl.core.txs.TransferTokenTransaction.TransferTokenTransaction.total_amount',
                    new_callable=PropertyMock) as m_total_amount:
             m_total_amount.return_value = -100
-            result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+            tokens = Indexer(b'token', None)
+            tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+            state_container.tokens = tokens
+            result = tx._validate_extended(state_container)
             self.assertFalse(result)
 
         # balance = 0, cannot pay the Transaction fee
-        m_addr_from_state.balance = 0
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        alice_address_state.pbdata.balance = 0
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+        state_container.tokens = tokens
+        result = tx._validate_extended(state_container)
         self.assertFalse(result)
-        m_addr_from_state.balance = 100
+        alice_address_state.pbdata.balance = 100
 
         # addr_from doesn't have these tokens
-        m_addr_from_state.is_token_exists.return_value = False
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        state_container.tokens = Indexer(b'token', None)
+        result = tx._validate_extended(state_container)
         self.assertFalse(result)
-        m_addr_from_state.is_token_exists.return_value = True
 
         # addr_from doesn't have enough tokens
-        m_addr_from_state.get_token_balance.return_value = 99
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = 99
+        state_container.tokens = tokens
+        result = tx._validate_extended(state_container)
         self.assertFalse(result)
-        m_addr_from_state.get_token_balance.return_value = 1000
 
         # addr_from_pk has used this OTS key before
-        m_addr_from_pk_state.ots_key_reuse.return_value = True
-        result = tx.validate_extended(m_addr_from_state, m_addr_from_pk_state)
+        addresses_state = {
+            self.alice.address: alice_address_state
+        }
+        state_container.addresses_state = addresses_state
+        # addr_from_pk has used this OTS key before
+        state_container.paginated_bitfield.set_ots_key(addresses_state, alice_address_state.address, tx.ots_key)
+        result = tx.validate_all(state_container)
         self.assertFalse(result)
+
+        slave = get_slave_xmss()
+        params = self.default_params()
+        params["addrs_to"] = [self.bob.address, slave.address, self.alice.address]
+        params["amounts"] = [2, 3, 5]
+        tx = TransferTokenTransaction.create(**params)
+        tx.sign(self.alice)
+        with patch('qrl.core.config', autospec=True) as m_config:
+            m_config.dev = config.dev.create(config.dev.prev_state_key, config.dev.current_state_key,
+                                             b'', 10, True, True)
+            m_config.dev.pbdata.transaction.multi_output_limit = 1
+            state_container.current_dev_config = m_config.dev
+            self.assertFalse(tx._validate_extended(state_container=state_container))
 
     def test_set_affected_address(self, m_logger):
         result = set()

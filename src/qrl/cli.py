@@ -14,12 +14,15 @@ from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 from qrl.core import config
 from qrl.core.Wallet import Wallet, WalletDecryptionError
 from qrl.core.misc.helper import parse_hexblob, parse_qaddress
+from qrl.core.MultiSigAddressState import MultiSigAddressState
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
+from qrl.core.txs.multisig.MultiSigCreate import MultiSigCreate
+from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
 from qrl.crypto.xmss import XMSS, hash_functions
 from qrl.generated import qrl_pb2_grpc, qrl_pb2
 
@@ -181,7 +184,7 @@ def _quanta_to_shor(x: Decimal, base=Decimal(config.dev.shor_per_quanta)) -> int
     return int(Decimal(x * base).to_integral_value())
 
 
-def _parse_dsts_amounts(addresses: str, amounts: str, token_decimals: int = 0):
+def _parse_dsts_amounts(addresses: str, amounts: str, token_decimals: int = 0, check_multi_sig_address=False):
     """
     'Qaddr1 Qaddr2...' -> [\\xcx3\\xc2, \\xc2d\\xc3]
     '10 10' -> [10e9, 10e9] (in shor)
@@ -189,7 +192,7 @@ def _parse_dsts_amounts(addresses: str, amounts: str, token_decimals: int = 0):
     :param amounts:
     :return:
     """
-    addresses_split = [parse_qaddress(addr) for addr in addresses.split(' ')]
+    addresses_split = [parse_qaddress(addr, check_multi_sig_address) for addr in addresses.split(' ')]
 
     if token_decimals != 0:
         multiplier = Decimal(10 ** int(token_decimals))
@@ -471,11 +474,12 @@ def tx_push(ctx, txblob):
 @qrl.command()
 @click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
+@click.option('--addr_to', type=str, default='', prompt=True, help='QRL Address receiving this message (optional)')
 @click.option('--message', type=str, prompt=True, help='Message (max 80 bytes)')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=1, prompt=True, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
-def tx_message(ctx, src, master, message, fee, ots_key_index):
+def tx_message(ctx, src, master, addr_to, message, fee, ots_key_index):
     """
     Message Transaction
     """
@@ -491,6 +495,7 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
         src_xmss.set_ots_index(ots_key_index)
 
         message = message.encode()
+        addr_to = parse_qaddress(addr_to, False)
 
         master_addr = None
         if master:
@@ -503,6 +508,7 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
     try:
         stub = ctx.obj.get_stub_public_api()
         tx = MessageTransaction.create(message_hash=message,
+                                       addr_to=addr_to,
                                        fee=fee_shor,
                                        xmss_pk=address_src_pk,
                                        master_addr=master_addr)
@@ -516,28 +522,82 @@ def tx_message(ctx, src, master, message, fee, ots_key_index):
         print("Error {}".format(str(e)))
 
 
-def base64tohex(data):
-    return hexlify(a2b_base64(data))
+@qrl.command()
+@click.option('--src', type=str, default='', prompt=True, help='source QRL address')
+@click.option('--master', type=str, default='', prompt=True, help='master QRL address')
+@click.option('--threshold', default=0, prompt=True, help='Threshold')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--ots_key_index', default=1, prompt=True, help='OTS key Index (1..XMSS num signatures)')
+@click.pass_context
+def tx_multi_sig_create(ctx, src, master, threshold, fee, ots_key_index):
+    """
+    Creates Multi Sig Create Transaction, that results into the formation of new multi_sig_address if accepted.
+    """
+    signatories = []
+    weights = []
+    while True:
+        address = click.prompt('Address of Signatory ', default='')
+        if address == '':
+            break
+        weight = int(click.prompt('Weight '))
+        signatories.append(parse_qaddress(address))
+        weights.append(weight)
 
+    try:
+        _, src_xmss = _select_wallet(ctx, src)
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
 
-def tx_unbase64(tx_json_str):
-    tx_json = json.loads(tx_json_str)
-    tx_json["publicKey"] = base64tohex(tx_json["publicKey"])
-    tx_json["signature"] = base64tohex(tx_json["signature"])
-    tx_json["transactionHash"] = base64tohex(tx_json["transactionHash"])
-    tx_json["transfer"]["addrsTo"] = [base64tohex(v) for v in tx_json["transfer"]["addrsTo"]]
-    return json.dumps(tx_json, indent=True, sort_keys=True)
+        address_src_pk = src_xmss.pk
+
+        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
+        src_xmss.set_ots_index(ots_key_index)
+
+        master_addr = None
+        if master_addr:
+            master_addr = parse_qaddress(master)
+        # FIXME: This could be problematic. Check
+        fee_shor = _quanta_to_shor(fee)
+
+    except KeyboardInterrupt:
+        click.echo("Terminated by user")
+        quit(1)
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
+        quit(1)
+
+    try:
+        stub = ctx.obj.get_stub_public_api()
+        tx = MultiSigCreate.create(signatories=signatories,
+                                   weights=weights,
+                                   threshold=threshold,
+                                   fee=fee_shor,
+                                   xmss_pk=address_src_pk,
+                                   master_addr=master_addr)
+
+        tx.sign(src_xmss)
+
+        push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
+
+        print(push_transaction_resp.error_code)
+        print('Multi sig Address Q{}'.format(bin2hstr(MultiSigAddressState.generate_multi_sig_address(tx.txhash))))
+    except Exception as e:
+        print("Error {}".format(str(e)))
 
 
 @qrl.command()
 @click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
 @click.option('--master', type=str, default='', help='master QRL address')
+@click.option('--multi_sig_address', type=str, default='', prompt=True, help='signer Multi Sig Address')
 @click.option('--dsts', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
+@click.option('--expiry_block_number', type=int, prompt=True, help='Expiry Blocknumber')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=1, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context
-def tx_transfer(ctx, src, master, dsts, amounts, fee, ots_key_index):
+def tx_multi_sig_spend(ctx, src, master, multi_sig_address, dsts, amounts, expiry_block_number, fee, ots_key_index):
     """
     Transfer coins from src to dsts
     """
@@ -574,7 +634,107 @@ def tx_transfer(ctx, src, master, dsts, amounts, fee, ots_key_index):
         if master:
             master_addr = parse_qaddress(master)
 
-        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts)
+        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts, check_multi_sig_address=True)
+        fee_shor = _quanta_to_shor(fee)
+    except Exception as e:
+        click.echo("Error validating arguments: {}".format(e))
+        quit(1)
+    multi_sig_address = bytes(hstr2bin(multi_sig_address[1:]))
+    try:
+        # MultiSigSpend transaction
+        tx = MultiSigSpend.create(multi_sig_address=multi_sig_address,
+                                  addrs_to=addresses_dst,
+                                  amounts=shor_amounts,
+                                  expiry_block_number=expiry_block_number,
+                                  fee=fee_shor,
+                                  xmss_pk=address_src_pk,
+                                  master_addr=master_addr)
+
+        # Sign transaction
+        tx.sign(signing_object)
+
+        if not tx.validate():
+            print("It was not possible to validate the signature")
+            quit(1)
+
+        print("\nTransaction Blob (signed): \n")
+        txblob = tx.pbdata.SerializeToString()
+        txblobhex = hexlify(txblob).decode()
+        print(txblobhex)
+
+        # Push transaction
+        print()
+        print("Sending to a QRL Node...")
+        stub = ctx.obj.get_stub_public_api()
+        push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)
+        push_transaction_resp = stub.PushTransaction(push_transaction_req, timeout=CONNECTION_TIMEOUT)
+
+        # Print result
+        print(push_transaction_resp)
+    except Exception as e:
+        print("Error {}".format(str(e)))
+
+
+def base64tohex(data):
+    return hexlify(a2b_base64(data))
+
+
+def tx_unbase64(tx_json_str):
+    tx_json = json.loads(tx_json_str)
+    tx_json["publicKey"] = base64tohex(tx_json["publicKey"])
+    tx_json["signature"] = base64tohex(tx_json["signature"])
+    tx_json["transactionHash"] = base64tohex(tx_json["transactionHash"])
+    tx_json["transfer"]["addrsTo"] = [base64tohex(v) for v in tx_json["transfer"]["addrsTo"]]
+    return json.dumps(tx_json, indent=True, sort_keys=True)
+
+
+@qrl.command()
+@click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
+@click.option('--master', type=str, default='', help='master QRL address')
+@click.option('--dsts', type=str, prompt=True, help='List of destination addresses')
+@click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
+@click.option('--message_data', type=str, prompt=True, help='Message (Optional)')
+@click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
+@click.option('--ots_key_index', default=1, help='OTS key Index (1..XMSS num signatures)')
+@click.pass_context
+def tx_transfer(ctx, src, master, dsts, amounts, message_data, fee, ots_key_index):
+    """
+    Transfer coins from src to dsts
+    """
+    address_src_pk = None
+    master_addr = None
+
+    addresses_dst = []
+    shor_amounts = []
+    fee_shor = []
+
+    signing_object = None
+    message_data = message_data.encode()
+
+    try:
+        # Retrieve signing object
+        selected_wallet = _select_wallet(ctx, src)
+        if selected_wallet is None or len(selected_wallet) != 2:
+            click.echo("A wallet was not found")
+            quit(1)
+
+        _, src_xmss = selected_wallet
+
+        if not src_xmss:
+            click.echo("A local wallet is required to sign the transaction")
+            quit(1)
+
+        address_src_pk = src_xmss.pk
+
+        ots_key_index = validate_ots_index(ots_key_index, src_xmss)
+        src_xmss.set_ots_index(ots_key_index)
+
+        signing_object = src_xmss
+
+        # Get and validate other inputs
+        if master:
+            master_addr = parse_qaddress(master)
+        addresses_dst, shor_amounts = _parse_dsts_amounts(dsts, amounts, check_multi_sig_address=True)
         fee_shor = _quanta_to_shor(fee)
     except Exception as e:
         click.echo("Error validating arguments: {}".format(e))
@@ -584,6 +744,7 @@ def tx_transfer(ctx, src, master, dsts, amounts, fee, ots_key_index):
         # Create transaction
         tx = TransferTransaction.create(addrs_to=addresses_dst,
                                         amounts=shor_amounts,
+                                        message_data=message_data,
                                         fee=fee_shor,
                                         xmss_pk=address_src_pk,
                                         master_addr=master_addr)
@@ -605,7 +766,6 @@ def tx_transfer(ctx, src, master, dsts, amounts, fee, ots_key_index):
         print(txblobhex)
 
         # Push transaction
-        print()
         print("Sending to a QRL Node...")
         stub = ctx.obj.get_stub_public_api()
         push_transaction_req = qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata)

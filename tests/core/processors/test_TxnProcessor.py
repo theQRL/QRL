@@ -8,7 +8,7 @@ from qrl.core.misc import logger
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.ChainManager import ChainManager
 from qrl.core.State import State
-from qrl.core.AddressState import AddressState
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.core.TransactionPool import TransactionPool
 from tests.misc.helper import replacement_getTime
@@ -26,7 +26,7 @@ def make_tx(txhash=b'hashbrownies', fee=1, autospec=TransferTransaction, PK=b'pu
 class TestTxnProcessor(TestCase):
     def setUp(self):
         m_state = Mock(name='A Mock State', autospec=State)
-        m_state.get_address_state.return_value = Mock(name='A Mock AddressState', autospec=AddressState)
+        m_state.get_address_state.return_value = Mock(name='A Mock AddressState', autospec=OptimizedAddressState)
 
         self.chain_manager = Mock(autospec=ChainManager)
         self.chain_manager._state = m_state
@@ -67,9 +67,11 @@ class TestTxnProcessor(TestCase):
 
     def test_txnprocessor_tx_validate_fail(self, m_get_slave, m_logger):
         m_get_slave.return_value = None
-        self.tx1.validate.return_value = False
-
-        tx_results = [t for t in self.txnprocessor]
+        self.chain_manager.validate_all.return_value = False
+        tx_results = []
+        for t in self.txnprocessor:
+            tx_results.append(t)
+            self.chain_manager.validate_all.return_value = True
 
         self.assertEqual([False, True, True, True], tx_results)
         self.assertEqual(3, self.m_txpool.add_tx_to_pool.call_count)
@@ -77,10 +79,14 @@ class TestTxnProcessor(TestCase):
 
     def test_txnprocessor_tx_validate_extended_fail(self, m_get_slave, m_logger):
         m_get_slave.return_value = None
-        self.tx2.validate_extended.return_value = False
-        self.tx3.validate_extended.return_value = False
-
-        tx_results = [t for t in self.txnprocessor]
+        self.chain_manager.validate_all.return_value = True
+        tx_results = []
+        for t in self.txnprocessor:
+            tx_results.append(t)
+            if len(tx_results) == 3:
+                self.chain_manager.validate_all.return_value = True
+            else:
+                self.chain_manager.validate_all.return_value = False
 
         m_logger.info.assert_called()
         self.assertEqual([True, False, False, True], tx_results)
@@ -89,10 +95,13 @@ class TestTxnProcessor(TestCase):
 
     def test_txnprocessor_tx_validate_transaction_pool_fail(self, m_get_slave, m_logger):
         m_get_slave.return_value = None
-        self.tx3.validate_transaction_pool.return_value = False
-        self.tx4.validate_transaction_pool.return_value = False
-
-        tx_results = [t for t in self.txnprocessor]
+        tx_results = []
+        for t in self.txnprocessor:
+            tx_results.append(t)
+            if len(tx_results) < 2:
+                self.chain_manager.validate_all.return_value = True
+            else:
+                self.chain_manager.validate_all.return_value = False
 
         m_logger.info.assert_called()
         self.assertEqual([True, True, False, False], tx_results)
@@ -101,11 +110,11 @@ class TestTxnProcessor(TestCase):
 
     def test_txnprocessor_tx_all_failure_modes(self, m_get_slave, m_logger):
         m_get_slave.return_value = None
-        self.tx2.validate.return_value = False
-        self.tx3.validate_extended.return_value = False
-        self.tx4.validate_transaction_pool.return_value = False
-
-        tx_results = [t for t in self.txnprocessor]
+        tx_results = []
+        self.chain_manager.validate_all.return_value = True
+        for t in self.txnprocessor:
+            tx_results.append(t)
+            self.chain_manager.validate_all.return_value = False
 
         m_logger.info.assert_called()
         self.assertEqual([True, False, False, False], tx_results)

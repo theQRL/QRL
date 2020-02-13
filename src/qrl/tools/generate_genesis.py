@@ -16,6 +16,7 @@ from qrl.crypto.xmss import XMSS
 def create_tx(addrs_to, amounts, signing_xmss, nonce):
     tx = TransferTransaction.create(addrs_to=addrs_to,
                                     amounts=amounts,
+                                    message_data=None,
                                     fee=0,
                                     xmss_pk=signing_xmss.pk)
     tx.sign(signing_xmss)
@@ -74,16 +75,19 @@ def main():
 
     transactions = get_migration_transactions(signing_xmss=dist_xmss, filename=filename)
 
-    block = Block.create(block_number=0,
+    block = Block.create(dev_config=config.dev,
+                         block_number=0,
                          prev_headerhash=config.user.genesis_prev_headerhash,
                          prev_timestamp=config.user.genesis_timestamp,
                          transactions=transactions,
-                         miner_address=dist_xmss.address)
+                         miner_address=dist_xmss.address,
+                         seed_height=None,
+                         seed_hash=None)
 
-    block.set_nonces(0, 0)
+    block.set_nonces(config.dev, 0, 0)
 
-    block._data.genesis_balance.MergeFrom([qrl_pb2.GenesisBalance(address=config.dev.coinbase_address,
-                                                                  balance=105000000000000000)])
+    block._data.genesis_balance.extend([qrl_pb2.GenesisBalance(address=config.dev.coinbase_address,
+                                                               balance=105000000000000000)])
 
     with open('genesis.yml', 'w') as f:
         yaml.dump(json.loads(block.to_json()), f)

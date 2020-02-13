@@ -17,15 +17,21 @@ package qrl;
 service PublicAPI
 {
     rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp);
-    
+
     rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
 
     rpc GetPeersStat (GetPeersStatReq) returns (GetPeersStatResp);
 
     rpc GetStats (GetStatsReq) returns (GetStatsResp);
-    
+
     rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
-    
+
+    rpc GetOptimizedAddressState (GetAddressStateReq) returns (GetOptimizedAddressStateResp);
+
+    rpc GetMultiSigAddressState (GetMultiSigAddressStateReq) returns (GetMultiSigAddressStateResp);
+
+    rpc IsSlave (IsSlaveReq) returns (IsSlaveResp);
+
     rpc GetObject(GetObjectReq) returns (GetObjectResp);
 
     rpc GetLatestData(GetLatestDataReq) returns (GetLatestDataResp);
@@ -33,12 +39,18 @@ service PublicAPI
     rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
 
     rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
-    
+
     rpc ParseAddress (ParseAddressReq) returns (ParseAddressResp);
 
     rpc GetChainStats (GetChainStatsReq) returns (GetChainStatsResp);
 
     rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp);
+
+    rpc GetMultiSigCreateTxn (MultiSigCreateTxnReq) returns (TransferCoinsResp);
+
+    rpc GetMultiSigSpendTxn (MultiSigSpendTxnReq) returns (TransferCoinsResp);
+
+    rpc GetMultiSigVoteTxn (MultiSigVoteTxnReq) returns (TransferCoinsResp);
 
     rpc GetMessageTxn (MessageTxnReq) returns (TransferCoinsResp);
 
@@ -48,9 +60,25 @@ service PublicAPI
 
     rpc GetSlaveTxn (SlaveTxnReq) returns (TransferCoinsResp);
 
-    rpc GetTransactionsByAddress(GetTransactionsByAddressReq) returns (GetTransactionsByAddressResp);
+    rpc GetLatticeTxn (LatticeTxnReq) returns (TransferCoinsResp);
 
     rpc GetTransaction(GetTransactionReq) returns (GetTransactionResp);
+
+    rpc GetMiniTransactionsByAddress(GetMiniTransactionsByAddressReq) returns (GetMiniTransactionsByAddressResp);
+
+    rpc GetTransactionsByAddress(GetTransactionsByAddressReq) returns (GetTransactionsByAddressResp);
+
+    rpc GetTokensByAddress(GetTransactionsByAddressReq) returns (GetTokensByAddressResp);
+
+    rpc GetSlavesByAddress(GetTransactionsByAddressReq) returns (GetSlavesByAddressResp);
+
+    rpc GetLatticePKsByAddress(GetTransactionsByAddressReq) returns (GetLatticePKsByAddressResp);
+
+    rpc GetMultiSigAddressesByAddress(GetTransactionsByAddressReq) returns (GetMultiSigAddressesByAddressResp);
+
+    rpc GetMultiSigSpendTxsByAddress(GetMultiSigSpendTxsByAddressReq) returns (GetMultiSigSpendTxsByAddressResp);
+
+    rpc GetVoteStats(GetVoteStatsReq) returns (GetVoteStatsResp);
 
     rpc GetBalance(GetBalanceReq) returns (GetBalanceResp);
 
@@ -136,7 +164,6 @@ message GetChainStatsResp {
     string state_size_gb = 3;                 // gigabytes
 }
 
-
 /**
  * Represents a query to get statistics about node
 */
@@ -186,16 +213,35 @@ message BlockDataPoint
     bytes header_hash_prev = 8;             // Previous block's header hash
 }
 
-
-message GetAddressStateReq {   
+message GetAddressStateReq {
     bytes address = 1;
     bool exclude_ots_bitfield = 2;
     bool exclude_transaction_hashes = 3; 
 }
 
 message GetAddressStateResp {
-    
     AddressState state = 1;
+}
+
+message GetOptimizedAddressStateResp {
+    OptimizedAddressState state = 1;
+}
+
+message GetMultiSigAddressStateReq {
+    bytes address = 1;
+}
+
+message GetMultiSigAddressStateResp {
+    MultiSigAddressState state = 1;
+}
+
+message IsSlaveReq {
+    bytes master_address = 1;
+    bytes slave_pk = 2;
+}
+
+message IsSlaveResp {
+    bool result = 1;
 }
 
 message ParseAddressReq { 
@@ -212,7 +258,7 @@ message GetObjectReq {  bytes query = 1;    }
 message GetObjectResp {
     bool found = 1;
     oneof result {
-        AddressState address_state = 2;
+        OptimizedAddressState address_state = 2;
         TransactionExtended transaction = 3;
         BlockExtended block_extended = 4;
     }
@@ -238,10 +284,11 @@ message GetLatestDataResp {
 
 message TransferCoinsReq {
     bytes master_addr = 1;                 // Transaction source address
-    repeated bytes addresses_to = 2;                   // Transaction destination address
-    repeated uint64 amounts = 3;                      // Amount. It should be expressed in Shor
-    uint64 fee = 4;                         // Fee. It should be expressed in Shor
-    bytes xmss_pk = 5;                      // XMSS Public key
+    repeated bytes addresses_to = 2;       // Transaction destination address
+    repeated uint64 amounts = 3;           // Amount. It should be expressed in Shor
+    bytes message_data = 4;                // Message Data. Optional field to send messages
+    uint64 fee = 5;                        // Fee. It should be expressed in Shor
+    bytes xmss_pk = 6;                     // XMSS Public key
 }
 
 message TransferCoinsResp {
@@ -262,11 +309,45 @@ message PushTransactionResp {
     bytes tx_hash = 3;
 }
 
+message MultiSigCreateTxnReq {
+    bytes master_addr = 1;
+
+    repeated bytes signatories = 2;
+    repeated uint32 weights = 3;
+    uint32 threshold = 4;
+
+    uint64 fee = 5;
+    bytes xmss_pk = 6;
+}
+
+message MultiSigSpendTxnReq {
+    bytes master_addr = 1;
+
+    bytes multi_sig_address = 2;
+    repeated bytes addrs_to = 3;
+    repeated uint64 amounts = 4;
+    uint64 expiry_block_number = 5;
+
+    uint64 fee = 6;
+    bytes xmss_pk = 7;
+}
+
+message MultiSigVoteTxnReq {
+    bytes master_addr = 1;
+
+    bytes shared_key = 2;
+    bool unvote = 3;
+
+    uint64 fee = 4;
+    bytes xmss_pk = 5;
+}
+
 message MessageTxnReq {
     bytes master_addr = 1;
     bytes message = 2;
-    uint64 fee = 3;
-    bytes xmss_pk = 4;
+    bytes addr_to = 3;
+    uint64 fee = 4;
+    bytes xmss_pk = 5;
 }
 
 message TokenTxnReq {
@@ -297,19 +378,20 @@ message SlaveTxnReq {
     bytes xmss_pk = 5;
 }
 
+message LatticeTxnReq {
+    bytes master_addr = 1;
+    bytes pk1 = 2;
+    bytes pk2 = 3;
+    bytes pk3 = 4;
+    bytes pk4 = 5;
+    uint64 fee = 6;
+    bytes xmss_pk = 7;
+}
+
 message MiniTransaction {
     string transaction_hash = 1;
     bool out = 2;
     uint64 amount = 3;
-}
-
-message GetTransactionsByAddressReq {
-    bytes address = 1;
-}
-
-message GetTransactionsByAddressResp {
-    repeated MiniTransaction mini_transactions = 1;
-    uint64 balance = 2;
 }
 
 message GetTransactionReq {
@@ -321,6 +403,97 @@ message GetTransactionResp {
     uint64 confirmations = 2;
     uint64 block_number = 3;
     bytes block_header_hash = 4;
+    uint64 timestamp = 5;
+    bytes addr_from = 6;
+}
+
+message GetMiniTransactionsByAddressReq {
+    bytes address = 1;
+    uint64 item_per_page = 2;
+    uint64 page_number = 3;
+}
+
+message GetMiniTransactionsByAddressResp {
+    repeated MiniTransaction mini_transactions = 1;
+    uint64 balance = 2;
+}
+
+message GetTransactionsByAddressReq {
+    bytes address = 1;
+    uint64 item_per_page = 2;
+    uint64 page_number = 3;
+}
+
+message GetTransactionsByAddressResp {
+    repeated GetTransactionResp transactions_detail = 1;
+}
+
+message GetMultiSigSpendTxsByAddressReq {
+    enum FilterType {
+        NONE = 0;
+        EXECUTED_ONLY = 1;
+        NON_EXECUTED = 2;
+        EXPIRED = 3;
+        NON_EXPIRED = 4;
+        NON_EXECUTED_EXPIRED = 5;
+        NON_EXECUTED_NON_EXPIRED = 6;
+    }
+    bytes address = 1;
+    uint64 item_per_page = 2;
+    uint64 page_number = 3;
+    FilterType filter_type = 4;
+}
+
+message GetMultiSigSpendTxsByAddressResp {
+    repeated GetTransactionResp transactions_detail = 1;
+}
+
+message GetVoteStatsReq {
+    bytes multi_sig_spend_tx_hash = 1;
+}
+
+message GetVoteStatsResp {
+    VoteStats vote_stats = 1;
+}
+
+message TokenDetail {
+    bytes token_txhash = 1;
+    bytes name = 2;
+    bytes symbol = 3;
+    uint64 balance = 4;
+}
+
+message GetTokensByAddressResp {
+    repeated TokenDetail tokens_detail = 1;
+}
+
+message SlaveDetail {
+    bytes slave_address = 1;
+    uint64 access_type = 2;
+}
+
+message GetSlavesByAddressResp {
+    repeated SlaveDetail slaves_detail = 1;
+}
+
+message LatticePKsDetail {
+    bytes pk1 = 1;
+    bytes pk2 = 2;
+    bytes pk3 = 3;
+    bytes pk4 = 4;
+}
+
+message GetLatticePKsByAddressResp {
+    repeated LatticePKsDetail lattice_pks_detail = 1;
+}
+
+message MultiSigDetail {
+    bytes address = 1;
+    uint64 balance = 2;
+}
+
+message GetMultiSigAddressesByAddressResp {
+    repeated MultiSigDetail multi_sig_detail = 1;
 }
 
 message GetBalanceReq {
@@ -341,11 +514,20 @@ message GetTotalBalanceResp {
 
 message GetOTSReq {
     bytes address = 1;
+    uint64 page_from = 2;
+    uint64 page_count = 3;
+    uint64 unused_ots_index_from = 4;
+}
+
+message OTSBitfieldByPage {
+    repeated bytes ots_bitfield = 1;
+    uint64 page_number = 2;
 }
 
 message GetOTSResp {
-    repeated bytes ots_bitfield = 1;
+    repeated OTSBitfieldByPage ots_bitfield_by_page = 1;
     uint64 next_unused_ots_index = 2;
+    bool unused_ots_index_found = 3;
 }
 
 message GetHeightReq {
@@ -440,10 +622,65 @@ message AddressState {
     uint64 ots_counter = 9;
 }
 
+message OptimizedAddressState {
+    bytes address = 1;
+    uint64 balance = 2;
+    uint64 nonce = 3;                           // FIXME: Discuss. 32 or 64 bits?
+    uint64 ots_bitfield_used_page = 4;  // Keep track of last page till which all ots key has been used
+    uint64 used_ots_key_count = 5;  // Keep track of number of ots key that has been used
+    uint64 transaction_hash_count = 6;
+    uint64 tokens_count = 7;
+    uint64 slaves_count = 8;
+    uint64 lattice_pk_count = 9;
+    uint64 multi_sig_address_count = 10;
+    uint64 multi_sig_spend_count = 11;
+
+    repeated bytes foundation_multi_sig_spend_txn_hash = 12;
+    repeated bytes foundation_multi_sig_vote_txn_hash = 13;
+    repeated bytes unvotes = 14;
+
+    repeated Transaction proposal_vote_stats = 15;
+}
+
+message MultiSigAddressState {
+    bytes address = 1;
+    bytes creation_tx_hash = 2;
+    uint64 nonce = 3;
+    uint64 balance = 4;
+    repeated bytes signatories = 5;
+    repeated uint32 weights = 6;
+    uint32 threshold = 7;
+    uint64 transaction_hash_count = 8;
+    uint64 multi_sig_spend_count = 9;
+    // TODO: To be implemented
+    uint64 multi_sig_address_count = 10;
+
+    repeated bytes foundation_multi_sig_spend_txn_hash = 11;
+    repeated bytes foundation_multi_sig_vote_txn_hash = 12;
+    repeated bytes unvotes = 13;
+
+    repeated Transaction proposal_vote_stats = 14;
+}
+
+message MultiSigAddressesList {
+    repeated bytes hashes = 1;
+}
+
+message DataList {
+    repeated bytes values = 1;
+}
+
+message Bitfield {
+    repeated bytes bitfields = 1;
+}
+
+message TransactionHashList {
+    repeated bytes hashes = 1;
+}
+
 message LatticePK {
-    bytes txhash = 1;
+    bytes kyber_pk = 1;
     bytes dilithium_pk = 2;
-    bytes kyber_pk = 3;
 }
 
 message AddressAmount {
@@ -526,12 +763,20 @@ message Transaction {
         Token token = 11;
         TransferToken transfer_token = 12;
         Slave slave = 13;
+
+        MultiSigCreate multi_sig_create = 14;
+        MultiSigSpend multi_sig_spend = 15;
+        MultiSigVote multi_sig_vote = 16;
+
+        ProposalCreate proposal_create = 17;
+        ProposalVote proposal_vote = 18;
     }
 
     //////////
     message Transfer {
         repeated bytes addrs_to = 1;
         repeated uint64 amounts = 2;
+        bytes message_data = 3;
     }
 
     message CoinBase {
@@ -540,12 +785,15 @@ message Transaction {
     }
 
     message LatticePublicKey {
-        bytes kyber_pk = 1;
-        bytes dilithium_pk = 2;
+        bytes pk1 = 1;  // kyber_pk
+        bytes pk2 = 2;  // dilithium_pk
+        bytes pk3 = 3;  // ecdsa_pk
+        bytes pk4 = 4;  // ecies_pk
     }
 
     message Message {
         bytes message_hash = 1;
+        bytes addr_to = 2;
     }
 
     message Token {
@@ -566,10 +814,139 @@ message Transaction {
         repeated bytes slave_pks = 1;
         repeated uint32 access_types = 2;
     }
+
+    message MultiSigCreate {
+        repeated bytes signatories = 1;
+        repeated uint32 weights = 2;
+        uint32 threshold = 3;
+    }
+
+    message MultiSigSpend {
+        bytes multi_sig_address = 1;
+        repeated bytes addrs_to = 2;
+        repeated uint64 amounts = 3;
+        uint64 expiry_block_number = 4;
+    }
+
+    message MultiSigVote {
+        bytes shared_key = 1;
+        bool unvote = 2;
+
+        bytes prev_tx_hash = 3;  // To be used internally by State
+    }
+
+    message ProposalCreate {
+        uint64 expiry_block_number = 1;
+        string description = 2;
+
+        oneof proposalType {
+            QIP qip = 3;
+            Config config = 4;
+            Other other = 5;
+        }
+
+        message QIP {
+            string qip_link = 1;
+        }
+
+        message Config {
+            repeated bytes changes_bitfield = 1;
+
+            uint64 reorg_limit = 2;
+            uint64 max_coin_supply = 3;
+            uint64 complete_emission_time_span_in_years = 4;
+
+            uint64 mining_nonce_offset = 5;
+            uint64 extra_nonce_offset = 6;
+            uint64 mining_blob_size_in_bytes = 7;
+            uint64 block_timing_in_seconds = 8;
+
+            uint64 number_of_blocks_analyze = 9;
+            uint64 block_size_multiplier = 10;  // Support upto 2 decimal places
+            uint64 block_min_size_limit_in_bytes = 11;
+
+            uint64 transaction_multi_output_limit = 12;
+
+            uint64 message_max_length = 13;
+
+            uint64 token_symbol_max_length = 14;
+            uint64 token_name_max_length = 15;
+
+            uint64 lattice_pk1_max_length = 16;
+            uint64 lattice_pk2_max_length = 17;
+            uint64 lattice_pk3_max_length = 18;
+            uint64 lattice_pk4_max_length = 19;
+
+            uint64 foundation_multi_sig_address_threshold_percentage = 20;
+
+            uint64 proposal_threshold_per = 21;
+            repeated string proposal_default_options = 22;
+            uint64 description_max_length = 23;
+            uint64 options_max_number = 24;
+            uint64 option_max_text_length = 25;
+            uint64 proposal_config_activation_delay = 26;
+
+            uint64 N_measurement = 27;
+            uint64 kp = 28;
+        }
+
+        message Other {
+            repeated string options = 1;
+        }
+    }
+
+    message ProposalVote {
+        bytes shared_key = 1;
+        uint32 option = 2;
+    }
+}
+
+message VoteStats {
+    bytes multi_sig_address = 1;
+    bytes shared_key = 2;
+    repeated bytes signatories = 3;
+    repeated bytes tx_hashes = 4;
+    repeated bool unvotes = 5;
+    uint64 expiry_block_number = 6;
+    uint64 total_weight = 7;
+    bool executed = 8;
+}
+
+message ProposalVoteStats {
+    bytes addr_from = 1;
+    bytes shared_key = 2;
+    string proposal_type = 3;
+    repeated uint64 weight_by_option = 4;
+    uint64 expiry_block_number = 5;
+    bool executed = 6;
+
+    uint64 number_of_tx_hashes = 7;  // Keep track of number of pages for vote txn hash
+}
+
+message ProposalRecord {
+    uint64 number_of_tx_hashes = 1;
 }
 
 message TokenList {
     repeated bytes token_txhash = 1;
+}
+
+message TokenBalance {
+    uint64 balance = 1;
+    uint64 decimals = 2;
+    bool delete = 3;  // For internal use only
+}
+
+message SlaveMetadata {
+    uint64 access_type = 1;
+    bytes tx_hash = 2;
+    bool delete = 3;
+}
+
+message LatticePKMetadata {
+    bool enabled = 1;
+    bytes tx_hash = 2;
+    bool delete = 3;
 }
 
 message TokenMetadata {
@@ -611,21 +988,6 @@ message BlockNumberMapping {
     bytes prev_headerhash = 2;
 }
 
-message StateLoader {
-    repeated bytes addresses = 1;
-    repeated bytes token_txhash = 2;
-    repeated bytes txhash = 3;
-    uint64 total_coin_supply = 4;
-}
-
-message StateObjects {
-    repeated bytes state_loaders = 1;
-}
-
-message LRUStateCache {
-
-}
-
 message PeerStat {
     bytes peer_ip = 1;
     uint32 port = 2;
@@ -659,4 +1021,85 @@ message PeerInfo {
 
 message Peers {
     repeated PeerInfo peer_info_list = 1;
+}
+
+message DevConfig {
+    bytes prev_state_key = 1;
+    bytes current_state_key = 2;
+    bytes activation_header_hash = 3;
+    uint64 activation_block_number = 4;
+
+    Chain chain = 5;
+    Block block = 6;
+    Transaction transaction = 7;
+    POW pow = 8;
+
+    message Chain {
+        uint64 reorg_limit = 1;
+        uint64 max_coin_supply = 2;
+        uint64 complete_emission_time_span_in_years = 3;
+    }
+
+    message Block {
+        uint64 mining_nonce_offset = 1;
+        uint64 extra_nonce_offset = 2;
+        uint64 mining_blob_size_in_bytes = 3;
+        uint64 block_timing_in_seconds = 4;
+        BlockSizeController block_size_controller = 5;
+
+        message BlockSizeController {
+            uint64 number_of_blocks_analyze = 1;
+            uint64 size_multiplier = 2;  // Support upto 2 decimal places
+            uint64 block_min_size_limit_in_bytes = 3;
+        }
+    }
+
+    message Transaction {
+        uint64 multi_output_limit = 1;
+        Message message = 2;
+        Slave slave = 3;
+        Token token = 4;
+        Lattice lattice = 5;
+        FoundationMultiSig foundation_multi_sig = 6;
+        Proposal proposal = 7;
+
+        message Message {
+            uint64 max_length = 1;
+        }
+
+        message Slave {
+            uint64 slave_pk_max_length = 2;
+        }
+
+        message Token {
+            uint64 symbol_max_length = 1;
+            uint64 name_max_length = 2;
+        }
+
+        message Lattice {
+            uint64 pk1_max_length = 1;
+            uint64 pk2_max_length = 2;
+            uint64 pk3_max_length = 3;
+            uint64 pk4_max_length = 4;
+        }
+
+        message FoundationMultiSig {
+            uint64 threshold_percentage = 1;  // Support upto 2 decimal places
+        }
+
+        message Proposal {
+            uint64 threshold_per = 1;  // Support upto 2 decimal places
+            repeated string default_options = 2;  // Convention: All strings must be in capital letters
+
+            uint64 description_max_length = 3;
+            uint64 options_max_number = 4;
+            uint64 option_max_text_length = 5;
+            uint64 proposal_config_activation_delay = 6;
+        }
+    }
+
+    message POW {
+        uint64 N_measurement = 1;
+        uint64 kp = 2;
+    }
 }

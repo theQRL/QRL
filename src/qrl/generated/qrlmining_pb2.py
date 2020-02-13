@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrlmining.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\x0fqrlmining.proto\x12\x03qrl\x1a\tqrl.proto\"-\n\x1bGetBlockMiningCompatibleReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\"\'\n\x15GetLastBlockHeaderReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\"p\n\x1cGetBlockMiningCompatibleResp\x12%\n\x0b\x62lockheader\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12)\n\rblockmetadata\x18\x02 \x01(\x0b\x32\x12.qrl.BlockMetaData\"|\n\x16GetLastBlockHeaderResp\x12\x12\n\ndifficulty\x18\x01 \x01(\x04\x12\x0e\n\x06height\x18\x02 \x01(\x04\x12\x11\n\ttimestamp\x18\x03 \x01(\x04\x12\x0e\n\x06reward\x18\x04 \x01(\x04\x12\x0c\n\x04hash\x18\x05 \x01(\t\x12\r\n\x05\x64\x65pth\x18\x06 \x01(\x04\"+\n\x11GetBlockToMineReq\x12\x16\n\x0ewallet_address\x18\x01 \x01(\x0c\"m\n\x12GetBlockToMineResp\x12\x1a\n\x12\x62locktemplate_blob\x18\x01 \x01(\t\x12\x12\n\ndifficulty\x18\x02 \x01(\x04\x12\x0e\n\x06height\x18\x03 \x01(\x04\x12\x17\n\x0freserved_offset\x18\x04 \x01(\r\"#\n\x13SubmitMinedBlockReq\x12\x0c\n\x04\x62lob\x18\x01 \x01(\x0c\"%\n\x14SubmitMinedBlockResp\x12\r\n\x05\x65rror\x18\x01 \x01(\x08\x32\xc7\x02\n\tMiningAPI\x12_\n\x18GetBlockMiningCompatible\x12 .qrl.GetBlockMiningCompatibleReq\x1a!.qrl.GetBlockMiningCompatibleResp\x12M\n\x12GetLastBlockHeader\x12\x1a.qrl.GetLastBlockHeaderReq\x1a\x1b.qrl.GetLastBlockHeaderResp\x12\x41\n\x0eGetBlockToMine\x12\x16.qrl.GetBlockToMineReq\x1a\x17.qrl.GetBlockToMineResp\x12G\n\x10SubmitMinedBlock\x12\x18.qrl.SubmitMinedBlockReq\x1a\x19.qrl.SubmitMinedBlockRespb\x06proto3')
+  serialized_pb=_b('\n\x0fqrlmining.proto\x12\x03qrl\x1a\tqrl.proto\"-\n\x1bGetBlockMiningCompatibleReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\"\'\n\x15GetLastBlockHeaderReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\"p\n\x1cGetBlockMiningCompatibleResp\x12%\n\x0b\x62lockheader\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12)\n\rblockmetadata\x18\x02 \x01(\x0b\x32\x12.qrl.BlockMetaData\"|\n\x16GetLastBlockHeaderResp\x12\x12\n\ndifficulty\x18\x01 \x01(\x04\x12\x0e\n\x06height\x18\x02 \x01(\x04\x12\x11\n\ttimestamp\x18\x03 \x01(\x04\x12\x0e\n\x06reward\x18\x04 \x01(\x04\x12\x0c\n\x04hash\x18\x05 \x01(\t\x12\r\n\x05\x64\x65pth\x18\x06 \x01(\x04\"+\n\x11GetBlockToMineReq\x12\x16\n\x0ewallet_address\x18\x01 \x01(\x0c\"\x80\x01\n\x12GetBlockToMineResp\x12\x1a\n\x12\x62locktemplate_blob\x18\x01 \x01(\t\x12\x12\n\ndifficulty\x18\x02 \x01(\x04\x12\x0e\n\x06height\x18\x03 \x01(\x04\x12\x17\n\x0freserved_offset\x18\x04 \x01(\r\x12\x11\n\tseed_hash\x18\x05 \x01(\t\"#\n\x13SubmitMinedBlockReq\x12\x0c\n\x04\x62lob\x18\x01 \x01(\x0c\"%\n\x14SubmitMinedBlockResp\x12\r\n\x05\x65rror\x18\x01 \x01(\x08\x32\xc7\x02\n\tMiningAPI\x12_\n\x18GetBlockMiningCompatible\x12 .qrl.GetBlockMiningCompatibleReq\x1a!.qrl.GetBlockMiningCompatibleResp\x12M\n\x12GetLastBlockHeader\x12\x1a.qrl.GetLastBlockHeaderReq\x1a\x1b.qrl.GetLastBlockHeaderResp\x12\x41\n\x0eGetBlockToMine\x12\x16.qrl.GetBlockToMineReq\x1a\x17.qrl.GetBlockToMineResp\x12G\n\x10SubmitMinedBlock\x12\x18.qrl.SubmitMinedBlockReq\x1a\x19.qrl.SubmitMinedBlockRespb\x06proto3')
   ,
   dependencies=[qrl__pb2.DESCRIPTOR,])
 
@@ -259,6 +259,13 @@ _GETBLOCKTOMINERESP = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='seed_hash', full_name='qrl.GetBlockToMineResp.seed_hash', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -271,8 +278,8 @@ _GETBLOCKTOMINERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=408,
-  serialized_end=517,
+  serialized_start=409,
+  serialized_end=537,
 )
 
 
@@ -302,8 +309,8 @@ _SUBMITMINEDBLOCKREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=519,
-  serialized_end=554,
+  serialized_start=539,
+  serialized_end=574,
 )
 
 
@@ -333,8 +340,8 @@ _SUBMITMINEDBLOCKRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=556,
-  serialized_end=593,
+  serialized_start=576,
+  serialized_end=613,
 )
 
 _GETBLOCKMININGCOMPATIBLERESP.fields_by_name['blockheader'].message_type = qrl__pb2._BLOCKHEADER
@@ -413,8 +420,8 @@ _MININGAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=596,
-  serialized_end=923,
+  serialized_start=616,
+  serialized_end=943,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetBlockMiningCompatible',

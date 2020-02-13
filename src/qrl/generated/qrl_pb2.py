@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='qrl.proto',
   package='qrl',
   syntax='proto3',
-  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x07\n\x05\x45mpty\"\x11\n\x0fGetNodeStateReq\"/\n\x10GetNodeStateResp\x12\x1b\n\x04info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\"\x12\n\x10GetKnownPeersReq\"U\n\x11GetKnownPeersResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\x1e\n\x0bknown_peers\x18\x02 \x03(\x0b\x32\t.qrl.Peer\"\x11\n\x0fGetPeersStatReq\"5\n\x10GetPeersStatResp\x12!\n\npeers_stat\x18\x01 \x03(\x0b\x32\r.qrl.PeerStat\"\x12\n\x10GetChainStatsReq\"U\n\x11GetChainStatsResp\x12\x12\n\nstate_size\x18\x01 \x01(\x04\x12\x15\n\rstate_size_mb\x18\x02 \x01(\t\x12\x15\n\rstate_size_gb\x18\x03 \x01(\t\")\n\x0bGetStatsReq\x12\x1a\n\x12include_timeseries\x18\x01 \x01(\x08\"\x84\x02\n\x0cGetStatsResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\r\n\x05\x65poch\x18\x02 \x01(\x04\x12\x16\n\x0euptime_network\x18\x03 \x01(\x04\x12\x19\n\x11\x62lock_last_reward\x18\x04 \x01(\x04\x12\x17\n\x0f\x62lock_time_mean\x18\x05 \x01(\x04\x12\x15\n\rblock_time_sd\x18\x06 \x01(\x04\x12\x1a\n\x12\x63oins_total_supply\x18\x07 \x01(\x04\x12\x15\n\rcoins_emitted\x18\x08 \x01(\x04\x12-\n\x10\x62lock_timeseries\x18\t \x03(\x0b\x32\x13.qrl.BlockDataPoint\"!\n\x13GetAddressFromPKReq\x12\n\n\x02pk\x18\x01 \x01(\x0c\"\'\n\x14GetAddressFromPKResp\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"\xb2\x01\n\x0e\x42lockDataPoint\x12\x0e\n\x06number\x18\x01 \x01(\x04\x12\x12\n\ndifficulty\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\x04\x12\x11\n\ttime_last\x18\x04 \x01(\x04\x12\x13\n\x0btime_movavg\x18\x05 \x01(\x04\x12\x12\n\nhash_power\x18\x06 \x01(\x02\x12\x13\n\x0bheader_hash\x18\x07 \x01(\x0c\x12\x18\n\x10header_hash_prev\x18\x08 \x01(\x0c\"g\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x1c\n\x14\x65xclude_ots_bitfield\x18\x02 \x01(\x08\x12\"\n\x1a\x65xclude_transaction_hashes\x18\x03 \x01(\x08\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"\"\n\x0fParseAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"J\n\x10ParseAddressResp\x12\x10\n\x08is_valid\x18\x01 \x01(\x08\x12$\n\x04\x64\x65sc\x18\x02 \x01(\x0b\x32\x16.qrl.AddressDescriptor\"\x1d\n\x0cGetObjectReq\x12\r\n\x05query\x18\x01 \x01(\x0c\"\xb3\x01\n\rGetObjectResp\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12*\n\raddress_state\x18\x02 \x01(\x0b\x32\x11.qrl.AddressStateH\x00\x12/\n\x0btransaction\x18\x03 \x01(\x0b\x32\x18.qrl.TransactionExtendedH\x00\x12,\n\x0e\x62lock_extended\x18\x04 \x01(\x0b\x32\x12.qrl.BlockExtendedH\x00\x42\x08\n\x06result\"\xb7\x01\n\x10GetLatestDataReq\x12,\n\x06\x66ilter\x18\x01 \x01(\x0e\x32\x1c.qrl.GetLatestDataReq.Filter\x12\x0e\n\x06offset\x18\x02 \x01(\r\x12\x10\n\x08quantity\x18\x03 \x01(\r\"S\n\x06\x46ilter\x12\x07\n\x03\x41LL\x10\x00\x12\x10\n\x0c\x42LOCKHEADERS\x10\x01\x12\x10\n\x0cTRANSACTIONS\x10\x02\x12\x1c\n\x18TRANSACTIONS_UNCONFIRMED\x10\x03\"\xaf\x01\n\x11GetLatestDataResp\x12.\n\x0c\x62lockheaders\x18\x01 \x03(\x0b\x32\x18.qrl.BlockHeaderExtended\x12.\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x18.qrl.TransactionExtended\x12:\n\x18transactions_unconfirmed\x18\x03 \x03(\x0b\x32\x18.qrl.TransactionExtended\"l\n\x10TransferCoinsReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x02 \x03(\x0c\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\"T\n\x11TransferCoinsResp\x12?\n\x1d\x65xtended_transaction_unsigned\x18\x01 \x01(\x0b\x32\x18.qrl.TransactionExtended\"B\n\x12PushTransactionReq\x12,\n\x12transaction_signed\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"\xca\x01\n\x13PushTransactionResp\x12\x39\n\nerror_code\x18\x01 \x01(\x0e\x32%.qrl.PushTransactionResp.ResponseCode\x12\x19\n\x11\x65rror_description\x18\x02 \x01(\t\x12\x0f\n\x07tx_hash\x18\x03 \x01(\x0c\"L\n\x0cResponseCode\x12\x0b\n\x07UNKNOWN\x10\x00\x12\t\n\x05\x45RROR\x10\x01\x12\x15\n\x11VALIDATION_FAILED\x10\x02\x12\r\n\tSUBMITTED\x10\x03\"S\n\rMessageTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x0f\n\x07message\x18\x02 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x03 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x04 \x01(\x0c\"\xad\x01\n\x0bTokenTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x0e\n\x06symbol\x18\x02 \x01(\x0c\x12\x0c\n\x04name\x18\x03 \x01(\x0c\x12\r\n\x05owner\x18\x04 \x01(\x0c\x12\x10\n\x08\x64\x65\x63imals\x18\x05 \x01(\x04\x12,\n\x10initial_balances\x18\x06 \x03(\x0b\x32\x12.qrl.AddressAmount\x12\x0b\n\x03\x66\x65\x65\x18\x07 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x08 \x01(\x0c\"\x85\x01\n\x13TransferTokenTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x02 \x03(\x0c\x12\x14\n\x0ctoken_txhash\x18\x03 \x01(\x0c\x12\x0f\n\x07\x61mounts\x18\x04 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x05 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x06 \x01(\x0c\"i\n\x0bSlaveTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x11\n\tslave_pks\x18\x02 \x03(\x0c\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x03 \x03(\r\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\"H\n\x0fMiniTransaction\x12\x18\n\x10transaction_hash\x18\x01 \x01(\t\x12\x0b\n\x03out\x18\x02 \x01(\x08\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\".\n\x1bGetTransactionsByAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"`\n\x1cGetTransactionsByAddressResp\x12/\n\x11mini_transactions\x18\x01 \x03(\x0b\x32\x14.qrl.MiniTransaction\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"$\n\x11GetTransactionReq\x12\x0f\n\x07tx_hash\x18\x01 \x01(\x0c\"z\n\x12GetTransactionResp\x12\x1c\n\x02tx\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\x12\x15\n\rconfirmations\x18\x02 \x01(\x04\x12\x14\n\x0c\x62lock_number\x18\x03 \x01(\x04\x12\x19\n\x11\x62lock_header_hash\x18\x04 \x01(\x0c\" \n\rGetBalanceReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"!\n\x0eGetBalanceResp\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x04\"\'\n\x12GetTotalBalanceReq\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"&\n\x13GetTotalBalanceResp\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x04\"\x1c\n\tGetOTSReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"A\n\nGetOTSResp\x12\x14\n\x0cots_bitfield\x18\x01 \x03(\x0c\x12\x1d\n\x15next_unused_ots_index\x18\x02 \x01(\x04\"\x0e\n\x0cGetHeightReq\"\x1f\n\rGetHeightResp\x12\x0e\n\x06height\x18\x01 \x01(\x04\"\"\n\x0bGetBlockReq\x12\x13\n\x0bheader_hash\x18\x01 \x01(\x0c\")\n\x0cGetBlockResp\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"+\n\x13GetBlockByNumberReq\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\"1\n\x14GetBlockByNumberResp\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"\x16\n\x14GetLocalAddressesReq\"*\n\x15GetLocalAddressesResp\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"\x8d\x02\n\x08NodeInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\"\n\x05state\x18\x02 \x01(\x0e\x32\x13.qrl.NodeInfo.State\x12\x17\n\x0fnum_connections\x18\x03 \x01(\r\x12\x17\n\x0fnum_known_peers\x18\x04 \x01(\r\x12\x0e\n\x06uptime\x18\x05 \x01(\x04\x12\x14\n\x0c\x62lock_height\x18\x06 \x01(\x04\x12\x17\n\x0f\x62lock_last_hash\x18\x07 \x01(\x0c\x12\x12\n\nnetwork_id\x18\x08 \x01(\t\"G\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08UNSYNCED\x10\x01\x12\x0b\n\x07SYNCING\x10\x02\x12\n\n\x06SYNCED\x10\x03\x12\n\n\x06\x46ORKED\x10\x04\"\x85\x01\n\x11\x41\x64\x64ressDescriptor\x12\x15\n\rhash_function\x18\x01 \x01(\t\x12\x18\n\x10signature_scheme\x18\x02 \x01(\t\x12\x13\n\x0btree_height\x18\x03 \x01(\r\x12\x12\n\nsignatures\x18\x04 \x01(\r\x12\x16\n\x0e\x61\x64\x64ress_format\x18\x05 \x01(\t\"\'\n\x0bStoredPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"\x91\x03\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12\x14\n\x0cots_bitfield\x18\x04 \x03(\x0c\x12\x1a\n\x12transaction_hashes\x18\x05 \x03(\x0c\x12-\n\x06tokens\x18\x06 \x03(\x0b\x32\x1d.qrl.AddressState.TokensEntry\x12&\n\x0elatticePK_list\x18\x07 \x03(\x0b\x32\x0e.qrl.LatticePK\x12H\n\x15slave_pks_access_type\x18\x08 \x03(\x0b\x32).qrl.AddressState.SlavePksAccessTypeEntry\x12\x13\n\x0bots_counter\x18\t \x01(\x04\x1a-\n\x0bTokensEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\x1a\x39\n\x17SlavePksAccessTypeEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\r:\x02\x38\x01\"C\n\tLatticePK\x12\x0e\n\x06txhash\x18\x01 \x01(\x0c\x12\x14\n\x0c\x64ilithium_pk\x18\x02 \x01(\x0c\x12\x10\n\x08kyber_pk\x18\x03 \x01(\x0c\"0\n\rAddressAmount\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\"\xd7\x01\n\x0b\x42lockHeader\x12\x13\n\x0bhash_header\x18\x01 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x02 \x01(\x04\x12\x19\n\x11timestamp_seconds\x18\x03 \x01(\x04\x12\x18\n\x10hash_header_prev\x18\x04 \x01(\x0c\x12\x14\n\x0creward_block\x18\x05 \x01(\x04\x12\x12\n\nreward_fee\x18\x06 \x01(\x04\x12\x13\n\x0bmerkle_root\x18\x07 \x01(\x0c\x12\x14\n\x0cmining_nonce\x18\x08 \x01(\r\x12\x13\n\x0b\x65xtra_nonce\x18\t \x01(\x04\"i\n\x13\x42lockHeaderExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x30\n\x11transaction_count\x18\x02 \x01(\x0b\x32\x15.qrl.TransactionCount\"q\n\x10TransactionCount\x12/\n\x05\x63ount\x18\x01 \x03(\x0b\x32 .qrl.TransactionCount.CountEntry\x1a,\n\nCountEntry\x12\x0b\n\x03key\x18\x01 \x01(\r\x12\r\n\x05value\x18\x02 \x01(\r:\x02\x38\x01\"\x91\x01\n\x13TransactionExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x1c\n\x02tx\x18\x02 \x01(\x0b\x32\x10.qrl.Transaction\x12\x11\n\taddr_from\x18\x03 \x01(\x0c\x12\x0c\n\x04size\x18\x04 \x01(\x04\x12\x19\n\x11timestamp_seconds\x18\x05 \x01(\x04\"\xa6\x01\n\rBlockExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x37\n\x15\x65xtended_transactions\x18\x02 \x03(\x0b\x32\x18.qrl.TransactionExtended\x12,\n\x0fgenesis_balance\x18\x03 \x03(\x0b\x32\x13.qrl.GenesisBalance\x12\x0c\n\x04size\x18\x04 \x01(\x04\"\x7f\n\x05\x42lock\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12&\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x10.qrl.Transaction\x12,\n\x0fgenesis_balance\x18\x03 \x03(\x0b\x32\x13.qrl.GenesisBalance\"2\n\x0eGenesisBalance\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"D\n\x11\x42lockMetaDataList\x12/\n\x13\x62lock_number_hashes\x18\x01 \x03(\x0b\x32\x12.qrl.BlockMetaData\"\x8c\x07\n\x0bTransaction\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x12\n\npublic_key\x18\x03 \x01(\x0c\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\r\n\x05nonce\x18\x05 \x01(\x04\x12\x18\n\x10transaction_hash\x18\x06 \x01(\x0c\x12-\n\x08transfer\x18\x07 \x01(\x0b\x32\x19.qrl.Transaction.TransferH\x00\x12-\n\x08\x63oinbase\x18\x08 \x01(\x0b\x32\x19.qrl.Transaction.CoinBaseH\x00\x12\x36\n\tlatticePK\x18\t \x01(\x0b\x32!.qrl.Transaction.LatticePublicKeyH\x00\x12+\n\x07message\x18\n \x01(\x0b\x32\x18.qrl.Transaction.MessageH\x00\x12\'\n\x05token\x18\x0b \x01(\x0b\x32\x16.qrl.Transaction.TokenH\x00\x12\x38\n\x0etransfer_token\x18\x0c \x01(\x0b\x32\x1e.qrl.Transaction.TransferTokenH\x00\x12\'\n\x05slave\x18\r \x01(\x0b\x32\x16.qrl.Transaction.SlaveH\x00\x1a-\n\x08Transfer\x12\x10\n\x08\x61\x64\x64rs_to\x18\x01 \x03(\x0c\x12\x0f\n\x07\x61mounts\x18\x02 \x03(\x04\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1a:\n\x10LatticePublicKey\x12\x10\n\x08kyber_pk\x18\x01 \x01(\x0c\x12\x14\n\x0c\x64ilithium_pk\x18\x02 \x01(\x0c\x1a\x1f\n\x07Message\x12\x14\n\x0cmessage_hash\x18\x01 \x01(\x0c\x1at\n\x05Token\x12\x0e\n\x06symbol\x18\x01 \x01(\x0c\x12\x0c\n\x04name\x18\x02 \x01(\x0c\x12\r\n\x05owner\x18\x03 \x01(\x0c\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12,\n\x10initial_balances\x18\x05 \x03(\x0b\x32\x12.qrl.AddressAmount\x1aH\n\rTransferToken\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12\x10\n\x08\x61\x64\x64rs_to\x18\x02 \x03(\x0c\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x1a\x30\n\x05Slave\x12\x11\n\tslave_pks\x18\x01 \x03(\x0c\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x02 \x03(\rB\x11\n\x0ftransactionType\"!\n\tTokenList\x12\x14\n\x0ctoken_txhash\x18\x01 \x03(\x0c\"G\n\rTokenMetadata\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12 \n\x18transfer_token_tx_hashes\x18\x02 \x03(\x0c\"\xc4\x01\n\x19\x45ncryptedEphemeralMessage\x12\x0e\n\x06msg_id\x18\x01 \x01(\x0c\x12\x0b\n\x03ttl\x18\x02 \x01(\x04\x12\x0b\n\x03ttr\x18\x03 \x01(\x04\x12\x37\n\x07\x63hannel\x18\x05 \x01(\x0b\x32&.qrl.EncryptedEphemeralMessage.Channel\x12\r\n\x05nonce\x18\x06 \x01(\x04\x12\x0f\n\x07payload\x18\x07 \x01(\x0c\x1a$\n\x07\x43hannel\x12\x19\n\x11\x65nc_aes256_symkey\x18\x04 \x01(\x0c\" \n\x0b\x41\x64\x64ressList\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"`\n\x0f\x42lockHeightData\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x18\n\x10\x62lock_headerhash\x18\x02 \x01(\x0c\x12\x1d\n\x15\x63umulative_difficulty\x18\x03 \x01(\x0c\"\x81\x01\n\rBlockMetaData\x12\x18\n\x10\x62lock_difficulty\x18\x01 \x01(\x0c\x12\x1d\n\x15\x63umulative_difficulty\x18\x02 \x01(\x0c\x12\x1a\n\x12\x63hild_headerhashes\x18\x03 \x03(\x0c\x12\x1b\n\x13last_N_headerhashes\x18\x04 \x03(\x0c\"A\n\x12\x42lockNumberMapping\x12\x12\n\nheaderhash\x18\x01 \x01(\x0c\x12\x17\n\x0fprev_headerhash\x18\x02 \x01(\x0c\"a\n\x0bStateLoader\x12\x11\n\taddresses\x18\x01 \x03(\x0c\x12\x14\n\x0ctoken_txhash\x18\x02 \x03(\x0c\x12\x0e\n\x06txhash\x18\x03 \x03(\x0c\x12\x19\n\x11total_coin_supply\x18\x04 \x01(\x04\"%\n\x0cStateObjects\x12\x15\n\rstate_loaders\x18\x01 \x03(\x0c\"\x0f\n\rLRUStateCache\"X\n\x08PeerStat\x12\x0f\n\x07peer_ip\x18\x01 \x01(\x0c\x12\x0c\n\x04port\x18\x02 \x01(\r\x12-\n\x10node_chain_state\x18\x03 \x01(\x0b\x32\x13.qrl.NodeChainState\"~\n\x0eNodeChainState\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bheader_hash\x18\x02 \x01(\x0c\x12\x1d\n\x15\x63umulative_difficulty\x18\x03 \x01(\x0c\x12\x0f\n\x07version\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"<\n\x0eNodeHeaderHash\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x14\n\x0cheaderhashes\x18\x02 \x03(\x0c\"-\n\x12P2PAcknowledgement\x12\x17\n\x0f\x62ytes_processed\x18\x01 \x01(\r\"|\n\x08PeerInfo\x12\x0f\n\x07peer_ip\x18\x01 \x01(\x0c\x12\x0c\n\x04port\x18\x02 \x01(\r\x12\x18\n\x10\x62\x61nned_timestamp\x18\x03 \x01(\r\x12\x13\n\x0b\x63redibility\x18\x04 \x01(\r\x12\"\n\x1alast_connections_timestamp\x18\x05 \x03(\r\".\n\x05Peers\x12%\n\x0epeer_info_list\x18\x01 \x03(\x0b\x32\r.qrl.PeerInfo2\xee\x0b\n\tPublicAPI\x12;\n\x0cGetNodeState\x12\x14.qrl.GetNodeStateReq\x1a\x15.qrl.GetNodeStateResp\x12>\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\x12;\n\x0cGetPeersStat\x12\x14.qrl.GetPeersStatReq\x1a\x15.qrl.GetPeersStatResp\x12/\n\x08GetStats\x12\x10.qrl.GetStatsReq\x1a\x11.qrl.GetStatsResp\x12\x44\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\x12\x32\n\tGetObject\x12\x11.qrl.GetObjectReq\x1a\x12.qrl.GetObjectResp\x12>\n\rGetLatestData\x12\x15.qrl.GetLatestDataReq\x1a\x16.qrl.GetLatestDataResp\x12\x44\n\x0fPushTransaction\x12\x17.qrl.PushTransactionReq\x1a\x18.qrl.PushTransactionResp\x12>\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\x12;\n\x0cParseAddress\x12\x14.qrl.ParseAddressReq\x1a\x15.qrl.ParseAddressResp\x12>\n\rGetChainStats\x12\x15.qrl.GetChainStatsReq\x1a\x16.qrl.GetChainStatsResp\x12G\n\x10GetAddressFromPK\x12\x18.qrl.GetAddressFromPKReq\x1a\x19.qrl.GetAddressFromPKResp\x12;\n\rGetMessageTxn\x12\x12.qrl.MessageTxnReq\x1a\x16.qrl.TransferCoinsResp\x12\x37\n\x0bGetTokenTxn\x12\x10.qrl.TokenTxnReq\x1a\x16.qrl.TransferCoinsResp\x12G\n\x13GetTransferTokenTxn\x12\x18.qrl.TransferTokenTxnReq\x1a\x16.qrl.TransferCoinsResp\x12\x37\n\x0bGetSlaveTxn\x12\x10.qrl.SlaveTxnReq\x1a\x16.qrl.TransferCoinsResp\x12_\n\x18GetTransactionsByAddress\x12 .qrl.GetTransactionsByAddressReq\x1a!.qrl.GetTransactionsByAddressResp\x12\x41\n\x0eGetTransaction\x12\x16.qrl.GetTransactionReq\x1a\x17.qrl.GetTransactionResp\x12\x35\n\nGetBalance\x12\x12.qrl.GetBalanceReq\x1a\x13.qrl.GetBalanceResp\x12\x44\n\x0fGetTotalBalance\x12\x17.qrl.GetTotalBalanceReq\x1a\x18.qrl.GetTotalBalanceResp\x12)\n\x06GetOTS\x12\x0e.qrl.GetOTSReq\x1a\x0f.qrl.GetOTSResp\x12\x32\n\tGetHeight\x12\x11.qrl.GetHeightReq\x1a\x12.qrl.GetHeightResp\x12/\n\x08GetBlock\x12\x10.qrl.GetBlockReq\x1a\x11.qrl.GetBlockResp\x12G\n\x10GetBlockByNumber\x12\x18.qrl.GetBlockByNumberReq\x1a\x19.qrl.GetBlockByNumberResp2\n\n\x08\x41\x64minAPIb\x06proto3')
+  serialized_pb=_b('\n\tqrl.proto\x12\x03qrl\"\x07\n\x05\x45mpty\"\x11\n\x0fGetNodeStateReq\"/\n\x10GetNodeStateResp\x12\x1b\n\x04info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\"\x12\n\x10GetKnownPeersReq\"U\n\x11GetKnownPeersResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\x1e\n\x0bknown_peers\x18\x02 \x03(\x0b\x32\t.qrl.Peer\"\x11\n\x0fGetPeersStatReq\"5\n\x10GetPeersStatResp\x12!\n\npeers_stat\x18\x01 \x03(\x0b\x32\r.qrl.PeerStat\"\x12\n\x10GetChainStatsReq\"U\n\x11GetChainStatsResp\x12\x12\n\nstate_size\x18\x01 \x01(\x04\x12\x15\n\rstate_size_mb\x18\x02 \x01(\t\x12\x15\n\rstate_size_gb\x18\x03 \x01(\t\")\n\x0bGetStatsReq\x12\x1a\n\x12include_timeseries\x18\x01 \x01(\x08\"\x84\x02\n\x0cGetStatsResp\x12 \n\tnode_info\x18\x01 \x01(\x0b\x32\r.qrl.NodeInfo\x12\r\n\x05\x65poch\x18\x02 \x01(\x04\x12\x16\n\x0euptime_network\x18\x03 \x01(\x04\x12\x19\n\x11\x62lock_last_reward\x18\x04 \x01(\x04\x12\x17\n\x0f\x62lock_time_mean\x18\x05 \x01(\x04\x12\x15\n\rblock_time_sd\x18\x06 \x01(\x04\x12\x1a\n\x12\x63oins_total_supply\x18\x07 \x01(\x04\x12\x15\n\rcoins_emitted\x18\x08 \x01(\x04\x12-\n\x10\x62lock_timeseries\x18\t \x03(\x0b\x32\x13.qrl.BlockDataPoint\"!\n\x13GetAddressFromPKReq\x12\n\n\x02pk\x18\x01 \x01(\x0c\"\'\n\x14GetAddressFromPKResp\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"\xb2\x01\n\x0e\x42lockDataPoint\x12\x0e\n\x06number\x18\x01 \x01(\x04\x12\x12\n\ndifficulty\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\x04\x12\x11\n\ttime_last\x18\x04 \x01(\x04\x12\x13\n\x0btime_movavg\x18\x05 \x01(\x04\x12\x12\n\nhash_power\x18\x06 \x01(\x02\x12\x13\n\x0bheader_hash\x18\x07 \x01(\x0c\x12\x18\n\x10header_hash_prev\x18\x08 \x01(\x0c\"g\n\x12GetAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x1c\n\x14\x65xclude_ots_bitfield\x18\x02 \x01(\x08\x12\"\n\x1a\x65xclude_transaction_hashes\x18\x03 \x01(\x08\"7\n\x13GetAddressStateResp\x12 \n\x05state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\"I\n\x1cGetOptimizedAddressStateResp\x12)\n\x05state\x18\x01 \x01(\x0b\x32\x1a.qrl.OptimizedAddressState\"-\n\x1aGetMultiSigAddressStateReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"G\n\x1bGetMultiSigAddressStateResp\x12(\n\x05state\x18\x01 \x01(\x0b\x32\x19.qrl.MultiSigAddressState\"6\n\nIsSlaveReq\x12\x16\n\x0emaster_address\x18\x01 \x01(\x0c\x12\x10\n\x08slave_pk\x18\x02 \x01(\x0c\"\x1d\n\x0bIsSlaveResp\x12\x0e\n\x06result\x18\x01 \x01(\x08\"\"\n\x0fParseAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"J\n\x10ParseAddressResp\x12\x10\n\x08is_valid\x18\x01 \x01(\x08\x12$\n\x04\x64\x65sc\x18\x02 \x01(\x0b\x32\x16.qrl.AddressDescriptor\"\x1d\n\x0cGetObjectReq\x12\r\n\x05query\x18\x01 \x01(\x0c\"\xbc\x01\n\rGetObjectResp\x12\r\n\x05\x66ound\x18\x01 \x01(\x08\x12\x33\n\raddress_state\x18\x02 \x01(\x0b\x32\x1a.qrl.OptimizedAddressStateH\x00\x12/\n\x0btransaction\x18\x03 \x01(\x0b\x32\x18.qrl.TransactionExtendedH\x00\x12,\n\x0e\x62lock_extended\x18\x04 \x01(\x0b\x32\x12.qrl.BlockExtendedH\x00\x42\x08\n\x06result\"\xb7\x01\n\x10GetLatestDataReq\x12,\n\x06\x66ilter\x18\x01 \x01(\x0e\x32\x1c.qrl.GetLatestDataReq.Filter\x12\x0e\n\x06offset\x18\x02 \x01(\r\x12\x10\n\x08quantity\x18\x03 \x01(\r\"S\n\x06\x46ilter\x12\x07\n\x03\x41LL\x10\x00\x12\x10\n\x0c\x42LOCKHEADERS\x10\x01\x12\x10\n\x0cTRANSACTIONS\x10\x02\x12\x1c\n\x18TRANSACTIONS_UNCONFIRMED\x10\x03\"\xaf\x01\n\x11GetLatestDataResp\x12.\n\x0c\x62lockheaders\x18\x01 \x03(\x0b\x32\x18.qrl.BlockHeaderExtended\x12.\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x18.qrl.TransactionExtended\x12:\n\x18transactions_unconfirmed\x18\x03 \x03(\x0b\x32\x18.qrl.TransactionExtended\"\x82\x01\n\x10TransferCoinsReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x02 \x03(\x0c\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x12\x14\n\x0cmessage_data\x18\x04 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x05 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x06 \x01(\x0c\"T\n\x11TransferCoinsResp\x12?\n\x1d\x65xtended_transaction_unsigned\x18\x01 \x01(\x0b\x32\x18.qrl.TransactionExtended\"B\n\x12PushTransactionReq\x12,\n\x12transaction_signed\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\"\xca\x01\n\x13PushTransactionResp\x12\x39\n\nerror_code\x18\x01 \x01(\x0e\x32%.qrl.PushTransactionResp.ResponseCode\x12\x19\n\x11\x65rror_description\x18\x02 \x01(\t\x12\x0f\n\x07tx_hash\x18\x03 \x01(\x0c\"L\n\x0cResponseCode\x12\x0b\n\x07UNKNOWN\x10\x00\x12\t\n\x05\x45RROR\x10\x01\x12\x15\n\x11VALIDATION_FAILED\x10\x02\x12\r\n\tSUBMITTED\x10\x03\"\x82\x01\n\x14MultiSigCreateTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x13\n\x0bsignatories\x18\x02 \x03(\x0c\x12\x0f\n\x07weights\x18\x03 \x03(\r\x12\x11\n\tthreshold\x18\x04 \x01(\r\x12\x0b\n\x03\x66\x65\x65\x18\x05 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x06 \x01(\x0c\"\xa3\x01\n\x13MultiSigSpendTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x19\n\x11multi_sig_address\x18\x02 \x01(\x0c\x12\x10\n\x08\x61\x64\x64rs_to\x18\x03 \x03(\x0c\x12\x0f\n\x07\x61mounts\x18\x04 \x03(\x04\x12\x1b\n\x13\x65xpiry_block_number\x18\x05 \x01(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x06 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x07 \x01(\x0c\"k\n\x12MultiSigVoteTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x12\n\nshared_key\x18\x02 \x01(\x0c\x12\x0e\n\x06unvote\x18\x03 \x01(\x08\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\"d\n\rMessageTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x0f\n\x07message\x18\x02 \x01(\x0c\x12\x0f\n\x07\x61\x64\x64r_to\x18\x03 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\"\xad\x01\n\x0bTokenTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x0e\n\x06symbol\x18\x02 \x01(\x0c\x12\x0c\n\x04name\x18\x03 \x01(\x0c\x12\r\n\x05owner\x18\x04 \x01(\x0c\x12\x10\n\x08\x64\x65\x63imals\x18\x05 \x01(\x04\x12,\n\x10initial_balances\x18\x06 \x03(\x0b\x32\x12.qrl.AddressAmount\x12\x0b\n\x03\x66\x65\x65\x18\x07 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x08 \x01(\x0c\"\x85\x01\n\x13TransferTokenTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x14\n\x0c\x61\x64\x64resses_to\x18\x02 \x03(\x0c\x12\x14\n\x0ctoken_txhash\x18\x03 \x01(\x0c\x12\x0f\n\x07\x61mounts\x18\x04 \x03(\x04\x12\x0b\n\x03\x66\x65\x65\x18\x05 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x06 \x01(\x0c\"i\n\x0bSlaveTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x11\n\tslave_pks\x18\x02 \x03(\x0c\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x03 \x03(\r\x12\x0b\n\x03\x66\x65\x65\x18\x04 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x05 \x01(\x0c\"v\n\rLatticeTxnReq\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x0b\n\x03pk1\x18\x02 \x01(\x0c\x12\x0b\n\x03pk2\x18\x03 \x01(\x0c\x12\x0b\n\x03pk3\x18\x04 \x01(\x0c\x12\x0b\n\x03pk4\x18\x05 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x06 \x01(\x04\x12\x0f\n\x07xmss_pk\x18\x07 \x01(\x0c\"H\n\x0fMiniTransaction\x12\x18\n\x10transaction_hash\x18\x01 \x01(\t\x12\x0b\n\x03out\x18\x02 \x01(\x08\x12\x0e\n\x06\x61mount\x18\x03 \x01(\x04\"$\n\x11GetTransactionReq\x12\x0f\n\x07tx_hash\x18\x01 \x01(\x0c\"\xa0\x01\n\x12GetTransactionResp\x12\x1c\n\x02tx\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\x12\x15\n\rconfirmations\x18\x02 \x01(\x04\x12\x14\n\x0c\x62lock_number\x18\x03 \x01(\x04\x12\x19\n\x11\x62lock_header_hash\x18\x04 \x01(\x0c\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\x12\x11\n\taddr_from\x18\x06 \x01(\x0c\"^\n\x1fGetMiniTransactionsByAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x15\n\ritem_per_page\x18\x02 \x01(\x04\x12\x13\n\x0bpage_number\x18\x03 \x01(\x04\"d\n GetMiniTransactionsByAddressResp\x12/\n\x11mini_transactions\x18\x01 \x03(\x0b\x32\x14.qrl.MiniTransaction\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"Z\n\x1bGetTransactionsByAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x15\n\ritem_per_page\x18\x02 \x01(\x04\x12\x13\n\x0bpage_number\x18\x03 \x01(\x04\"T\n\x1cGetTransactionsByAddressResp\x12\x34\n\x13transactions_detail\x18\x01 \x03(\x0b\x32\x17.qrl.GetTransactionResp\"\xb8\x02\n\x1fGetMultiSigSpendTxsByAddressReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x15\n\ritem_per_page\x18\x02 \x01(\x04\x12\x13\n\x0bpage_number\x18\x03 \x01(\x04\x12\x44\n\x0b\x66ilter_type\x18\x04 \x01(\x0e\x32/.qrl.GetMultiSigSpendTxsByAddressReq.FilterType\"\x91\x01\n\nFilterType\x12\x08\n\x04NONE\x10\x00\x12\x11\n\rEXECUTED_ONLY\x10\x01\x12\x10\n\x0cNON_EXECUTED\x10\x02\x12\x0b\n\x07\x45XPIRED\x10\x03\x12\x0f\n\x0bNON_EXPIRED\x10\x04\x12\x18\n\x14NON_EXECUTED_EXPIRED\x10\x05\x12\x1c\n\x18NON_EXECUTED_NON_EXPIRED\x10\x06\"X\n GetMultiSigSpendTxsByAddressResp\x12\x34\n\x13transactions_detail\x18\x01 \x03(\x0b\x32\x17.qrl.GetTransactionResp\"2\n\x0fGetVoteStatsReq\x12\x1f\n\x17multi_sig_spend_tx_hash\x18\x01 \x01(\x0c\"6\n\x10GetVoteStatsResp\x12\"\n\nvote_stats\x18\x01 \x01(\x0b\x32\x0e.qrl.VoteStats\"R\n\x0bTokenDetail\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12\x0c\n\x04name\x18\x02 \x01(\x0c\x12\x0e\n\x06symbol\x18\x03 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x04 \x01(\x04\"A\n\x16GetTokensByAddressResp\x12\'\n\rtokens_detail\x18\x01 \x03(\x0b\x32\x10.qrl.TokenDetail\"9\n\x0bSlaveDetail\x12\x15\n\rslave_address\x18\x01 \x01(\x0c\x12\x13\n\x0b\x61\x63\x63\x65ss_type\x18\x02 \x01(\x04\"A\n\x16GetSlavesByAddressResp\x12\'\n\rslaves_detail\x18\x01 \x03(\x0b\x32\x10.qrl.SlaveDetail\"F\n\x10LatticePKsDetail\x12\x0b\n\x03pk1\x18\x01 \x01(\x0c\x12\x0b\n\x03pk2\x18\x02 \x01(\x0c\x12\x0b\n\x03pk3\x18\x03 \x01(\x0c\x12\x0b\n\x03pk4\x18\x04 \x01(\x0c\"O\n\x1aGetLatticePKsByAddressResp\x12\x31\n\x12lattice_pks_detail\x18\x01 \x03(\x0b\x32\x15.qrl.LatticePKsDetail\"2\n\x0eMultiSigDetail\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"R\n!GetMultiSigAddressesByAddressResp\x12-\n\x10multi_sig_detail\x18\x01 \x03(\x0b\x32\x13.qrl.MultiSigDetail\" \n\rGetBalanceReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\"!\n\x0eGetBalanceResp\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x04\"\'\n\x12GetTotalBalanceReq\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"&\n\x13GetTotalBalanceResp\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x04\"b\n\tGetOTSReq\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x11\n\tpage_from\x18\x02 \x01(\x04\x12\x12\n\npage_count\x18\x03 \x01(\x04\x12\x1d\n\x15unused_ots_index_from\x18\x04 \x01(\x04\">\n\x11OTSBitfieldByPage\x12\x14\n\x0cots_bitfield\x18\x01 \x03(\x0c\x12\x13\n\x0bpage_number\x18\x02 \x01(\x04\"\x81\x01\n\nGetOTSResp\x12\x34\n\x14ots_bitfield_by_page\x18\x01 \x03(\x0b\x32\x16.qrl.OTSBitfieldByPage\x12\x1d\n\x15next_unused_ots_index\x18\x02 \x01(\x04\x12\x1e\n\x16unused_ots_index_found\x18\x03 \x01(\x08\"\x0e\n\x0cGetHeightReq\"\x1f\n\rGetHeightResp\x12\x0e\n\x06height\x18\x01 \x01(\x04\"\"\n\x0bGetBlockReq\x12\x13\n\x0bheader_hash\x18\x01 \x01(\x0c\")\n\x0cGetBlockResp\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"+\n\x13GetBlockByNumberReq\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\"1\n\x14GetBlockByNumberResp\x12\x19\n\x05\x62lock\x18\x01 \x01(\x0b\x32\n.qrl.Block\"\x16\n\x14GetLocalAddressesReq\"*\n\x15GetLocalAddressesResp\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"\x8d\x02\n\x08NodeInfo\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\"\n\x05state\x18\x02 \x01(\x0e\x32\x13.qrl.NodeInfo.State\x12\x17\n\x0fnum_connections\x18\x03 \x01(\r\x12\x17\n\x0fnum_known_peers\x18\x04 \x01(\r\x12\x0e\n\x06uptime\x18\x05 \x01(\x04\x12\x14\n\x0c\x62lock_height\x18\x06 \x01(\x04\x12\x17\n\x0f\x62lock_last_hash\x18\x07 \x01(\x0c\x12\x12\n\nnetwork_id\x18\x08 \x01(\t\"G\n\x05State\x12\x0b\n\x07UNKNOWN\x10\x00\x12\x0c\n\x08UNSYNCED\x10\x01\x12\x0b\n\x07SYNCING\x10\x02\x12\n\n\x06SYNCED\x10\x03\x12\n\n\x06\x46ORKED\x10\x04\"\x85\x01\n\x11\x41\x64\x64ressDescriptor\x12\x15\n\rhash_function\x18\x01 \x01(\t\x12\x18\n\x10signature_scheme\x18\x02 \x01(\t\x12\x13\n\x0btree_height\x18\x03 \x01(\r\x12\x12\n\nsignatures\x18\x04 \x01(\r\x12\x16\n\x0e\x61\x64\x64ress_format\x18\x05 \x01(\t\"\'\n\x0bStoredPeers\x12\x18\n\x05peers\x18\x01 \x03(\x0b\x32\t.qrl.Peer\"\x12\n\x04Peer\x12\n\n\x02ip\x18\x01 \x01(\t\"\x91\x03\n\x0c\x41\x64\x64ressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12\x14\n\x0cots_bitfield\x18\x04 \x03(\x0c\x12\x1a\n\x12transaction_hashes\x18\x05 \x03(\x0c\x12-\n\x06tokens\x18\x06 \x03(\x0b\x32\x1d.qrl.AddressState.TokensEntry\x12&\n\x0elatticePK_list\x18\x07 \x03(\x0b\x32\x0e.qrl.LatticePK\x12H\n\x15slave_pks_access_type\x18\x08 \x03(\x0b\x32).qrl.AddressState.SlavePksAccessTypeEntry\x12\x13\n\x0bots_counter\x18\t \x01(\x04\x1a-\n\x0bTokensEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\x1a\x39\n\x17SlavePksAccessTypeEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\r:\x02\x38\x01\"\xc3\x03\n\x15OptimizedAddressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12\x1e\n\x16ots_bitfield_used_page\x18\x04 \x01(\x04\x12\x1a\n\x12used_ots_key_count\x18\x05 \x01(\x04\x12\x1e\n\x16transaction_hash_count\x18\x06 \x01(\x04\x12\x14\n\x0ctokens_count\x18\x07 \x01(\x04\x12\x14\n\x0cslaves_count\x18\x08 \x01(\x04\x12\x18\n\x10lattice_pk_count\x18\t \x01(\x04\x12\x1f\n\x17multi_sig_address_count\x18\n \x01(\x04\x12\x1d\n\x15multi_sig_spend_count\x18\x0b \x01(\x04\x12+\n#foundation_multi_sig_spend_txn_hash\x18\x0c \x03(\x0c\x12*\n\"foundation_multi_sig_vote_txn_hash\x18\r \x03(\x0c\x12\x0f\n\x07unvotes\x18\x0e \x03(\x0c\x12-\n\x13proposal_vote_stats\x18\x0f \x03(\x0b\x32\x10.qrl.Transaction\"\x93\x03\n\x14MultiSigAddressState\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x18\n\x10\x63reation_tx_hash\x18\x02 \x01(\x0c\x12\r\n\x05nonce\x18\x03 \x01(\x04\x12\x0f\n\x07\x62\x61lance\x18\x04 \x01(\x04\x12\x13\n\x0bsignatories\x18\x05 \x03(\x0c\x12\x0f\n\x07weights\x18\x06 \x03(\r\x12\x11\n\tthreshold\x18\x07 \x01(\r\x12\x1e\n\x16transaction_hash_count\x18\x08 \x01(\x04\x12\x1d\n\x15multi_sig_spend_count\x18\t \x01(\x04\x12\x1f\n\x17multi_sig_address_count\x18\n \x01(\x04\x12+\n#foundation_multi_sig_spend_txn_hash\x18\x0b \x03(\x0c\x12*\n\"foundation_multi_sig_vote_txn_hash\x18\x0c \x03(\x0c\x12\x0f\n\x07unvotes\x18\r \x03(\x0c\x12-\n\x13proposal_vote_stats\x18\x0e \x03(\x0b\x32\x10.qrl.Transaction\"\'\n\x15MultiSigAddressesList\x12\x0e\n\x06hashes\x18\x01 \x03(\x0c\"\x1a\n\x08\x44\x61taList\x12\x0e\n\x06values\x18\x01 \x03(\x0c\"\x1d\n\x08\x42itfield\x12\x11\n\tbitfields\x18\x01 \x03(\x0c\"%\n\x13TransactionHashList\x12\x0e\n\x06hashes\x18\x01 \x03(\x0c\"3\n\tLatticePK\x12\x10\n\x08kyber_pk\x18\x01 \x01(\x0c\x12\x14\n\x0c\x64ilithium_pk\x18\x02 \x01(\x0c\"0\n\rAddressAmount\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\"\xd7\x01\n\x0b\x42lockHeader\x12\x13\n\x0bhash_header\x18\x01 \x01(\x0c\x12\x14\n\x0c\x62lock_number\x18\x02 \x01(\x04\x12\x19\n\x11timestamp_seconds\x18\x03 \x01(\x04\x12\x18\n\x10hash_header_prev\x18\x04 \x01(\x0c\x12\x14\n\x0creward_block\x18\x05 \x01(\x04\x12\x12\n\nreward_fee\x18\x06 \x01(\x04\x12\x13\n\x0bmerkle_root\x18\x07 \x01(\x0c\x12\x14\n\x0cmining_nonce\x18\x08 \x01(\r\x12\x13\n\x0b\x65xtra_nonce\x18\t \x01(\x04\"i\n\x13\x42lockHeaderExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x30\n\x11transaction_count\x18\x02 \x01(\x0b\x32\x15.qrl.TransactionCount\"q\n\x10TransactionCount\x12/\n\x05\x63ount\x18\x01 \x03(\x0b\x32 .qrl.TransactionCount.CountEntry\x1a,\n\nCountEntry\x12\x0b\n\x03key\x18\x01 \x01(\r\x12\r\n\x05value\x18\x02 \x01(\r:\x02\x38\x01\"\x91\x01\n\x13TransactionExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x1c\n\x02tx\x18\x02 \x01(\x0b\x32\x10.qrl.Transaction\x12\x11\n\taddr_from\x18\x03 \x01(\x0c\x12\x0c\n\x04size\x18\x04 \x01(\x04\x12\x19\n\x11timestamp_seconds\x18\x05 \x01(\x04\"\xa6\x01\n\rBlockExtended\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12\x37\n\x15\x65xtended_transactions\x18\x02 \x03(\x0b\x32\x18.qrl.TransactionExtended\x12,\n\x0fgenesis_balance\x18\x03 \x03(\x0b\x32\x13.qrl.GenesisBalance\x12\x0c\n\x04size\x18\x04 \x01(\x04\"\x7f\n\x05\x42lock\x12 \n\x06header\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12&\n\x0ctransactions\x18\x02 \x03(\x0b\x32\x10.qrl.Transaction\x12,\n\x0fgenesis_balance\x18\x03 \x03(\x0b\x32\x13.qrl.GenesisBalance\"2\n\x0eGenesisBalance\x12\x0f\n\x07\x61\x64\x64ress\x18\x01 \x01(\x0c\x12\x0f\n\x07\x62\x61lance\x18\x02 \x01(\x04\"D\n\x11\x42lockMetaDataList\x12/\n\x13\x62lock_number_hashes\x18\x01 \x03(\x0b\x32\x12.qrl.BlockMetaData\"\xd7\x15\n\x0bTransaction\x12\x13\n\x0bmaster_addr\x18\x01 \x01(\x0c\x12\x0b\n\x03\x66\x65\x65\x18\x02 \x01(\x04\x12\x12\n\npublic_key\x18\x03 \x01(\x0c\x12\x11\n\tsignature\x18\x04 \x01(\x0c\x12\r\n\x05nonce\x18\x05 \x01(\x04\x12\x18\n\x10transaction_hash\x18\x06 \x01(\x0c\x12-\n\x08transfer\x18\x07 \x01(\x0b\x32\x19.qrl.Transaction.TransferH\x00\x12-\n\x08\x63oinbase\x18\x08 \x01(\x0b\x32\x19.qrl.Transaction.CoinBaseH\x00\x12\x36\n\tlatticePK\x18\t \x01(\x0b\x32!.qrl.Transaction.LatticePublicKeyH\x00\x12+\n\x07message\x18\n \x01(\x0b\x32\x18.qrl.Transaction.MessageH\x00\x12\'\n\x05token\x18\x0b \x01(\x0b\x32\x16.qrl.Transaction.TokenH\x00\x12\x38\n\x0etransfer_token\x18\x0c \x01(\x0b\x32\x1e.qrl.Transaction.TransferTokenH\x00\x12\'\n\x05slave\x18\r \x01(\x0b\x32\x16.qrl.Transaction.SlaveH\x00\x12;\n\x10multi_sig_create\x18\x0e \x01(\x0b\x32\x1f.qrl.Transaction.MultiSigCreateH\x00\x12\x39\n\x0fmulti_sig_spend\x18\x0f \x01(\x0b\x32\x1e.qrl.Transaction.MultiSigSpendH\x00\x12\x37\n\x0emulti_sig_vote\x18\x10 \x01(\x0b\x32\x1d.qrl.Transaction.MultiSigVoteH\x00\x12:\n\x0fproposal_create\x18\x11 \x01(\x0b\x32\x1f.qrl.Transaction.ProposalCreateH\x00\x12\x36\n\rproposal_vote\x18\x12 \x01(\x0b\x32\x1d.qrl.Transaction.ProposalVoteH\x00\x1a\x43\n\x08Transfer\x12\x10\n\x08\x61\x64\x64rs_to\x18\x01 \x03(\x0c\x12\x0f\n\x07\x61mounts\x18\x02 \x03(\x04\x12\x14\n\x0cmessage_data\x18\x03 \x01(\x0c\x1a+\n\x08\x43oinBase\x12\x0f\n\x07\x61\x64\x64r_to\x18\x01 \x01(\x0c\x12\x0e\n\x06\x61mount\x18\x02 \x01(\x04\x1a\x46\n\x10LatticePublicKey\x12\x0b\n\x03pk1\x18\x01 \x01(\x0c\x12\x0b\n\x03pk2\x18\x02 \x01(\x0c\x12\x0b\n\x03pk3\x18\x03 \x01(\x0c\x12\x0b\n\x03pk4\x18\x04 \x01(\x0c\x1a\x30\n\x07Message\x12\x14\n\x0cmessage_hash\x18\x01 \x01(\x0c\x12\x0f\n\x07\x61\x64\x64r_to\x18\x02 \x01(\x0c\x1at\n\x05Token\x12\x0e\n\x06symbol\x18\x01 \x01(\x0c\x12\x0c\n\x04name\x18\x02 \x01(\x0c\x12\r\n\x05owner\x18\x03 \x01(\x0c\x12\x10\n\x08\x64\x65\x63imals\x18\x04 \x01(\x04\x12,\n\x10initial_balances\x18\x05 \x03(\x0b\x32\x12.qrl.AddressAmount\x1aH\n\rTransferToken\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12\x10\n\x08\x61\x64\x64rs_to\x18\x02 \x03(\x0c\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x1a\x30\n\x05Slave\x12\x11\n\tslave_pks\x18\x01 \x03(\x0c\x12\x14\n\x0c\x61\x63\x63\x65ss_types\x18\x02 \x03(\r\x1aI\n\x0eMultiSigCreate\x12\x13\n\x0bsignatories\x18\x01 \x03(\x0c\x12\x0f\n\x07weights\x18\x02 \x03(\r\x12\x11\n\tthreshold\x18\x03 \x01(\r\x1aj\n\rMultiSigSpend\x12\x19\n\x11multi_sig_address\x18\x01 \x01(\x0c\x12\x10\n\x08\x61\x64\x64rs_to\x18\x02 \x03(\x0c\x12\x0f\n\x07\x61mounts\x18\x03 \x03(\x04\x12\x1b\n\x13\x65xpiry_block_number\x18\x04 \x01(\x04\x1aH\n\x0cMultiSigVote\x12\x12\n\nshared_key\x18\x01 \x01(\x0c\x12\x0e\n\x06unvote\x18\x02 \x01(\x08\x12\x14\n\x0cprev_tx_hash\x18\x03 \x01(\x0c\x1a\xbb\t\n\x0eProposalCreate\x12\x1b\n\x13\x65xpiry_block_number\x18\x01 \x01(\x04\x12\x13\n\x0b\x64\x65scription\x18\x02 \x01(\t\x12\x32\n\x03qip\x18\x03 \x01(\x0b\x32#.qrl.Transaction.ProposalCreate.QIPH\x00\x12\x38\n\x06\x63onfig\x18\x04 \x01(\x0b\x32&.qrl.Transaction.ProposalCreate.ConfigH\x00\x12\x36\n\x05other\x18\x05 \x01(\x0b\x32%.qrl.Transaction.ProposalCreate.OtherH\x00\x1a\x17\n\x03QIP\x12\x10\n\x08qip_link\x18\x01 \x01(\t\x1a\x8d\x07\n\x06\x43onfig\x12\x18\n\x10\x63hanges_bitfield\x18\x01 \x03(\x0c\x12\x13\n\x0breorg_limit\x18\x02 \x01(\x04\x12\x17\n\x0fmax_coin_supply\x18\x03 \x01(\x04\x12,\n$complete_emission_time_span_in_years\x18\x04 \x01(\x04\x12\x1b\n\x13mining_nonce_offset\x18\x05 \x01(\x04\x12\x1a\n\x12\x65xtra_nonce_offset\x18\x06 \x01(\x04\x12!\n\x19mining_blob_size_in_bytes\x18\x07 \x01(\x04\x12\x1f\n\x17\x62lock_timing_in_seconds\x18\x08 \x01(\x04\x12 \n\x18number_of_blocks_analyze\x18\t \x01(\x04\x12\x1d\n\x15\x62lock_size_multiplier\x18\n \x01(\x04\x12%\n\x1d\x62lock_min_size_limit_in_bytes\x18\x0b \x01(\x04\x12&\n\x1etransaction_multi_output_limit\x18\x0c \x01(\x04\x12\x1a\n\x12message_max_length\x18\r \x01(\x04\x12\x1f\n\x17token_symbol_max_length\x18\x0e \x01(\x04\x12\x1d\n\x15token_name_max_length\x18\x0f \x01(\x04\x12\x1e\n\x16lattice_pk1_max_length\x18\x10 \x01(\x04\x12\x1e\n\x16lattice_pk2_max_length\x18\x11 \x01(\x04\x12\x1e\n\x16lattice_pk3_max_length\x18\x12 \x01(\x04\x12\x1e\n\x16lattice_pk4_max_length\x18\x13 \x01(\x04\x12\x39\n1foundation_multi_sig_address_threshold_percentage\x18\x14 \x01(\x04\x12\x1e\n\x16proposal_threshold_per\x18\x15 \x01(\x04\x12 \n\x18proposal_default_options\x18\x16 \x03(\t\x12\x1e\n\x16\x64\x65scription_max_length\x18\x17 \x01(\x04\x12\x1a\n\x12options_max_number\x18\x18 \x01(\x04\x12\x1e\n\x16option_max_text_length\x18\x19 \x01(\x04\x12(\n proposal_config_activation_delay\x18\x1a \x01(\x04\x12\x15\n\rN_measurement\x18\x1b \x01(\x04\x12\n\n\x02kp\x18\x1c \x01(\x04\x1a\x18\n\x05Other\x12\x0f\n\x07options\x18\x01 \x03(\tB\x0e\n\x0cproposalType\x1a\x32\n\x0cProposalVote\x12\x12\n\nshared_key\x18\x01 \x01(\x0c\x12\x0e\n\x06option\x18\x02 \x01(\rB\x11\n\x0ftransactionType\"\xb8\x01\n\tVoteStats\x12\x19\n\x11multi_sig_address\x18\x01 \x01(\x0c\x12\x12\n\nshared_key\x18\x02 \x01(\x0c\x12\x13\n\x0bsignatories\x18\x03 \x03(\x0c\x12\x11\n\ttx_hashes\x18\x04 \x03(\x0c\x12\x0f\n\x07unvotes\x18\x05 \x03(\x08\x12\x1b\n\x13\x65xpiry_block_number\x18\x06 \x01(\x04\x12\x14\n\x0ctotal_weight\x18\x07 \x01(\x04\x12\x10\n\x08\x65xecuted\x18\x08 \x01(\x08\"\xb7\x01\n\x11ProposalVoteStats\x12\x11\n\taddr_from\x18\x01 \x01(\x0c\x12\x12\n\nshared_key\x18\x02 \x01(\x0c\x12\x15\n\rproposal_type\x18\x03 \x01(\t\x12\x18\n\x10weight_by_option\x18\x04 \x03(\x04\x12\x1b\n\x13\x65xpiry_block_number\x18\x05 \x01(\x04\x12\x10\n\x08\x65xecuted\x18\x06 \x01(\x08\x12\x1b\n\x13number_of_tx_hashes\x18\x07 \x01(\x04\"-\n\x0eProposalRecord\x12\x1b\n\x13number_of_tx_hashes\x18\x01 \x01(\x04\"!\n\tTokenList\x12\x14\n\x0ctoken_txhash\x18\x01 \x03(\x0c\"A\n\x0cTokenBalance\x12\x0f\n\x07\x62\x61lance\x18\x01 \x01(\x04\x12\x10\n\x08\x64\x65\x63imals\x18\x02 \x01(\x04\x12\x0e\n\x06\x64\x65lete\x18\x03 \x01(\x08\"E\n\rSlaveMetadata\x12\x13\n\x0b\x61\x63\x63\x65ss_type\x18\x01 \x01(\x04\x12\x0f\n\x07tx_hash\x18\x02 \x01(\x0c\x12\x0e\n\x06\x64\x65lete\x18\x03 \x01(\x08\"E\n\x11LatticePKMetadata\x12\x0f\n\x07\x65nabled\x18\x01 \x01(\x08\x12\x0f\n\x07tx_hash\x18\x02 \x01(\x0c\x12\x0e\n\x06\x64\x65lete\x18\x03 \x01(\x08\"G\n\rTokenMetadata\x12\x14\n\x0ctoken_txhash\x18\x01 \x01(\x0c\x12 \n\x18transfer_token_tx_hashes\x18\x02 \x03(\x0c\"\xc4\x01\n\x19\x45ncryptedEphemeralMessage\x12\x0e\n\x06msg_id\x18\x01 \x01(\x0c\x12\x0b\n\x03ttl\x18\x02 \x01(\x04\x12\x0b\n\x03ttr\x18\x03 \x01(\x04\x12\x37\n\x07\x63hannel\x18\x05 \x01(\x0b\x32&.qrl.EncryptedEphemeralMessage.Channel\x12\r\n\x05nonce\x18\x06 \x01(\x04\x12\x0f\n\x07payload\x18\x07 \x01(\x0c\x1a$\n\x07\x43hannel\x12\x19\n\x11\x65nc_aes256_symkey\x18\x04 \x01(\x0c\" \n\x0b\x41\x64\x64ressList\x12\x11\n\taddresses\x18\x01 \x03(\x0c\"`\n\x0f\x42lockHeightData\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x18\n\x10\x62lock_headerhash\x18\x02 \x01(\x0c\x12\x1d\n\x15\x63umulative_difficulty\x18\x03 \x01(\x0c\"\x81\x01\n\rBlockMetaData\x12\x18\n\x10\x62lock_difficulty\x18\x01 \x01(\x0c\x12\x1d\n\x15\x63umulative_difficulty\x18\x02 \x01(\x0c\x12\x1a\n\x12\x63hild_headerhashes\x18\x03 \x03(\x0c\x12\x1b\n\x13last_N_headerhashes\x18\x04 \x03(\x0c\"A\n\x12\x42lockNumberMapping\x12\x12\n\nheaderhash\x18\x01 \x01(\x0c\x12\x17\n\x0fprev_headerhash\x18\x02 \x01(\x0c\"X\n\x08PeerStat\x12\x0f\n\x07peer_ip\x18\x01 \x01(\x0c\x12\x0c\n\x04port\x18\x02 \x01(\r\x12-\n\x10node_chain_state\x18\x03 \x01(\x0b\x32\x13.qrl.NodeChainState\"~\n\x0eNodeChainState\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x13\n\x0bheader_hash\x18\x02 \x01(\x0c\x12\x1d\n\x15\x63umulative_difficulty\x18\x03 \x01(\x0c\x12\x0f\n\x07version\x18\x04 \x01(\t\x12\x11\n\ttimestamp\x18\x05 \x01(\x04\"<\n\x0eNodeHeaderHash\x12\x14\n\x0c\x62lock_number\x18\x01 \x01(\x04\x12\x14\n\x0cheaderhashes\x18\x02 \x03(\x0c\"-\n\x12P2PAcknowledgement\x12\x17\n\x0f\x62ytes_processed\x18\x01 \x01(\r\"|\n\x08PeerInfo\x12\x0f\n\x07peer_ip\x18\x01 \x01(\x0c\x12\x0c\n\x04port\x18\x02 \x01(\r\x12\x18\n\x10\x62\x61nned_timestamp\x18\x03 \x01(\r\x12\x13\n\x0b\x63redibility\x18\x04 \x01(\r\x12\"\n\x1alast_connections_timestamp\x18\x05 \x03(\r\".\n\x05Peers\x12%\n\x0epeer_info_list\x18\x01 \x03(\x0b\x32\r.qrl.PeerInfo\"\xd3\x0c\n\tDevConfig\x12\x16\n\x0eprev_state_key\x18\x01 \x01(\x0c\x12\x19\n\x11\x63urrent_state_key\x18\x02 \x01(\x0c\x12\x1e\n\x16\x61\x63tivation_header_hash\x18\x03 \x01(\x0c\x12\x1f\n\x17\x61\x63tivation_block_number\x18\x04 \x01(\x04\x12#\n\x05\x63hain\x18\x05 \x01(\x0b\x32\x14.qrl.DevConfig.Chain\x12#\n\x05\x62lock\x18\x06 \x01(\x0b\x32\x14.qrl.DevConfig.Block\x12/\n\x0btransaction\x18\x07 \x01(\x0b\x32\x1a.qrl.DevConfig.Transaction\x12\x1f\n\x03pow\x18\x08 \x01(\x0b\x32\x12.qrl.DevConfig.POW\x1a\x63\n\x05\x43hain\x12\x13\n\x0breorg_limit\x18\x01 \x01(\x04\x12\x17\n\x0fmax_coin_supply\x18\x02 \x01(\x04\x12,\n$complete_emission_time_span_in_years\x18\x03 \x01(\x04\x1a\xc6\x02\n\x05\x42lock\x12\x1b\n\x13mining_nonce_offset\x18\x01 \x01(\x04\x12\x1a\n\x12\x65xtra_nonce_offset\x18\x02 \x01(\x04\x12!\n\x19mining_blob_size_in_bytes\x18\x03 \x01(\x04\x12\x1f\n\x17\x62lock_timing_in_seconds\x18\x04 \x01(\x04\x12G\n\x15\x62lock_size_controller\x18\x05 \x01(\x0b\x32(.qrl.DevConfig.Block.BlockSizeController\x1aw\n\x13\x42lockSizeController\x12 \n\x18number_of_blocks_analyze\x18\x01 \x01(\x04\x12\x17\n\x0fsize_multiplier\x18\x02 \x01(\x04\x12%\n\x1d\x62lock_min_size_limit_in_bytes\x18\x03 \x01(\x04\x1a\xdd\x06\n\x0bTransaction\x12\x1a\n\x12multi_output_limit\x18\x01 \x01(\x04\x12\x33\n\x07message\x18\x02 \x01(\x0b\x32\".qrl.DevConfig.Transaction.Message\x12/\n\x05slave\x18\x03 \x01(\x0b\x32 .qrl.DevConfig.Transaction.Slave\x12/\n\x05token\x18\x04 \x01(\x0b\x32 .qrl.DevConfig.Transaction.Token\x12\x33\n\x07lattice\x18\x05 \x01(\x0b\x32\".qrl.DevConfig.Transaction.Lattice\x12K\n\x14\x66oundation_multi_sig\x18\x06 \x01(\x0b\x32-.qrl.DevConfig.Transaction.FoundationMultiSig\x12\x35\n\x08proposal\x18\x07 \x01(\x0b\x32#.qrl.DevConfig.Transaction.Proposal\x1a\x1d\n\x07Message\x12\x12\n\nmax_length\x18\x01 \x01(\x04\x1a$\n\x05Slave\x12\x1b\n\x13slave_pk_max_length\x18\x02 \x01(\x04\x1a;\n\x05Token\x12\x19\n\x11symbol_max_length\x18\x01 \x01(\x04\x12\x17\n\x0fname_max_length\x18\x02 \x01(\x04\x1ai\n\x07Lattice\x12\x16\n\x0epk1_max_length\x18\x01 \x01(\x04\x12\x16\n\x0epk2_max_length\x18\x02 \x01(\x04\x12\x16\n\x0epk3_max_length\x18\x03 \x01(\x04\x12\x16\n\x0epk4_max_length\x18\x04 \x01(\x04\x1a\x32\n\x12\x46oundationMultiSig\x12\x1c\n\x14threshold_percentage\x18\x01 \x01(\x04\x1a\xc0\x01\n\x08Proposal\x12\x15\n\rthreshold_per\x18\x01 \x01(\x04\x12\x17\n\x0f\x64\x65\x66\x61ult_options\x18\x02 \x03(\t\x12\x1e\n\x16\x64\x65scription_max_length\x18\x03 \x01(\x04\x12\x1a\n\x12options_max_number\x18\x04 \x01(\x04\x12\x1e\n\x16option_max_text_length\x18\x05 \x01(\x04\x12(\n proposal_config_activation_delay\x18\x06 \x01(\x04\x1a(\n\x03POW\x12\x15\n\rN_measurement\x18\x01 \x01(\x04\x12\n\n\x02kp\x18\x02 \x01(\x04\x32\xf3\x14\n\tPublicAPI\x12;\n\x0cGetNodeState\x12\x14.qrl.GetNodeStateReq\x1a\x15.qrl.GetNodeStateResp\x12>\n\rGetKnownPeers\x12\x15.qrl.GetKnownPeersReq\x1a\x16.qrl.GetKnownPeersResp\x12;\n\x0cGetPeersStat\x12\x14.qrl.GetPeersStatReq\x1a\x15.qrl.GetPeersStatResp\x12/\n\x08GetStats\x12\x10.qrl.GetStatsReq\x1a\x11.qrl.GetStatsResp\x12\x44\n\x0fGetAddressState\x12\x17.qrl.GetAddressStateReq\x1a\x18.qrl.GetAddressStateResp\x12V\n\x18GetOptimizedAddressState\x12\x17.qrl.GetAddressStateReq\x1a!.qrl.GetOptimizedAddressStateResp\x12\\\n\x17GetMultiSigAddressState\x12\x1f.qrl.GetMultiSigAddressStateReq\x1a .qrl.GetMultiSigAddressStateResp\x12,\n\x07IsSlave\x12\x0f.qrl.IsSlaveReq\x1a\x10.qrl.IsSlaveResp\x12\x32\n\tGetObject\x12\x11.qrl.GetObjectReq\x1a\x12.qrl.GetObjectResp\x12>\n\rGetLatestData\x12\x15.qrl.GetLatestDataReq\x1a\x16.qrl.GetLatestDataResp\x12\x44\n\x0fPushTransaction\x12\x17.qrl.PushTransactionReq\x1a\x18.qrl.PushTransactionResp\x12>\n\rTransferCoins\x12\x15.qrl.TransferCoinsReq\x1a\x16.qrl.TransferCoinsResp\x12;\n\x0cParseAddress\x12\x14.qrl.ParseAddressReq\x1a\x15.qrl.ParseAddressResp\x12>\n\rGetChainStats\x12\x15.qrl.GetChainStatsReq\x1a\x16.qrl.GetChainStatsResp\x12G\n\x10GetAddressFromPK\x12\x18.qrl.GetAddressFromPKReq\x1a\x19.qrl.GetAddressFromPKResp\x12I\n\x14GetMultiSigCreateTxn\x12\x19.qrl.MultiSigCreateTxnReq\x1a\x16.qrl.TransferCoinsResp\x12G\n\x13GetMultiSigSpendTxn\x12\x18.qrl.MultiSigSpendTxnReq\x1a\x16.qrl.TransferCoinsResp\x12\x45\n\x12GetMultiSigVoteTxn\x12\x17.qrl.MultiSigVoteTxnReq\x1a\x16.qrl.TransferCoinsResp\x12;\n\rGetMessageTxn\x12\x12.qrl.MessageTxnReq\x1a\x16.qrl.TransferCoinsResp\x12\x37\n\x0bGetTokenTxn\x12\x10.qrl.TokenTxnReq\x1a\x16.qrl.TransferCoinsResp\x12G\n\x13GetTransferTokenTxn\x12\x18.qrl.TransferTokenTxnReq\x1a\x16.qrl.TransferCoinsResp\x12\x37\n\x0bGetSlaveTxn\x12\x10.qrl.SlaveTxnReq\x1a\x16.qrl.TransferCoinsResp\x12;\n\rGetLatticeTxn\x12\x12.qrl.LatticeTxnReq\x1a\x16.qrl.TransferCoinsResp\x12\x41\n\x0eGetTransaction\x12\x16.qrl.GetTransactionReq\x1a\x17.qrl.GetTransactionResp\x12k\n\x1cGetMiniTransactionsByAddress\x12$.qrl.GetMiniTransactionsByAddressReq\x1a%.qrl.GetMiniTransactionsByAddressResp\x12_\n\x18GetTransactionsByAddress\x12 .qrl.GetTransactionsByAddressReq\x1a!.qrl.GetTransactionsByAddressResp\x12S\n\x12GetTokensByAddress\x12 .qrl.GetTransactionsByAddressReq\x1a\x1b.qrl.GetTokensByAddressResp\x12S\n\x12GetSlavesByAddress\x12 .qrl.GetTransactionsByAddressReq\x1a\x1b.qrl.GetSlavesByAddressResp\x12[\n\x16GetLatticePKsByAddress\x12 .qrl.GetTransactionsByAddressReq\x1a\x1f.qrl.GetLatticePKsByAddressResp\x12i\n\x1dGetMultiSigAddressesByAddress\x12 .qrl.GetTransactionsByAddressReq\x1a&.qrl.GetMultiSigAddressesByAddressResp\x12k\n\x1cGetMultiSigSpendTxsByAddress\x12$.qrl.GetMultiSigSpendTxsByAddressReq\x1a%.qrl.GetMultiSigSpendTxsByAddressResp\x12;\n\x0cGetVoteStats\x12\x14.qrl.GetVoteStatsReq\x1a\x15.qrl.GetVoteStatsResp\x12\x35\n\nGetBalance\x12\x12.qrl.GetBalanceReq\x1a\x13.qrl.GetBalanceResp\x12\x44\n\x0fGetTotalBalance\x12\x17.qrl.GetTotalBalanceReq\x1a\x18.qrl.GetTotalBalanceResp\x12)\n\x06GetOTS\x12\x0e.qrl.GetOTSReq\x1a\x0f.qrl.GetOTSResp\x12\x32\n\tGetHeight\x12\x11.qrl.GetHeightReq\x1a\x12.qrl.GetHeightResp\x12/\n\x08GetBlock\x12\x10.qrl.GetBlockReq\x1a\x11.qrl.GetBlockResp\x12G\n\x10GetBlockByNumber\x12\x18.qrl.GetBlockByNumberReq\x1a\x19.qrl.GetBlockByNumberResp2\n\n\x08\x41\x64minAPIb\x06proto3')
 )
 
 
@@ -49,8 +49,8 @@ _GETLATESTDATAREQ_FILTER = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1534,
-  serialized_end=1617,
+  serialized_start=1825,
+  serialized_end=1908,
 )
 _sym_db.RegisterEnumDescriptor(_GETLATESTDATAREQ_FILTER)
 
@@ -79,10 +79,52 @@ _PUSHTRANSACTIONRESP_RESPONSECODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2188,
-  serialized_end=2264,
+  serialized_start=2502,
+  serialized_end=2578,
 )
 _sym_db.RegisterEnumDescriptor(_PUSHTRANSACTIONRESP_RESPONSECODE)
+
+_GETMULTISIGSPENDTXSBYADDRESSREQ_FILTERTYPE = _descriptor.EnumDescriptor(
+  name='FilterType',
+  full_name='qrl.GetMultiSigSpendTxsByAddressReq.FilterType',
+  filename=None,
+  file=DESCRIPTOR,
+  values=[
+    _descriptor.EnumValueDescriptor(
+      name='NONE', index=0, number=0,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='EXECUTED_ONLY', index=1, number=1,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NON_EXECUTED', index=2, number=2,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='EXPIRED', index=3, number=3,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NON_EXPIRED', index=4, number=4,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NON_EXECUTED_EXPIRED', index=5, number=5,
+      options=None,
+      type=None),
+    _descriptor.EnumValueDescriptor(
+      name='NON_EXECUTED_NON_EXPIRED', index=6, number=6,
+      options=None,
+      type=None),
+  ],
+  containing_type=None,
+  options=None,
+  serialized_start=4448,
+  serialized_end=4593,
+)
+_sym_db.RegisterEnumDescriptor(_GETMULTISIGSPENDTXSBYADDRESSREQ_FILTERTYPE)
 
 _NODEINFO_STATE = _descriptor.EnumDescriptor(
   name='State',
@@ -113,8 +155,8 @@ _NODEINFO_STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3890,
-  serialized_end=3961,
+  serialized_start=6296,
+  serialized_end=6367,
 )
 _sym_db.RegisterEnumDescriptor(_NODEINFO_STATE)
 
@@ -720,6 +762,168 @@ _GETADDRESSSTATERESP = _descriptor.Descriptor(
 )
 
 
+_GETOPTIMIZEDADDRESSSTATERESP = _descriptor.Descriptor(
+  name='GetOptimizedAddressStateResp',
+  full_name='qrl.GetOptimizedAddressStateResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='state', full_name='qrl.GetOptimizedAddressStateResp.state', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1108,
+  serialized_end=1181,
+)
+
+
+_GETMULTISIGADDRESSSTATEREQ = _descriptor.Descriptor(
+  name='GetMultiSigAddressStateReq',
+  full_name='qrl.GetMultiSigAddressStateReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.GetMultiSigAddressStateReq.address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1183,
+  serialized_end=1228,
+)
+
+
+_GETMULTISIGADDRESSSTATERESP = _descriptor.Descriptor(
+  name='GetMultiSigAddressStateResp',
+  full_name='qrl.GetMultiSigAddressStateResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='state', full_name='qrl.GetMultiSigAddressStateResp.state', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1230,
+  serialized_end=1301,
+)
+
+
+_ISSLAVEREQ = _descriptor.Descriptor(
+  name='IsSlaveReq',
+  full_name='qrl.IsSlaveReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='master_address', full_name='qrl.IsSlaveReq.master_address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='slave_pk', full_name='qrl.IsSlaveReq.slave_pk', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1303,
+  serialized_end=1357,
+)
+
+
+_ISSLAVERESP = _descriptor.Descriptor(
+  name='IsSlaveResp',
+  full_name='qrl.IsSlaveResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='result', full_name='qrl.IsSlaveResp.result', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=1359,
+  serialized_end=1388,
+)
+
+
 _PARSEADDRESSREQ = _descriptor.Descriptor(
   name='ParseAddressReq',
   full_name='qrl.ParseAddressReq',
@@ -746,8 +950,8 @@ _PARSEADDRESSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1108,
-  serialized_end=1142,
+  serialized_start=1390,
+  serialized_end=1424,
 )
 
 
@@ -784,8 +988,8 @@ _PARSEADDRESSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1144,
-  serialized_end=1218,
+  serialized_start=1426,
+  serialized_end=1500,
 )
 
 
@@ -815,8 +1019,8 @@ _GETOBJECTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1220,
-  serialized_end=1249,
+  serialized_start=1502,
+  serialized_end=1531,
 )
 
 
@@ -870,8 +1074,8 @@ _GETOBJECTRESP = _descriptor.Descriptor(
       name='result', full_name='qrl.GetObjectResp.result',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1252,
-  serialized_end=1431,
+  serialized_start=1534,
+  serialized_end=1722,
 )
 
 
@@ -916,8 +1120,8 @@ _GETLATESTDATAREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1434,
-  serialized_end=1617,
+  serialized_start=1725,
+  serialized_end=1908,
 )
 
 
@@ -961,8 +1165,8 @@ _GETLATESTDATARESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1620,
-  serialized_end=1795,
+  serialized_start=1911,
+  serialized_end=2086,
 )
 
 
@@ -995,15 +1199,22 @@ _TRANSFERCOINSREQ = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='fee', full_name='qrl.TransferCoinsReq.fee', index=3,
-      number=4, type=4, cpp_type=4, label=1,
+      name='message_data', full_name='qrl.TransferCoinsReq.message_data', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='fee', full_name='qrl.TransferCoinsReq.fee', index=4,
+      number=5, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='xmss_pk', full_name='qrl.TransferCoinsReq.xmss_pk', index=4,
-      number=5, type=12, cpp_type=9, label=1,
+      name='xmss_pk', full_name='qrl.TransferCoinsReq.xmss_pk', index=5,
+      number=6, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -1020,8 +1231,8 @@ _TRANSFERCOINSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1797,
-  serialized_end=1905,
+  serialized_start=2089,
+  serialized_end=2219,
 )
 
 
@@ -1051,8 +1262,8 @@ _TRANSFERCOINSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1907,
-  serialized_end=1991,
+  serialized_start=2221,
+  serialized_end=2305,
 )
 
 
@@ -1082,8 +1293,8 @@ _PUSHTRANSACTIONREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1993,
-  serialized_end=2059,
+  serialized_start=2307,
+  serialized_end=2373,
 )
 
 
@@ -1128,8 +1339,206 @@ _PUSHTRANSACTIONRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2062,
-  serialized_end=2264,
+  serialized_start=2376,
+  serialized_end=2578,
+)
+
+
+_MULTISIGCREATETXNREQ = _descriptor.Descriptor(
+  name='MultiSigCreateTxnReq',
+  full_name='qrl.MultiSigCreateTxnReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='master_addr', full_name='qrl.MultiSigCreateTxnReq.master_addr', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='signatories', full_name='qrl.MultiSigCreateTxnReq.signatories', index=1,
+      number=2, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='weights', full_name='qrl.MultiSigCreateTxnReq.weights', index=2,
+      number=3, type=13, cpp_type=3, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='threshold', full_name='qrl.MultiSigCreateTxnReq.threshold', index=3,
+      number=4, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='fee', full_name='qrl.MultiSigCreateTxnReq.fee', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='xmss_pk', full_name='qrl.MultiSigCreateTxnReq.xmss_pk', index=5,
+      number=6, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2581,
+  serialized_end=2711,
+)
+
+
+_MULTISIGSPENDTXNREQ = _descriptor.Descriptor(
+  name='MultiSigSpendTxnReq',
+  full_name='qrl.MultiSigSpendTxnReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='master_addr', full_name='qrl.MultiSigSpendTxnReq.master_addr', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multi_sig_address', full_name='qrl.MultiSigSpendTxnReq.multi_sig_address', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='addrs_to', full_name='qrl.MultiSigSpendTxnReq.addrs_to', index=2,
+      number=3, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='amounts', full_name='qrl.MultiSigSpendTxnReq.amounts', index=3,
+      number=4, type=4, cpp_type=4, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='expiry_block_number', full_name='qrl.MultiSigSpendTxnReq.expiry_block_number', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='fee', full_name='qrl.MultiSigSpendTxnReq.fee', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='xmss_pk', full_name='qrl.MultiSigSpendTxnReq.xmss_pk', index=6,
+      number=7, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2714,
+  serialized_end=2877,
+)
+
+
+_MULTISIGVOTETXNREQ = _descriptor.Descriptor(
+  name='MultiSigVoteTxnReq',
+  full_name='qrl.MultiSigVoteTxnReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='master_addr', full_name='qrl.MultiSigVoteTxnReq.master_addr', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='shared_key', full_name='qrl.MultiSigVoteTxnReq.shared_key', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='unvote', full_name='qrl.MultiSigVoteTxnReq.unvote', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='fee', full_name='qrl.MultiSigVoteTxnReq.fee', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='xmss_pk', full_name='qrl.MultiSigVoteTxnReq.xmss_pk', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=2879,
+  serialized_end=2986,
 )
 
 
@@ -1155,15 +1564,22 @@ _MESSAGETXNREQ = _descriptor.Descriptor(
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='fee', full_name='qrl.MessageTxnReq.fee', index=2,
-      number=3, type=4, cpp_type=4, label=1,
+      name='addr_to', full_name='qrl.MessageTxnReq.addr_to', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='fee', full_name='qrl.MessageTxnReq.fee', index=3,
+      number=4, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='xmss_pk', full_name='qrl.MessageTxnReq.xmss_pk', index=3,
-      number=4, type=12, cpp_type=9, label=1,
+      name='xmss_pk', full_name='qrl.MessageTxnReq.xmss_pk', index=4,
+      number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -1180,8 +1596,8 @@ _MESSAGETXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2266,
-  serialized_end=2349,
+  serialized_start=2988,
+  serialized_end=3088,
 )
 
 
@@ -1260,8 +1676,8 @@ _TOKENTXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2352,
-  serialized_end=2525,
+  serialized_start=3091,
+  serialized_end=3264,
 )
 
 
@@ -1326,8 +1742,8 @@ _TRANSFERTOKENTXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2528,
-  serialized_end=2661,
+  serialized_start=3267,
+  serialized_end=3400,
 )
 
 
@@ -1385,8 +1801,81 @@ _SLAVETXNREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2663,
-  serialized_end=2768,
+  serialized_start=3402,
+  serialized_end=3507,
+)
+
+
+_LATTICETXNREQ = _descriptor.Descriptor(
+  name='LatticeTxnReq',
+  full_name='qrl.LatticeTxnReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='master_addr', full_name='qrl.LatticeTxnReq.master_addr', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk1', full_name='qrl.LatticeTxnReq.pk1', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk2', full_name='qrl.LatticeTxnReq.pk2', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk3', full_name='qrl.LatticeTxnReq.pk3', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk4', full_name='qrl.LatticeTxnReq.pk4', index=4,
+      number=5, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='fee', full_name='qrl.LatticeTxnReq.fee', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='xmss_pk', full_name='qrl.LatticeTxnReq.xmss_pk', index=6,
+      number=7, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3509,
+  serialized_end=3627,
 )
 
 
@@ -1430,77 +1919,8 @@ _MINITRANSACTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2770,
-  serialized_end=2842,
-)
-
-
-_GETTRANSACTIONSBYADDRESSREQ = _descriptor.Descriptor(
-  name='GetTransactionsByAddressReq',
-  full_name='qrl.GetTransactionsByAddressReq',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='address', full_name='qrl.GetTransactionsByAddressReq.address', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=2844,
-  serialized_end=2890,
-)
-
-
-_GETTRANSACTIONSBYADDRESSRESP = _descriptor.Descriptor(
-  name='GetTransactionsByAddressResp',
-  full_name='qrl.GetTransactionsByAddressResp',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='mini_transactions', full_name='qrl.GetTransactionsByAddressResp.mini_transactions', index=0,
-      number=1, type=11, cpp_type=10, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='balance', full_name='qrl.GetTransactionsByAddressResp.balance', index=1,
-      number=2, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=2892,
-  serialized_end=2988,
+  serialized_start=3629,
+  serialized_end=3701,
 )
 
 
@@ -1530,8 +1950,8 @@ _GETTRANSACTIONREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2990,
-  serialized_end=3026,
+  serialized_start=3703,
+  serialized_end=3739,
 )
 
 
@@ -1570,6 +1990,20 @@ _GETTRANSACTIONRESP = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='timestamp', full_name='qrl.GetTransactionResp.timestamp', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='addr_from', full_name='qrl.GetTransactionResp.addr_from', index=5,
+      number=6, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1582,8 +2016,617 @@ _GETTRANSACTIONRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3028,
-  serialized_end=3150,
+  serialized_start=3742,
+  serialized_end=3902,
+)
+
+
+_GETMINITRANSACTIONSBYADDRESSREQ = _descriptor.Descriptor(
+  name='GetMiniTransactionsByAddressReq',
+  full_name='qrl.GetMiniTransactionsByAddressReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.GetMiniTransactionsByAddressReq.address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='item_per_page', full_name='qrl.GetMiniTransactionsByAddressReq.item_per_page', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='page_number', full_name='qrl.GetMiniTransactionsByAddressReq.page_number', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=3904,
+  serialized_end=3998,
+)
+
+
+_GETMINITRANSACTIONSBYADDRESSRESP = _descriptor.Descriptor(
+  name='GetMiniTransactionsByAddressResp',
+  full_name='qrl.GetMiniTransactionsByAddressResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='mini_transactions', full_name='qrl.GetMiniTransactionsByAddressResp.mini_transactions', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='balance', full_name='qrl.GetMiniTransactionsByAddressResp.balance', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4000,
+  serialized_end=4100,
+)
+
+
+_GETTRANSACTIONSBYADDRESSREQ = _descriptor.Descriptor(
+  name='GetTransactionsByAddressReq',
+  full_name='qrl.GetTransactionsByAddressReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.GetTransactionsByAddressReq.address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='item_per_page', full_name='qrl.GetTransactionsByAddressReq.item_per_page', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='page_number', full_name='qrl.GetTransactionsByAddressReq.page_number', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4102,
+  serialized_end=4192,
+)
+
+
+_GETTRANSACTIONSBYADDRESSRESP = _descriptor.Descriptor(
+  name='GetTransactionsByAddressResp',
+  full_name='qrl.GetTransactionsByAddressResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='transactions_detail', full_name='qrl.GetTransactionsByAddressResp.transactions_detail', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4194,
+  serialized_end=4278,
+)
+
+
+_GETMULTISIGSPENDTXSBYADDRESSREQ = _descriptor.Descriptor(
+  name='GetMultiSigSpendTxsByAddressReq',
+  full_name='qrl.GetMultiSigSpendTxsByAddressReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.GetMultiSigSpendTxsByAddressReq.address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='item_per_page', full_name='qrl.GetMultiSigSpendTxsByAddressReq.item_per_page', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='page_number', full_name='qrl.GetMultiSigSpendTxsByAddressReq.page_number', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='filter_type', full_name='qrl.GetMultiSigSpendTxsByAddressReq.filter_type', index=3,
+      number=4, type=14, cpp_type=8, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+    _GETMULTISIGSPENDTXSBYADDRESSREQ_FILTERTYPE,
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4281,
+  serialized_end=4593,
+)
+
+
+_GETMULTISIGSPENDTXSBYADDRESSRESP = _descriptor.Descriptor(
+  name='GetMultiSigSpendTxsByAddressResp',
+  full_name='qrl.GetMultiSigSpendTxsByAddressResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='transactions_detail', full_name='qrl.GetMultiSigSpendTxsByAddressResp.transactions_detail', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4595,
+  serialized_end=4683,
+)
+
+
+_GETVOTESTATSREQ = _descriptor.Descriptor(
+  name='GetVoteStatsReq',
+  full_name='qrl.GetVoteStatsReq',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='multi_sig_spend_tx_hash', full_name='qrl.GetVoteStatsReq.multi_sig_spend_tx_hash', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4685,
+  serialized_end=4735,
+)
+
+
+_GETVOTESTATSRESP = _descriptor.Descriptor(
+  name='GetVoteStatsResp',
+  full_name='qrl.GetVoteStatsResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='vote_stats', full_name='qrl.GetVoteStatsResp.vote_stats', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4737,
+  serialized_end=4791,
+)
+
+
+_TOKENDETAIL = _descriptor.Descriptor(
+  name='TokenDetail',
+  full_name='qrl.TokenDetail',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='token_txhash', full_name='qrl.TokenDetail.token_txhash', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='name', full_name='qrl.TokenDetail.name', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='symbol', full_name='qrl.TokenDetail.symbol', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='balance', full_name='qrl.TokenDetail.balance', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4793,
+  serialized_end=4875,
+)
+
+
+_GETTOKENSBYADDRESSRESP = _descriptor.Descriptor(
+  name='GetTokensByAddressResp',
+  full_name='qrl.GetTokensByAddressResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='tokens_detail', full_name='qrl.GetTokensByAddressResp.tokens_detail', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4877,
+  serialized_end=4942,
+)
+
+
+_SLAVEDETAIL = _descriptor.Descriptor(
+  name='SlaveDetail',
+  full_name='qrl.SlaveDetail',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='slave_address', full_name='qrl.SlaveDetail.slave_address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='access_type', full_name='qrl.SlaveDetail.access_type', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=4944,
+  serialized_end=5001,
+)
+
+
+_GETSLAVESBYADDRESSRESP = _descriptor.Descriptor(
+  name='GetSlavesByAddressResp',
+  full_name='qrl.GetSlavesByAddressResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='slaves_detail', full_name='qrl.GetSlavesByAddressResp.slaves_detail', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5003,
+  serialized_end=5068,
+)
+
+
+_LATTICEPKSDETAIL = _descriptor.Descriptor(
+  name='LatticePKsDetail',
+  full_name='qrl.LatticePKsDetail',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='pk1', full_name='qrl.LatticePKsDetail.pk1', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk2', full_name='qrl.LatticePKsDetail.pk2', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk3', full_name='qrl.LatticePKsDetail.pk3', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk4', full_name='qrl.LatticePKsDetail.pk4', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5070,
+  serialized_end=5140,
+)
+
+
+_GETLATTICEPKSBYADDRESSRESP = _descriptor.Descriptor(
+  name='GetLatticePKsByAddressResp',
+  full_name='qrl.GetLatticePKsByAddressResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='lattice_pks_detail', full_name='qrl.GetLatticePKsByAddressResp.lattice_pks_detail', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5142,
+  serialized_end=5221,
+)
+
+
+_MULTISIGDETAIL = _descriptor.Descriptor(
+  name='MultiSigDetail',
+  full_name='qrl.MultiSigDetail',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.MultiSigDetail.address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='balance', full_name='qrl.MultiSigDetail.balance', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5223,
+  serialized_end=5273,
+)
+
+
+_GETMULTISIGADDRESSESBYADDRESSRESP = _descriptor.Descriptor(
+  name='GetMultiSigAddressesByAddressResp',
+  full_name='qrl.GetMultiSigAddressesByAddressResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='multi_sig_detail', full_name='qrl.GetMultiSigAddressesByAddressResp.multi_sig_detail', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5275,
+  serialized_end=5357,
 )
 
 
@@ -1613,8 +2656,8 @@ _GETBALANCEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3152,
-  serialized_end=3184,
+  serialized_start=5359,
+  serialized_end=5391,
 )
 
 
@@ -1644,8 +2687,8 @@ _GETBALANCERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3186,
-  serialized_end=3219,
+  serialized_start=5393,
+  serialized_end=5426,
 )
 
 
@@ -1675,8 +2718,8 @@ _GETTOTALBALANCEREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3221,
-  serialized_end=3260,
+  serialized_start=5428,
+  serialized_end=5467,
 )
 
 
@@ -1706,8 +2749,8 @@ _GETTOTALBALANCERESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3262,
-  serialized_end=3300,
+  serialized_start=5469,
+  serialized_end=5507,
 )
 
 
@@ -1725,6 +2768,27 @@ _GETOTSREQ = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='page_from', full_name='qrl.GetOTSReq.page_from', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='page_count', full_name='qrl.GetOTSReq.page_count', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='unused_ots_index_from', full_name='qrl.GetOTSReq.unused_ots_index_from', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1737,27 +2801,27 @@ _GETOTSREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3302,
-  serialized_end=3330,
+  serialized_start=5509,
+  serialized_end=5607,
 )
 
 
-_GETOTSRESP = _descriptor.Descriptor(
-  name='GetOTSResp',
-  full_name='qrl.GetOTSResp',
+_OTSBITFIELDBYPAGE = _descriptor.Descriptor(
+  name='OTSBitfieldByPage',
+  full_name='qrl.OTSBitfieldByPage',
   filename=None,
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='ots_bitfield', full_name='qrl.GetOTSResp.ots_bitfield', index=0,
+      name='ots_bitfield', full_name='qrl.OTSBitfieldByPage.ots_bitfield', index=0,
       number=1, type=12, cpp_type=9, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='next_unused_ots_index', full_name='qrl.GetOTSResp.next_unused_ots_index', index=1,
+      name='page_number', full_name='qrl.OTSBitfieldByPage.page_number', index=1,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
@@ -1775,8 +2839,53 @@ _GETOTSRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3332,
-  serialized_end=3397,
+  serialized_start=5609,
+  serialized_end=5671,
+)
+
+
+_GETOTSRESP = _descriptor.Descriptor(
+  name='GetOTSResp',
+  full_name='qrl.GetOTSResp',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='ots_bitfield_by_page', full_name='qrl.GetOTSResp.ots_bitfield_by_page', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='next_unused_ots_index', full_name='qrl.GetOTSResp.next_unused_ots_index', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='unused_ots_index_found', full_name='qrl.GetOTSResp.unused_ots_index_found', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=5674,
+  serialized_end=5803,
 )
 
 
@@ -1799,8 +2908,8 @@ _GETHEIGHTREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3399,
-  serialized_end=3413,
+  serialized_start=5805,
+  serialized_end=5819,
 )
 
 
@@ -1830,8 +2939,8 @@ _GETHEIGHTRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3415,
-  serialized_end=3446,
+  serialized_start=5821,
+  serialized_end=5852,
 )
 
 
@@ -1861,8 +2970,8 @@ _GETBLOCKREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3448,
-  serialized_end=3482,
+  serialized_start=5854,
+  serialized_end=5888,
 )
 
 
@@ -1892,8 +3001,8 @@ _GETBLOCKRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3484,
-  serialized_end=3525,
+  serialized_start=5890,
+  serialized_end=5931,
 )
 
 
@@ -1923,8 +3032,8 @@ _GETBLOCKBYNUMBERREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3527,
-  serialized_end=3570,
+  serialized_start=5933,
+  serialized_end=5976,
 )
 
 
@@ -1954,8 +3063,8 @@ _GETBLOCKBYNUMBERRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3572,
-  serialized_end=3621,
+  serialized_start=5978,
+  serialized_end=6027,
 )
 
 
@@ -1978,8 +3087,8 @@ _GETLOCALADDRESSESREQ = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3623,
-  serialized_end=3645,
+  serialized_start=6029,
+  serialized_end=6051,
 )
 
 
@@ -2009,8 +3118,8 @@ _GETLOCALADDRESSESRESP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3647,
-  serialized_end=3689,
+  serialized_start=6053,
+  serialized_end=6095,
 )
 
 
@@ -2090,8 +3199,8 @@ _NODEINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3692,
-  serialized_end=3961,
+  serialized_start=6098,
+  serialized_end=6367,
 )
 
 
@@ -2149,8 +3258,8 @@ _ADDRESSDESCRIPTOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=3964,
-  serialized_end=4097,
+  serialized_start=6370,
+  serialized_end=6503,
 )
 
 
@@ -2180,8 +3289,8 @@ _STOREDPEERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4099,
-  serialized_end=4138,
+  serialized_start=6505,
+  serialized_end=6544,
 )
 
 
@@ -2211,8 +3320,8 @@ _PEER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4140,
-  serialized_end=4158,
+  serialized_start=6546,
+  serialized_end=6564,
 )
 
 
@@ -2249,8 +3358,8 @@ _ADDRESSSTATE_TOKENSENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4458,
-  serialized_end=4503,
+  serialized_start=6864,
+  serialized_end=6909,
 )
 
 _ADDRESSSTATE_SLAVEPKSACCESSTYPEENTRY = _descriptor.Descriptor(
@@ -2286,8 +3395,8 @@ _ADDRESSSTATE_SLAVEPKSACCESSTYPEENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4505,
-  serialized_end=4562,
+  serialized_start=6911,
+  serialized_end=6968,
 )
 
 _ADDRESSSTATE = _descriptor.Descriptor(
@@ -2372,8 +3481,383 @@ _ADDRESSSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4161,
-  serialized_end=4562,
+  serialized_start=6567,
+  serialized_end=6968,
+)
+
+
+_OPTIMIZEDADDRESSSTATE = _descriptor.Descriptor(
+  name='OptimizedAddressState',
+  full_name='qrl.OptimizedAddressState',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.OptimizedAddressState.address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='balance', full_name='qrl.OptimizedAddressState.balance', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='nonce', full_name='qrl.OptimizedAddressState.nonce', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='ots_bitfield_used_page', full_name='qrl.OptimizedAddressState.ots_bitfield_used_page', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='used_ots_key_count', full_name='qrl.OptimizedAddressState.used_ots_key_count', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='transaction_hash_count', full_name='qrl.OptimizedAddressState.transaction_hash_count', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='tokens_count', full_name='qrl.OptimizedAddressState.tokens_count', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='slaves_count', full_name='qrl.OptimizedAddressState.slaves_count', index=7,
+      number=8, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='lattice_pk_count', full_name='qrl.OptimizedAddressState.lattice_pk_count', index=8,
+      number=9, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multi_sig_address_count', full_name='qrl.OptimizedAddressState.multi_sig_address_count', index=9,
+      number=10, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multi_sig_spend_count', full_name='qrl.OptimizedAddressState.multi_sig_spend_count', index=10,
+      number=11, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='foundation_multi_sig_spend_txn_hash', full_name='qrl.OptimizedAddressState.foundation_multi_sig_spend_txn_hash', index=11,
+      number=12, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='foundation_multi_sig_vote_txn_hash', full_name='qrl.OptimizedAddressState.foundation_multi_sig_vote_txn_hash', index=12,
+      number=13, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='unvotes', full_name='qrl.OptimizedAddressState.unvotes', index=13,
+      number=14, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_vote_stats', full_name='qrl.OptimizedAddressState.proposal_vote_stats', index=14,
+      number=15, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=6971,
+  serialized_end=7422,
+)
+
+
+_MULTISIGADDRESSSTATE = _descriptor.Descriptor(
+  name='MultiSigAddressState',
+  full_name='qrl.MultiSigAddressState',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='address', full_name='qrl.MultiSigAddressState.address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='creation_tx_hash', full_name='qrl.MultiSigAddressState.creation_tx_hash', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='nonce', full_name='qrl.MultiSigAddressState.nonce', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='balance', full_name='qrl.MultiSigAddressState.balance', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='signatories', full_name='qrl.MultiSigAddressState.signatories', index=4,
+      number=5, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='weights', full_name='qrl.MultiSigAddressState.weights', index=5,
+      number=6, type=13, cpp_type=3, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='threshold', full_name='qrl.MultiSigAddressState.threshold', index=6,
+      number=7, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='transaction_hash_count', full_name='qrl.MultiSigAddressState.transaction_hash_count', index=7,
+      number=8, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multi_sig_spend_count', full_name='qrl.MultiSigAddressState.multi_sig_spend_count', index=8,
+      number=9, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multi_sig_address_count', full_name='qrl.MultiSigAddressState.multi_sig_address_count', index=9,
+      number=10, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='foundation_multi_sig_spend_txn_hash', full_name='qrl.MultiSigAddressState.foundation_multi_sig_spend_txn_hash', index=10,
+      number=11, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='foundation_multi_sig_vote_txn_hash', full_name='qrl.MultiSigAddressState.foundation_multi_sig_vote_txn_hash', index=11,
+      number=12, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='unvotes', full_name='qrl.MultiSigAddressState.unvotes', index=12,
+      number=13, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_vote_stats', full_name='qrl.MultiSigAddressState.proposal_vote_stats', index=13,
+      number=14, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=7425,
+  serialized_end=7828,
+)
+
+
+_MULTISIGADDRESSESLIST = _descriptor.Descriptor(
+  name='MultiSigAddressesList',
+  full_name='qrl.MultiSigAddressesList',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='hashes', full_name='qrl.MultiSigAddressesList.hashes', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=7830,
+  serialized_end=7869,
+)
+
+
+_DATALIST = _descriptor.Descriptor(
+  name='DataList',
+  full_name='qrl.DataList',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='values', full_name='qrl.DataList.values', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=7871,
+  serialized_end=7897,
+)
+
+
+_BITFIELD = _descriptor.Descriptor(
+  name='Bitfield',
+  full_name='qrl.Bitfield',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='bitfields', full_name='qrl.Bitfield.bitfields', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=7899,
+  serialized_end=7928,
+)
+
+
+_TRANSACTIONHASHLIST = _descriptor.Descriptor(
+  name='TransactionHashList',
+  full_name='qrl.TransactionHashList',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='hashes', full_name='qrl.TransactionHashList.hashes', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=7930,
+  serialized_end=7967,
 )
 
 
@@ -2385,7 +3869,7 @@ _LATTICEPK = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='txhash', full_name='qrl.LatticePK.txhash', index=0,
+      name='kyber_pk', full_name='qrl.LatticePK.kyber_pk', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -2394,13 +3878,6 @@ _LATTICEPK = _descriptor.Descriptor(
     _descriptor.FieldDescriptor(
       name='dilithium_pk', full_name='qrl.LatticePK.dilithium_pk', index=1,
       number=2, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='kyber_pk', full_name='qrl.LatticePK.kyber_pk', index=2,
-      number=3, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -2417,8 +3894,8 @@ _LATTICEPK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4564,
-  serialized_end=4631,
+  serialized_start=7969,
+  serialized_end=8020,
 )
 
 
@@ -2455,8 +3932,8 @@ _ADDRESSAMOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4633,
-  serialized_end=4681,
+  serialized_start=8022,
+  serialized_end=8070,
 )
 
 
@@ -2542,8 +4019,8 @@ _BLOCKHEADER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4684,
-  serialized_end=4899,
+  serialized_start=8073,
+  serialized_end=8288,
 )
 
 
@@ -2580,8 +4057,8 @@ _BLOCKHEADEREXTENDED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=4901,
-  serialized_end=5006,
+  serialized_start=8290,
+  serialized_end=8395,
 )
 
 
@@ -2618,8 +4095,8 @@ _TRANSACTIONCOUNT_COUNTENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5077,
-  serialized_end=5121,
+  serialized_start=8466,
+  serialized_end=8510,
 )
 
 _TRANSACTIONCOUNT = _descriptor.Descriptor(
@@ -2648,8 +4125,8 @@ _TRANSACTIONCOUNT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5008,
-  serialized_end=5121,
+  serialized_start=8397,
+  serialized_end=8510,
 )
 
 
@@ -2707,8 +4184,8 @@ _TRANSACTIONEXTENDED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5124,
-  serialized_end=5269,
+  serialized_start=8513,
+  serialized_end=8658,
 )
 
 
@@ -2759,8 +4236,8 @@ _BLOCKEXTENDED = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5272,
-  serialized_end=5438,
+  serialized_start=8661,
+  serialized_end=8827,
 )
 
 
@@ -2804,8 +4281,8 @@ _BLOCK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5440,
-  serialized_end=5567,
+  serialized_start=8829,
+  serialized_end=8956,
 )
 
 
@@ -2842,8 +4319,8 @@ _GENESISBALANCE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5569,
-  serialized_end=5619,
+  serialized_start=8958,
+  serialized_end=9008,
 )
 
 
@@ -2873,8 +4350,8 @@ _BLOCKMETADATALIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=5621,
-  serialized_end=5689,
+  serialized_start=9010,
+  serialized_end=9078,
 )
 
 
@@ -2899,6 +4376,13 @@ _TRANSACTION_TRANSFER = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='message_data', full_name='qrl.Transaction.Transfer.message_data', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -2911,8 +4395,8 @@ _TRANSACTION_TRANSFER = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6156,
-  serialized_end=6201,
+  serialized_start=9838,
+  serialized_end=9905,
 )
 
 _TRANSACTION_COINBASE = _descriptor.Descriptor(
@@ -2948,8 +4432,8 @@ _TRANSACTION_COINBASE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6203,
-  serialized_end=6246,
+  serialized_start=9907,
+  serialized_end=9950,
 )
 
 _TRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
@@ -2960,14 +4444,65 @@ _TRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
   containing_type=None,
   fields=[
     _descriptor.FieldDescriptor(
-      name='kyber_pk', full_name='qrl.Transaction.LatticePublicKey.kyber_pk', index=0,
+      name='pk1', full_name='qrl.Transaction.LatticePublicKey.pk1', index=0,
       number=1, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
-      name='dilithium_pk', full_name='qrl.Transaction.LatticePublicKey.dilithium_pk', index=1,
+      name='pk2', full_name='qrl.Transaction.LatticePublicKey.pk2', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk3', full_name='qrl.Transaction.LatticePublicKey.pk3', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk4', full_name='qrl.Transaction.LatticePublicKey.pk4', index=3,
+      number=4, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=9952,
+  serialized_end=10022,
+)
+
+_TRANSACTION_MESSAGE = _descriptor.Descriptor(
+  name='Message',
+  full_name='qrl.Transaction.Message',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='message_hash', full_name='qrl.Transaction.Message.message_hash', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='addr_to', full_name='qrl.Transaction.Message.addr_to', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
@@ -2985,38 +4520,8 @@ _TRANSACTION_LATTICEPUBLICKEY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6248,
-  serialized_end=6306,
-)
-
-_TRANSACTION_MESSAGE = _descriptor.Descriptor(
-  name='Message',
-  full_name='qrl.Transaction.Message',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='message_hash', full_name='qrl.Transaction.Message.message_hash', index=0,
-      number=1, type=12, cpp_type=9, label=1,
-      has_default_value=False, default_value=_b(""),
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=6308,
-  serialized_end=6339,
+  serialized_start=10024,
+  serialized_end=10072,
 )
 
 _TRANSACTION_TOKEN = _descriptor.Descriptor(
@@ -3073,8 +4578,8 @@ _TRANSACTION_TOKEN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6341,
-  serialized_end=6457,
+  serialized_start=10074,
+  serialized_end=10190,
 )
 
 _TRANSACTION_TRANSFERTOKEN = _descriptor.Descriptor(
@@ -3117,8 +4622,8 @@ _TRANSACTION_TRANSFERTOKEN = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6459,
-  serialized_end=6531,
+  serialized_start=10192,
+  serialized_end=10264,
 )
 
 _TRANSACTION_SLAVE = _descriptor.Descriptor(
@@ -3154,8 +4659,524 @@ _TRANSACTION_SLAVE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6533,
-  serialized_end=6581,
+  serialized_start=10266,
+  serialized_end=10314,
+)
+
+_TRANSACTION_MULTISIGCREATE = _descriptor.Descriptor(
+  name='MultiSigCreate',
+  full_name='qrl.Transaction.MultiSigCreate',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='signatories', full_name='qrl.Transaction.MultiSigCreate.signatories', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='weights', full_name='qrl.Transaction.MultiSigCreate.weights', index=1,
+      number=2, type=13, cpp_type=3, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='threshold', full_name='qrl.Transaction.MultiSigCreate.threshold', index=2,
+      number=3, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=10316,
+  serialized_end=10389,
+)
+
+_TRANSACTION_MULTISIGSPEND = _descriptor.Descriptor(
+  name='MultiSigSpend',
+  full_name='qrl.Transaction.MultiSigSpend',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='multi_sig_address', full_name='qrl.Transaction.MultiSigSpend.multi_sig_address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='addrs_to', full_name='qrl.Transaction.MultiSigSpend.addrs_to', index=1,
+      number=2, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='amounts', full_name='qrl.Transaction.MultiSigSpend.amounts', index=2,
+      number=3, type=4, cpp_type=4, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='expiry_block_number', full_name='qrl.Transaction.MultiSigSpend.expiry_block_number', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=10391,
+  serialized_end=10497,
+)
+
+_TRANSACTION_MULTISIGVOTE = _descriptor.Descriptor(
+  name='MultiSigVote',
+  full_name='qrl.Transaction.MultiSigVote',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='shared_key', full_name='qrl.Transaction.MultiSigVote.shared_key', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='unvote', full_name='qrl.Transaction.MultiSigVote.unvote', index=1,
+      number=2, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='prev_tx_hash', full_name='qrl.Transaction.MultiSigVote.prev_tx_hash', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=10499,
+  serialized_end=10571,
+)
+
+_TRANSACTION_PROPOSALCREATE_QIP = _descriptor.Descriptor(
+  name='QIP',
+  full_name='qrl.Transaction.ProposalCreate.QIP',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='qip_link', full_name='qrl.Transaction.ProposalCreate.QIP.qip_link', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=10808,
+  serialized_end=10831,
+)
+
+_TRANSACTION_PROPOSALCREATE_CONFIG = _descriptor.Descriptor(
+  name='Config',
+  full_name='qrl.Transaction.ProposalCreate.Config',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='changes_bitfield', full_name='qrl.Transaction.ProposalCreate.Config.changes_bitfield', index=0,
+      number=1, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='reorg_limit', full_name='qrl.Transaction.ProposalCreate.Config.reorg_limit', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='max_coin_supply', full_name='qrl.Transaction.ProposalCreate.Config.max_coin_supply', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='complete_emission_time_span_in_years', full_name='qrl.Transaction.ProposalCreate.Config.complete_emission_time_span_in_years', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='mining_nonce_offset', full_name='qrl.Transaction.ProposalCreate.Config.mining_nonce_offset', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extra_nonce_offset', full_name='qrl.Transaction.ProposalCreate.Config.extra_nonce_offset', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='mining_blob_size_in_bytes', full_name='qrl.Transaction.ProposalCreate.Config.mining_blob_size_in_bytes', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block_timing_in_seconds', full_name='qrl.Transaction.ProposalCreate.Config.block_timing_in_seconds', index=7,
+      number=8, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='number_of_blocks_analyze', full_name='qrl.Transaction.ProposalCreate.Config.number_of_blocks_analyze', index=8,
+      number=9, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block_size_multiplier', full_name='qrl.Transaction.ProposalCreate.Config.block_size_multiplier', index=9,
+      number=10, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block_min_size_limit_in_bytes', full_name='qrl.Transaction.ProposalCreate.Config.block_min_size_limit_in_bytes', index=10,
+      number=11, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='transaction_multi_output_limit', full_name='qrl.Transaction.ProposalCreate.Config.transaction_multi_output_limit', index=11,
+      number=12, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='message_max_length', full_name='qrl.Transaction.ProposalCreate.Config.message_max_length', index=12,
+      number=13, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='token_symbol_max_length', full_name='qrl.Transaction.ProposalCreate.Config.token_symbol_max_length', index=13,
+      number=14, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='token_name_max_length', full_name='qrl.Transaction.ProposalCreate.Config.token_name_max_length', index=14,
+      number=15, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='lattice_pk1_max_length', full_name='qrl.Transaction.ProposalCreate.Config.lattice_pk1_max_length', index=15,
+      number=16, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='lattice_pk2_max_length', full_name='qrl.Transaction.ProposalCreate.Config.lattice_pk2_max_length', index=16,
+      number=17, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='lattice_pk3_max_length', full_name='qrl.Transaction.ProposalCreate.Config.lattice_pk3_max_length', index=17,
+      number=18, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='lattice_pk4_max_length', full_name='qrl.Transaction.ProposalCreate.Config.lattice_pk4_max_length', index=18,
+      number=19, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='foundation_multi_sig_address_threshold_percentage', full_name='qrl.Transaction.ProposalCreate.Config.foundation_multi_sig_address_threshold_percentage', index=19,
+      number=20, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_threshold_per', full_name='qrl.Transaction.ProposalCreate.Config.proposal_threshold_per', index=20,
+      number=21, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_default_options', full_name='qrl.Transaction.ProposalCreate.Config.proposal_default_options', index=21,
+      number=22, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='description_max_length', full_name='qrl.Transaction.ProposalCreate.Config.description_max_length', index=22,
+      number=23, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='options_max_number', full_name='qrl.Transaction.ProposalCreate.Config.options_max_number', index=23,
+      number=24, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='option_max_text_length', full_name='qrl.Transaction.ProposalCreate.Config.option_max_text_length', index=24,
+      number=25, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_config_activation_delay', full_name='qrl.Transaction.ProposalCreate.Config.proposal_config_activation_delay', index=25,
+      number=26, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='N_measurement', full_name='qrl.Transaction.ProposalCreate.Config.N_measurement', index=26,
+      number=27, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='kp', full_name='qrl.Transaction.ProposalCreate.Config.kp', index=27,
+      number=28, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=10834,
+  serialized_end=11743,
+)
+
+_TRANSACTION_PROPOSALCREATE_OTHER = _descriptor.Descriptor(
+  name='Other',
+  full_name='qrl.Transaction.ProposalCreate.Other',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='options', full_name='qrl.Transaction.ProposalCreate.Other.options', index=0,
+      number=1, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=11745,
+  serialized_end=11769,
+)
+
+_TRANSACTION_PROPOSALCREATE = _descriptor.Descriptor(
+  name='ProposalCreate',
+  full_name='qrl.Transaction.ProposalCreate',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='expiry_block_number', full_name='qrl.Transaction.ProposalCreate.expiry_block_number', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='description', full_name='qrl.Transaction.ProposalCreate.description', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='qip', full_name='qrl.Transaction.ProposalCreate.qip', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='config', full_name='qrl.Transaction.ProposalCreate.config', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='other', full_name='qrl.Transaction.ProposalCreate.other', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[_TRANSACTION_PROPOSALCREATE_QIP, _TRANSACTION_PROPOSALCREATE_CONFIG, _TRANSACTION_PROPOSALCREATE_OTHER, ],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='proposalType', full_name='qrl.Transaction.ProposalCreate.proposalType',
+      index=0, containing_type=None, fields=[]),
+  ],
+  serialized_start=10574,
+  serialized_end=11785,
+)
+
+_TRANSACTION_PROPOSALVOTE = _descriptor.Descriptor(
+  name='ProposalVote',
+  full_name='qrl.Transaction.ProposalVote',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='shared_key', full_name='qrl.Transaction.ProposalVote.shared_key', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='option', full_name='qrl.Transaction.ProposalVote.option', index=1,
+      number=2, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=11787,
+  serialized_end=11837,
 )
 
 _TRANSACTION = _descriptor.Descriptor(
@@ -3256,10 +5277,45 @@ _TRANSACTION = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multi_sig_create', full_name='qrl.Transaction.multi_sig_create', index=13,
+      number=14, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multi_sig_spend', full_name='qrl.Transaction.multi_sig_spend', index=14,
+      number=15, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='multi_sig_vote', full_name='qrl.Transaction.multi_sig_vote', index=15,
+      number=16, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_create', full_name='qrl.Transaction.proposal_create', index=16,
+      number=17, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_vote', full_name='qrl.Transaction.proposal_vote', index=17,
+      number=18, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
-  nested_types=[_TRANSACTION_TRANSFER, _TRANSACTION_COINBASE, _TRANSACTION_LATTICEPUBLICKEY, _TRANSACTION_MESSAGE, _TRANSACTION_TOKEN, _TRANSACTION_TRANSFERTOKEN, _TRANSACTION_SLAVE, ],
+  nested_types=[_TRANSACTION_TRANSFER, _TRANSACTION_COINBASE, _TRANSACTION_LATTICEPUBLICKEY, _TRANSACTION_MESSAGE, _TRANSACTION_TOKEN, _TRANSACTION_TRANSFERTOKEN, _TRANSACTION_SLAVE, _TRANSACTION_MULTISIGCREATE, _TRANSACTION_MULTISIGSPEND, _TRANSACTION_MULTISIGVOTE, _TRANSACTION_PROPOSALCREATE, _TRANSACTION_PROPOSALVOTE, ],
   enum_types=[
   ],
   options=None,
@@ -3271,8 +5327,192 @@ _TRANSACTION = _descriptor.Descriptor(
       name='transactionType', full_name='qrl.Transaction.transactionType',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=5692,
-  serialized_end=6600,
+  serialized_start=9081,
+  serialized_end=11856,
+)
+
+
+_VOTESTATS = _descriptor.Descriptor(
+  name='VoteStats',
+  full_name='qrl.VoteStats',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='multi_sig_address', full_name='qrl.VoteStats.multi_sig_address', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='shared_key', full_name='qrl.VoteStats.shared_key', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='signatories', full_name='qrl.VoteStats.signatories', index=2,
+      number=3, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='tx_hashes', full_name='qrl.VoteStats.tx_hashes', index=3,
+      number=4, type=12, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='unvotes', full_name='qrl.VoteStats.unvotes', index=4,
+      number=5, type=8, cpp_type=7, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='expiry_block_number', full_name='qrl.VoteStats.expiry_block_number', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='total_weight', full_name='qrl.VoteStats.total_weight', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='executed', full_name='qrl.VoteStats.executed', index=7,
+      number=8, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=11859,
+  serialized_end=12043,
+)
+
+
+_PROPOSALVOTESTATS = _descriptor.Descriptor(
+  name='ProposalVoteStats',
+  full_name='qrl.ProposalVoteStats',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='addr_from', full_name='qrl.ProposalVoteStats.addr_from', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='shared_key', full_name='qrl.ProposalVoteStats.shared_key', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_type', full_name='qrl.ProposalVoteStats.proposal_type', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b("").decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='weight_by_option', full_name='qrl.ProposalVoteStats.weight_by_option', index=3,
+      number=4, type=4, cpp_type=4, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='expiry_block_number', full_name='qrl.ProposalVoteStats.expiry_block_number', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='executed', full_name='qrl.ProposalVoteStats.executed', index=5,
+      number=6, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='number_of_tx_hashes', full_name='qrl.ProposalVoteStats.number_of_tx_hashes', index=6,
+      number=7, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=12046,
+  serialized_end=12229,
+)
+
+
+_PROPOSALRECORD = _descriptor.Descriptor(
+  name='ProposalRecord',
+  full_name='qrl.ProposalRecord',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='number_of_tx_hashes', full_name='qrl.ProposalRecord.number_of_tx_hashes', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=12231,
+  serialized_end=12276,
 )
 
 
@@ -3302,8 +5542,143 @@ _TOKENLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6602,
-  serialized_end=6635,
+  serialized_start=12278,
+  serialized_end=12311,
+)
+
+
+_TOKENBALANCE = _descriptor.Descriptor(
+  name='TokenBalance',
+  full_name='qrl.TokenBalance',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='balance', full_name='qrl.TokenBalance.balance', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='decimals', full_name='qrl.TokenBalance.decimals', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='delete', full_name='qrl.TokenBalance.delete', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=12313,
+  serialized_end=12378,
+)
+
+
+_SLAVEMETADATA = _descriptor.Descriptor(
+  name='SlaveMetadata',
+  full_name='qrl.SlaveMetadata',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='access_type', full_name='qrl.SlaveMetadata.access_type', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='tx_hash', full_name='qrl.SlaveMetadata.tx_hash', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='delete', full_name='qrl.SlaveMetadata.delete', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=12380,
+  serialized_end=12449,
+)
+
+
+_LATTICEPKMETADATA = _descriptor.Descriptor(
+  name='LatticePKMetadata',
+  full_name='qrl.LatticePKMetadata',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='enabled', full_name='qrl.LatticePKMetadata.enabled', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='tx_hash', full_name='qrl.LatticePKMetadata.tx_hash', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='delete', full_name='qrl.LatticePKMetadata.delete', index=2,
+      number=3, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=12451,
+  serialized_end=12520,
 )
 
 
@@ -3340,8 +5715,8 @@ _TOKENMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6637,
-  serialized_end=6708,
+  serialized_start=12522,
+  serialized_end=12593,
 )
 
 
@@ -3371,8 +5746,8 @@ _ENCRYPTEDEPHEMERALMESSAGE_CHANNEL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6871,
-  serialized_end=6907,
+  serialized_start=12756,
+  serialized_end=12792,
 )
 
 _ENCRYPTEDEPHEMERALMESSAGE = _descriptor.Descriptor(
@@ -3436,8 +5811,8 @@ _ENCRYPTEDEPHEMERALMESSAGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6711,
-  serialized_end=6907,
+  serialized_start=12596,
+  serialized_end=12792,
 )
 
 
@@ -3467,8 +5842,8 @@ _ADDRESSLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6909,
-  serialized_end=6941,
+  serialized_start=12794,
+  serialized_end=12826,
 )
 
 
@@ -3512,8 +5887,8 @@ _BLOCKHEIGHTDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=6943,
-  serialized_end=7039,
+  serialized_start=12828,
+  serialized_end=12924,
 )
 
 
@@ -3564,8 +5939,8 @@ _BLOCKMETADATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7042,
-  serialized_end=7171,
+  serialized_start=12927,
+  serialized_end=13056,
 )
 
 
@@ -3602,115 +5977,8 @@ _BLOCKNUMBERMAPPING = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7173,
-  serialized_end=7238,
-)
-
-
-_STATELOADER = _descriptor.Descriptor(
-  name='StateLoader',
-  full_name='qrl.StateLoader',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='addresses', full_name='qrl.StateLoader.addresses', index=0,
-      number=1, type=12, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='token_txhash', full_name='qrl.StateLoader.token_txhash', index=1,
-      number=2, type=12, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='txhash', full_name='qrl.StateLoader.txhash', index=2,
-      number=3, type=12, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-    _descriptor.FieldDescriptor(
-      name='total_coin_supply', full_name='qrl.StateLoader.total_coin_supply', index=3,
-      number=4, type=4, cpp_type=4, label=1,
-      has_default_value=False, default_value=0,
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=7240,
-  serialized_end=7337,
-)
-
-
-_STATEOBJECTS = _descriptor.Descriptor(
-  name='StateObjects',
-  full_name='qrl.StateObjects',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-    _descriptor.FieldDescriptor(
-      name='state_loaders', full_name='qrl.StateObjects.state_loaders', index=0,
-      number=1, type=12, cpp_type=9, label=3,
-      has_default_value=False, default_value=[],
-      message_type=None, enum_type=None, containing_type=None,
-      is_extension=False, extension_scope=None,
-      options=None, file=DESCRIPTOR),
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=7339,
-  serialized_end=7376,
-)
-
-
-_LRUSTATECACHE = _descriptor.Descriptor(
-  name='LRUStateCache',
-  full_name='qrl.LRUStateCache',
-  filename=None,
-  file=DESCRIPTOR,
-  containing_type=None,
-  fields=[
-  ],
-  extensions=[
-  ],
-  nested_types=[],
-  enum_types=[
-  ],
-  options=None,
-  is_extendable=False,
-  syntax='proto3',
-  extension_ranges=[],
-  oneofs=[
-  ],
-  serialized_start=7378,
-  serialized_end=7393,
+  serialized_start=13058,
+  serialized_end=13123,
 )
 
 
@@ -3754,8 +6022,8 @@ _PEERSTAT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7395,
-  serialized_end=7483,
+  serialized_start=13125,
+  serialized_end=13213,
 )
 
 
@@ -3813,8 +6081,8 @@ _NODECHAINSTATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7485,
-  serialized_end=7611,
+  serialized_start=13215,
+  serialized_end=13341,
 )
 
 
@@ -3851,8 +6119,8 @@ _NODEHEADERHASH = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7613,
-  serialized_end=7673,
+  serialized_start=13343,
+  serialized_end=13403,
 )
 
 
@@ -3882,8 +6150,8 @@ _P2PACKNOWLEDGEMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7675,
-  serialized_end=7720,
+  serialized_start=13405,
+  serialized_end=13450,
 )
 
 
@@ -3941,8 +6209,8 @@ _PEERINFO = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7722,
-  serialized_end=7846,
+  serialized_start=13452,
+  serialized_end=13576,
 )
 
 
@@ -3972,8 +6240,586 @@ _PEERS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=7848,
-  serialized_end=7894,
+  serialized_start=13578,
+  serialized_end=13624,
+)
+
+
+_DEVCONFIG_CHAIN = _descriptor.Descriptor(
+  name='Chain',
+  full_name='qrl.DevConfig.Chain',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='reorg_limit', full_name='qrl.DevConfig.Chain.reorg_limit', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='max_coin_supply', full_name='qrl.DevConfig.Chain.max_coin_supply', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='complete_emission_time_span_in_years', full_name='qrl.DevConfig.Chain.complete_emission_time_span_in_years', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=13912,
+  serialized_end=14011,
+)
+
+_DEVCONFIG_BLOCK_BLOCKSIZECONTROLLER = _descriptor.Descriptor(
+  name='BlockSizeController',
+  full_name='qrl.DevConfig.Block.BlockSizeController',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='number_of_blocks_analyze', full_name='qrl.DevConfig.Block.BlockSizeController.number_of_blocks_analyze', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='size_multiplier', full_name='qrl.DevConfig.Block.BlockSizeController.size_multiplier', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block_min_size_limit_in_bytes', full_name='qrl.DevConfig.Block.BlockSizeController.block_min_size_limit_in_bytes', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=14221,
+  serialized_end=14340,
+)
+
+_DEVCONFIG_BLOCK = _descriptor.Descriptor(
+  name='Block',
+  full_name='qrl.DevConfig.Block',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='mining_nonce_offset', full_name='qrl.DevConfig.Block.mining_nonce_offset', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extra_nonce_offset', full_name='qrl.DevConfig.Block.extra_nonce_offset', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='mining_blob_size_in_bytes', full_name='qrl.DevConfig.Block.mining_blob_size_in_bytes', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block_timing_in_seconds', full_name='qrl.DevConfig.Block.block_timing_in_seconds', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block_size_controller', full_name='qrl.DevConfig.Block.block_size_controller', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[_DEVCONFIG_BLOCK_BLOCKSIZECONTROLLER, ],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=14014,
+  serialized_end=14340,
+)
+
+_DEVCONFIG_TRANSACTION_MESSAGE = _descriptor.Descriptor(
+  name='Message',
+  full_name='qrl.DevConfig.Transaction.Message',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='max_length', full_name='qrl.DevConfig.Transaction.Message.max_length', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=14722,
+  serialized_end=14751,
+)
+
+_DEVCONFIG_TRANSACTION_SLAVE = _descriptor.Descriptor(
+  name='Slave',
+  full_name='qrl.DevConfig.Transaction.Slave',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='slave_pk_max_length', full_name='qrl.DevConfig.Transaction.Slave.slave_pk_max_length', index=0,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=14753,
+  serialized_end=14789,
+)
+
+_DEVCONFIG_TRANSACTION_TOKEN = _descriptor.Descriptor(
+  name='Token',
+  full_name='qrl.DevConfig.Transaction.Token',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='symbol_max_length', full_name='qrl.DevConfig.Transaction.Token.symbol_max_length', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='name_max_length', full_name='qrl.DevConfig.Transaction.Token.name_max_length', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=14791,
+  serialized_end=14850,
+)
+
+_DEVCONFIG_TRANSACTION_LATTICE = _descriptor.Descriptor(
+  name='Lattice',
+  full_name='qrl.DevConfig.Transaction.Lattice',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='pk1_max_length', full_name='qrl.DevConfig.Transaction.Lattice.pk1_max_length', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk2_max_length', full_name='qrl.DevConfig.Transaction.Lattice.pk2_max_length', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk3_max_length', full_name='qrl.DevConfig.Transaction.Lattice.pk3_max_length', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pk4_max_length', full_name='qrl.DevConfig.Transaction.Lattice.pk4_max_length', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=14852,
+  serialized_end=14957,
+)
+
+_DEVCONFIG_TRANSACTION_FOUNDATIONMULTISIG = _descriptor.Descriptor(
+  name='FoundationMultiSig',
+  full_name='qrl.DevConfig.Transaction.FoundationMultiSig',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='threshold_percentage', full_name='qrl.DevConfig.Transaction.FoundationMultiSig.threshold_percentage', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=14959,
+  serialized_end=15009,
+)
+
+_DEVCONFIG_TRANSACTION_PROPOSAL = _descriptor.Descriptor(
+  name='Proposal',
+  full_name='qrl.DevConfig.Transaction.Proposal',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='threshold_per', full_name='qrl.DevConfig.Transaction.Proposal.threshold_per', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='default_options', full_name='qrl.DevConfig.Transaction.Proposal.default_options', index=1,
+      number=2, type=9, cpp_type=9, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='description_max_length', full_name='qrl.DevConfig.Transaction.Proposal.description_max_length', index=2,
+      number=3, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='options_max_number', full_name='qrl.DevConfig.Transaction.Proposal.options_max_number', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='option_max_text_length', full_name='qrl.DevConfig.Transaction.Proposal.option_max_text_length', index=4,
+      number=5, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal_config_activation_delay', full_name='qrl.DevConfig.Transaction.Proposal.proposal_config_activation_delay', index=5,
+      number=6, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=15012,
+  serialized_end=15204,
+)
+
+_DEVCONFIG_TRANSACTION = _descriptor.Descriptor(
+  name='Transaction',
+  full_name='qrl.DevConfig.Transaction',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='multi_output_limit', full_name='qrl.DevConfig.Transaction.multi_output_limit', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='message', full_name='qrl.DevConfig.Transaction.message', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='slave', full_name='qrl.DevConfig.Transaction.slave', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='token', full_name='qrl.DevConfig.Transaction.token', index=3,
+      number=4, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='lattice', full_name='qrl.DevConfig.Transaction.lattice', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='foundation_multi_sig', full_name='qrl.DevConfig.Transaction.foundation_multi_sig', index=5,
+      number=6, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='proposal', full_name='qrl.DevConfig.Transaction.proposal', index=6,
+      number=7, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[_DEVCONFIG_TRANSACTION_MESSAGE, _DEVCONFIG_TRANSACTION_SLAVE, _DEVCONFIG_TRANSACTION_TOKEN, _DEVCONFIG_TRANSACTION_LATTICE, _DEVCONFIG_TRANSACTION_FOUNDATIONMULTISIG, _DEVCONFIG_TRANSACTION_PROPOSAL, ],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=14343,
+  serialized_end=15204,
+)
+
+_DEVCONFIG_POW = _descriptor.Descriptor(
+  name='POW',
+  full_name='qrl.DevConfig.POW',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='N_measurement', full_name='qrl.DevConfig.POW.N_measurement', index=0,
+      number=1, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='kp', full_name='qrl.DevConfig.POW.kp', index=1,
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=15206,
+  serialized_end=15246,
+)
+
+_DEVCONFIG = _descriptor.Descriptor(
+  name='DevConfig',
+  full_name='qrl.DevConfig',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='prev_state_key', full_name='qrl.DevConfig.prev_state_key', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='current_state_key', full_name='qrl.DevConfig.current_state_key', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='activation_header_hash', full_name='qrl.DevConfig.activation_header_hash', index=2,
+      number=3, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=_b(""),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='activation_block_number', full_name='qrl.DevConfig.activation_block_number', index=3,
+      number=4, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='chain', full_name='qrl.DevConfig.chain', index=4,
+      number=5, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='block', full_name='qrl.DevConfig.block', index=5,
+      number=6, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='transaction', full_name='qrl.DevConfig.transaction', index=6,
+      number=7, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='pow', full_name='qrl.DevConfig.pow', index=7,
+      number=8, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[_DEVCONFIG_CHAIN, _DEVCONFIG_BLOCK, _DEVCONFIG_TRANSACTION, _DEVCONFIG_POW, ],
+  enum_types=[
+  ],
+  options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=13627,
+  serialized_end=15246,
 )
 
 _GETNODESTATERESP.fields_by_name['info'].message_type = _NODEINFO
@@ -3983,8 +6829,10 @@ _GETPEERSSTATRESP.fields_by_name['peers_stat'].message_type = _PEERSTAT
 _GETSTATSRESP.fields_by_name['node_info'].message_type = _NODEINFO
 _GETSTATSRESP.fields_by_name['block_timeseries'].message_type = _BLOCKDATAPOINT
 _GETADDRESSSTATERESP.fields_by_name['state'].message_type = _ADDRESSSTATE
+_GETOPTIMIZEDADDRESSSTATERESP.fields_by_name['state'].message_type = _OPTIMIZEDADDRESSSTATE
+_GETMULTISIGADDRESSSTATERESP.fields_by_name['state'].message_type = _MULTISIGADDRESSSTATE
 _PARSEADDRESSRESP.fields_by_name['desc'].message_type = _ADDRESSDESCRIPTOR
-_GETOBJECTRESP.fields_by_name['address_state'].message_type = _ADDRESSSTATE
+_GETOBJECTRESP.fields_by_name['address_state'].message_type = _OPTIMIZEDADDRESSSTATE
 _GETOBJECTRESP.fields_by_name['transaction'].message_type = _TRANSACTIONEXTENDED
 _GETOBJECTRESP.fields_by_name['block_extended'].message_type = _BLOCKEXTENDED
 _GETOBJECTRESP.oneofs_by_name['result'].fields.append(
@@ -4006,8 +6854,18 @@ _PUSHTRANSACTIONREQ.fields_by_name['transaction_signed'].message_type = _TRANSAC
 _PUSHTRANSACTIONRESP.fields_by_name['error_code'].enum_type = _PUSHTRANSACTIONRESP_RESPONSECODE
 _PUSHTRANSACTIONRESP_RESPONSECODE.containing_type = _PUSHTRANSACTIONRESP
 _TOKENTXNREQ.fields_by_name['initial_balances'].message_type = _ADDRESSAMOUNT
-_GETTRANSACTIONSBYADDRESSRESP.fields_by_name['mini_transactions'].message_type = _MINITRANSACTION
 _GETTRANSACTIONRESP.fields_by_name['tx'].message_type = _TRANSACTION
+_GETMINITRANSACTIONSBYADDRESSRESP.fields_by_name['mini_transactions'].message_type = _MINITRANSACTION
+_GETTRANSACTIONSBYADDRESSRESP.fields_by_name['transactions_detail'].message_type = _GETTRANSACTIONRESP
+_GETMULTISIGSPENDTXSBYADDRESSREQ.fields_by_name['filter_type'].enum_type = _GETMULTISIGSPENDTXSBYADDRESSREQ_FILTERTYPE
+_GETMULTISIGSPENDTXSBYADDRESSREQ_FILTERTYPE.containing_type = _GETMULTISIGSPENDTXSBYADDRESSREQ
+_GETMULTISIGSPENDTXSBYADDRESSRESP.fields_by_name['transactions_detail'].message_type = _GETTRANSACTIONRESP
+_GETVOTESTATSRESP.fields_by_name['vote_stats'].message_type = _VOTESTATS
+_GETTOKENSBYADDRESSRESP.fields_by_name['tokens_detail'].message_type = _TOKENDETAIL
+_GETSLAVESBYADDRESSRESP.fields_by_name['slaves_detail'].message_type = _SLAVEDETAIL
+_GETLATTICEPKSBYADDRESSRESP.fields_by_name['lattice_pks_detail'].message_type = _LATTICEPKSDETAIL
+_GETMULTISIGADDRESSESBYADDRESSRESP.fields_by_name['multi_sig_detail'].message_type = _MULTISIGDETAIL
+_GETOTSRESP.fields_by_name['ots_bitfield_by_page'].message_type = _OTSBITFIELDBYPAGE
 _GETBLOCKRESP.fields_by_name['block'].message_type = _BLOCK
 _GETBLOCKBYNUMBERRESP.fields_by_name['block'].message_type = _BLOCK
 _NODEINFO.fields_by_name['state'].enum_type = _NODEINFO_STATE
@@ -4018,6 +6876,8 @@ _ADDRESSSTATE_SLAVEPKSACCESSTYPEENTRY.containing_type = _ADDRESSSTATE
 _ADDRESSSTATE.fields_by_name['tokens'].message_type = _ADDRESSSTATE_TOKENSENTRY
 _ADDRESSSTATE.fields_by_name['latticePK_list'].message_type = _LATTICEPK
 _ADDRESSSTATE.fields_by_name['slave_pks_access_type'].message_type = _ADDRESSSTATE_SLAVEPKSACCESSTYPEENTRY
+_OPTIMIZEDADDRESSSTATE.fields_by_name['proposal_vote_stats'].message_type = _TRANSACTION
+_MULTISIGADDRESSSTATE.fields_by_name['proposal_vote_stats'].message_type = _TRANSACTION
 _BLOCKHEADEREXTENDED.fields_by_name['header'].message_type = _BLOCKHEADER
 _BLOCKHEADEREXTENDED.fields_by_name['transaction_count'].message_type = _TRANSACTIONCOUNT
 _TRANSACTIONCOUNT_COUNTENTRY.containing_type = _TRANSACTIONCOUNT
@@ -4039,6 +6899,26 @@ _TRANSACTION_TOKEN.fields_by_name['initial_balances'].message_type = _ADDRESSAMO
 _TRANSACTION_TOKEN.containing_type = _TRANSACTION
 _TRANSACTION_TRANSFERTOKEN.containing_type = _TRANSACTION
 _TRANSACTION_SLAVE.containing_type = _TRANSACTION
+_TRANSACTION_MULTISIGCREATE.containing_type = _TRANSACTION
+_TRANSACTION_MULTISIGSPEND.containing_type = _TRANSACTION
+_TRANSACTION_MULTISIGVOTE.containing_type = _TRANSACTION
+_TRANSACTION_PROPOSALCREATE_QIP.containing_type = _TRANSACTION_PROPOSALCREATE
+_TRANSACTION_PROPOSALCREATE_CONFIG.containing_type = _TRANSACTION_PROPOSALCREATE
+_TRANSACTION_PROPOSALCREATE_OTHER.containing_type = _TRANSACTION_PROPOSALCREATE
+_TRANSACTION_PROPOSALCREATE.fields_by_name['qip'].message_type = _TRANSACTION_PROPOSALCREATE_QIP
+_TRANSACTION_PROPOSALCREATE.fields_by_name['config'].message_type = _TRANSACTION_PROPOSALCREATE_CONFIG
+_TRANSACTION_PROPOSALCREATE.fields_by_name['other'].message_type = _TRANSACTION_PROPOSALCREATE_OTHER
+_TRANSACTION_PROPOSALCREATE.containing_type = _TRANSACTION
+_TRANSACTION_PROPOSALCREATE.oneofs_by_name['proposalType'].fields.append(
+  _TRANSACTION_PROPOSALCREATE.fields_by_name['qip'])
+_TRANSACTION_PROPOSALCREATE.fields_by_name['qip'].containing_oneof = _TRANSACTION_PROPOSALCREATE.oneofs_by_name['proposalType']
+_TRANSACTION_PROPOSALCREATE.oneofs_by_name['proposalType'].fields.append(
+  _TRANSACTION_PROPOSALCREATE.fields_by_name['config'])
+_TRANSACTION_PROPOSALCREATE.fields_by_name['config'].containing_oneof = _TRANSACTION_PROPOSALCREATE.oneofs_by_name['proposalType']
+_TRANSACTION_PROPOSALCREATE.oneofs_by_name['proposalType'].fields.append(
+  _TRANSACTION_PROPOSALCREATE.fields_by_name['other'])
+_TRANSACTION_PROPOSALCREATE.fields_by_name['other'].containing_oneof = _TRANSACTION_PROPOSALCREATE.oneofs_by_name['proposalType']
+_TRANSACTION_PROPOSALVOTE.containing_type = _TRANSACTION
 _TRANSACTION.fields_by_name['transfer'].message_type = _TRANSACTION_TRANSFER
 _TRANSACTION.fields_by_name['coinbase'].message_type = _TRANSACTION_COINBASE
 _TRANSACTION.fields_by_name['latticePK'].message_type = _TRANSACTION_LATTICEPUBLICKEY
@@ -4046,6 +6926,11 @@ _TRANSACTION.fields_by_name['message'].message_type = _TRANSACTION_MESSAGE
 _TRANSACTION.fields_by_name['token'].message_type = _TRANSACTION_TOKEN
 _TRANSACTION.fields_by_name['transfer_token'].message_type = _TRANSACTION_TRANSFERTOKEN
 _TRANSACTION.fields_by_name['slave'].message_type = _TRANSACTION_SLAVE
+_TRANSACTION.fields_by_name['multi_sig_create'].message_type = _TRANSACTION_MULTISIGCREATE
+_TRANSACTION.fields_by_name['multi_sig_spend'].message_type = _TRANSACTION_MULTISIGSPEND
+_TRANSACTION.fields_by_name['multi_sig_vote'].message_type = _TRANSACTION_MULTISIGVOTE
+_TRANSACTION.fields_by_name['proposal_create'].message_type = _TRANSACTION_PROPOSALCREATE
+_TRANSACTION.fields_by_name['proposal_vote'].message_type = _TRANSACTION_PROPOSALVOTE
 _TRANSACTION.oneofs_by_name['transactionType'].fields.append(
   _TRANSACTION.fields_by_name['transfer'])
 _TRANSACTION.fields_by_name['transfer'].containing_oneof = _TRANSACTION.oneofs_by_name['transactionType']
@@ -4067,10 +6952,47 @@ _TRANSACTION.fields_by_name['transfer_token'].containing_oneof = _TRANSACTION.on
 _TRANSACTION.oneofs_by_name['transactionType'].fields.append(
   _TRANSACTION.fields_by_name['slave'])
 _TRANSACTION.fields_by_name['slave'].containing_oneof = _TRANSACTION.oneofs_by_name['transactionType']
+_TRANSACTION.oneofs_by_name['transactionType'].fields.append(
+  _TRANSACTION.fields_by_name['multi_sig_create'])
+_TRANSACTION.fields_by_name['multi_sig_create'].containing_oneof = _TRANSACTION.oneofs_by_name['transactionType']
+_TRANSACTION.oneofs_by_name['transactionType'].fields.append(
+  _TRANSACTION.fields_by_name['multi_sig_spend'])
+_TRANSACTION.fields_by_name['multi_sig_spend'].containing_oneof = _TRANSACTION.oneofs_by_name['transactionType']
+_TRANSACTION.oneofs_by_name['transactionType'].fields.append(
+  _TRANSACTION.fields_by_name['multi_sig_vote'])
+_TRANSACTION.fields_by_name['multi_sig_vote'].containing_oneof = _TRANSACTION.oneofs_by_name['transactionType']
+_TRANSACTION.oneofs_by_name['transactionType'].fields.append(
+  _TRANSACTION.fields_by_name['proposal_create'])
+_TRANSACTION.fields_by_name['proposal_create'].containing_oneof = _TRANSACTION.oneofs_by_name['transactionType']
+_TRANSACTION.oneofs_by_name['transactionType'].fields.append(
+  _TRANSACTION.fields_by_name['proposal_vote'])
+_TRANSACTION.fields_by_name['proposal_vote'].containing_oneof = _TRANSACTION.oneofs_by_name['transactionType']
 _ENCRYPTEDEPHEMERALMESSAGE_CHANNEL.containing_type = _ENCRYPTEDEPHEMERALMESSAGE
 _ENCRYPTEDEPHEMERALMESSAGE.fields_by_name['channel'].message_type = _ENCRYPTEDEPHEMERALMESSAGE_CHANNEL
 _PEERSTAT.fields_by_name['node_chain_state'].message_type = _NODECHAINSTATE
 _PEERS.fields_by_name['peer_info_list'].message_type = _PEERINFO
+_DEVCONFIG_CHAIN.containing_type = _DEVCONFIG
+_DEVCONFIG_BLOCK_BLOCKSIZECONTROLLER.containing_type = _DEVCONFIG_BLOCK
+_DEVCONFIG_BLOCK.fields_by_name['block_size_controller'].message_type = _DEVCONFIG_BLOCK_BLOCKSIZECONTROLLER
+_DEVCONFIG_BLOCK.containing_type = _DEVCONFIG
+_DEVCONFIG_TRANSACTION_MESSAGE.containing_type = _DEVCONFIG_TRANSACTION
+_DEVCONFIG_TRANSACTION_SLAVE.containing_type = _DEVCONFIG_TRANSACTION
+_DEVCONFIG_TRANSACTION_TOKEN.containing_type = _DEVCONFIG_TRANSACTION
+_DEVCONFIG_TRANSACTION_LATTICE.containing_type = _DEVCONFIG_TRANSACTION
+_DEVCONFIG_TRANSACTION_FOUNDATIONMULTISIG.containing_type = _DEVCONFIG_TRANSACTION
+_DEVCONFIG_TRANSACTION_PROPOSAL.containing_type = _DEVCONFIG_TRANSACTION
+_DEVCONFIG_TRANSACTION.fields_by_name['message'].message_type = _DEVCONFIG_TRANSACTION_MESSAGE
+_DEVCONFIG_TRANSACTION.fields_by_name['slave'].message_type = _DEVCONFIG_TRANSACTION_SLAVE
+_DEVCONFIG_TRANSACTION.fields_by_name['token'].message_type = _DEVCONFIG_TRANSACTION_TOKEN
+_DEVCONFIG_TRANSACTION.fields_by_name['lattice'].message_type = _DEVCONFIG_TRANSACTION_LATTICE
+_DEVCONFIG_TRANSACTION.fields_by_name['foundation_multi_sig'].message_type = _DEVCONFIG_TRANSACTION_FOUNDATIONMULTISIG
+_DEVCONFIG_TRANSACTION.fields_by_name['proposal'].message_type = _DEVCONFIG_TRANSACTION_PROPOSAL
+_DEVCONFIG_TRANSACTION.containing_type = _DEVCONFIG
+_DEVCONFIG_POW.containing_type = _DEVCONFIG
+_DEVCONFIG.fields_by_name['chain'].message_type = _DEVCONFIG_CHAIN
+_DEVCONFIG.fields_by_name['block'].message_type = _DEVCONFIG_BLOCK
+_DEVCONFIG.fields_by_name['transaction'].message_type = _DEVCONFIG_TRANSACTION
+_DEVCONFIG.fields_by_name['pow'].message_type = _DEVCONFIG_POW
 DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
 DESCRIPTOR.message_types_by_name['GetNodeStateReq'] = _GETNODESTATEREQ
 DESCRIPTOR.message_types_by_name['GetNodeStateResp'] = _GETNODESTATERESP
@@ -4087,6 +7009,11 @@ DESCRIPTOR.message_types_by_name['GetAddressFromPKResp'] = _GETADDRESSFROMPKRESP
 DESCRIPTOR.message_types_by_name['BlockDataPoint'] = _BLOCKDATAPOINT
 DESCRIPTOR.message_types_by_name['GetAddressStateReq'] = _GETADDRESSSTATEREQ
 DESCRIPTOR.message_types_by_name['GetAddressStateResp'] = _GETADDRESSSTATERESP
+DESCRIPTOR.message_types_by_name['GetOptimizedAddressStateResp'] = _GETOPTIMIZEDADDRESSSTATERESP
+DESCRIPTOR.message_types_by_name['GetMultiSigAddressStateReq'] = _GETMULTISIGADDRESSSTATEREQ
+DESCRIPTOR.message_types_by_name['GetMultiSigAddressStateResp'] = _GETMULTISIGADDRESSSTATERESP
+DESCRIPTOR.message_types_by_name['IsSlaveReq'] = _ISSLAVEREQ
+DESCRIPTOR.message_types_by_name['IsSlaveResp'] = _ISSLAVERESP
 DESCRIPTOR.message_types_by_name['ParseAddressReq'] = _PARSEADDRESSREQ
 DESCRIPTOR.message_types_by_name['ParseAddressResp'] = _PARSEADDRESSRESP
 DESCRIPTOR.message_types_by_name['GetObjectReq'] = _GETOBJECTREQ
@@ -4097,20 +7024,39 @@ DESCRIPTOR.message_types_by_name['TransferCoinsReq'] = _TRANSFERCOINSREQ
 DESCRIPTOR.message_types_by_name['TransferCoinsResp'] = _TRANSFERCOINSRESP
 DESCRIPTOR.message_types_by_name['PushTransactionReq'] = _PUSHTRANSACTIONREQ
 DESCRIPTOR.message_types_by_name['PushTransactionResp'] = _PUSHTRANSACTIONRESP
+DESCRIPTOR.message_types_by_name['MultiSigCreateTxnReq'] = _MULTISIGCREATETXNREQ
+DESCRIPTOR.message_types_by_name['MultiSigSpendTxnReq'] = _MULTISIGSPENDTXNREQ
+DESCRIPTOR.message_types_by_name['MultiSigVoteTxnReq'] = _MULTISIGVOTETXNREQ
 DESCRIPTOR.message_types_by_name['MessageTxnReq'] = _MESSAGETXNREQ
 DESCRIPTOR.message_types_by_name['TokenTxnReq'] = _TOKENTXNREQ
 DESCRIPTOR.message_types_by_name['TransferTokenTxnReq'] = _TRANSFERTOKENTXNREQ
 DESCRIPTOR.message_types_by_name['SlaveTxnReq'] = _SLAVETXNREQ
+DESCRIPTOR.message_types_by_name['LatticeTxnReq'] = _LATTICETXNREQ
 DESCRIPTOR.message_types_by_name['MiniTransaction'] = _MINITRANSACTION
-DESCRIPTOR.message_types_by_name['GetTransactionsByAddressReq'] = _GETTRANSACTIONSBYADDRESSREQ
-DESCRIPTOR.message_types_by_name['GetTransactionsByAddressResp'] = _GETTRANSACTIONSBYADDRESSRESP
 DESCRIPTOR.message_types_by_name['GetTransactionReq'] = _GETTRANSACTIONREQ
 DESCRIPTOR.message_types_by_name['GetTransactionResp'] = _GETTRANSACTIONRESP
+DESCRIPTOR.message_types_by_name['GetMiniTransactionsByAddressReq'] = _GETMINITRANSACTIONSBYADDRESSREQ
+DESCRIPTOR.message_types_by_name['GetMiniTransactionsByAddressResp'] = _GETMINITRANSACTIONSBYADDRESSRESP
+DESCRIPTOR.message_types_by_name['GetTransactionsByAddressReq'] = _GETTRANSACTIONSBYADDRESSREQ
+DESCRIPTOR.message_types_by_name['GetTransactionsByAddressResp'] = _GETTRANSACTIONSBYADDRESSRESP
+DESCRIPTOR.message_types_by_name['GetMultiSigSpendTxsByAddressReq'] = _GETMULTISIGSPENDTXSBYADDRESSREQ
+DESCRIPTOR.message_types_by_name['GetMultiSigSpendTxsByAddressResp'] = _GETMULTISIGSPENDTXSBYADDRESSRESP
+DESCRIPTOR.message_types_by_name['GetVoteStatsReq'] = _GETVOTESTATSREQ
+DESCRIPTOR.message_types_by_name['GetVoteStatsResp'] = _GETVOTESTATSRESP
+DESCRIPTOR.message_types_by_name['TokenDetail'] = _TOKENDETAIL
+DESCRIPTOR.message_types_by_name['GetTokensByAddressResp'] = _GETTOKENSBYADDRESSRESP
+DESCRIPTOR.message_types_by_name['SlaveDetail'] = _SLAVEDETAIL
+DESCRIPTOR.message_types_by_name['GetSlavesByAddressResp'] = _GETSLAVESBYADDRESSRESP
+DESCRIPTOR.message_types_by_name['LatticePKsDetail'] = _LATTICEPKSDETAIL
+DESCRIPTOR.message_types_by_name['GetLatticePKsByAddressResp'] = _GETLATTICEPKSBYADDRESSRESP
+DESCRIPTOR.message_types_by_name['MultiSigDetail'] = _MULTISIGDETAIL
+DESCRIPTOR.message_types_by_name['GetMultiSigAddressesByAddressResp'] = _GETMULTISIGADDRESSESBYADDRESSRESP
 DESCRIPTOR.message_types_by_name['GetBalanceReq'] = _GETBALANCEREQ
 DESCRIPTOR.message_types_by_name['GetBalanceResp'] = _GETBALANCERESP
 DESCRIPTOR.message_types_by_name['GetTotalBalanceReq'] = _GETTOTALBALANCEREQ
 DESCRIPTOR.message_types_by_name['GetTotalBalanceResp'] = _GETTOTALBALANCERESP
 DESCRIPTOR.message_types_by_name['GetOTSReq'] = _GETOTSREQ
+DESCRIPTOR.message_types_by_name['OTSBitfieldByPage'] = _OTSBITFIELDBYPAGE
 DESCRIPTOR.message_types_by_name['GetOTSResp'] = _GETOTSRESP
 DESCRIPTOR.message_types_by_name['GetHeightReq'] = _GETHEIGHTREQ
 DESCRIPTOR.message_types_by_name['GetHeightResp'] = _GETHEIGHTRESP
@@ -4125,6 +7071,12 @@ DESCRIPTOR.message_types_by_name['AddressDescriptor'] = _ADDRESSDESCRIPTOR
 DESCRIPTOR.message_types_by_name['StoredPeers'] = _STOREDPEERS
 DESCRIPTOR.message_types_by_name['Peer'] = _PEER
 DESCRIPTOR.message_types_by_name['AddressState'] = _ADDRESSSTATE
+DESCRIPTOR.message_types_by_name['OptimizedAddressState'] = _OPTIMIZEDADDRESSSTATE
+DESCRIPTOR.message_types_by_name['MultiSigAddressState'] = _MULTISIGADDRESSSTATE
+DESCRIPTOR.message_types_by_name['MultiSigAddressesList'] = _MULTISIGADDRESSESLIST
+DESCRIPTOR.message_types_by_name['DataList'] = _DATALIST
+DESCRIPTOR.message_types_by_name['Bitfield'] = _BITFIELD
+DESCRIPTOR.message_types_by_name['TransactionHashList'] = _TRANSACTIONHASHLIST
 DESCRIPTOR.message_types_by_name['LatticePK'] = _LATTICEPK
 DESCRIPTOR.message_types_by_name['AddressAmount'] = _ADDRESSAMOUNT
 DESCRIPTOR.message_types_by_name['BlockHeader'] = _BLOCKHEADER
@@ -4136,22 +7088,26 @@ DESCRIPTOR.message_types_by_name['Block'] = _BLOCK
 DESCRIPTOR.message_types_by_name['GenesisBalance'] = _GENESISBALANCE
 DESCRIPTOR.message_types_by_name['BlockMetaDataList'] = _BLOCKMETADATALIST
 DESCRIPTOR.message_types_by_name['Transaction'] = _TRANSACTION
+DESCRIPTOR.message_types_by_name['VoteStats'] = _VOTESTATS
+DESCRIPTOR.message_types_by_name['ProposalVoteStats'] = _PROPOSALVOTESTATS
+DESCRIPTOR.message_types_by_name['ProposalRecord'] = _PROPOSALRECORD
 DESCRIPTOR.message_types_by_name['TokenList'] = _TOKENLIST
+DESCRIPTOR.message_types_by_name['TokenBalance'] = _TOKENBALANCE
+DESCRIPTOR.message_types_by_name['SlaveMetadata'] = _SLAVEMETADATA
+DESCRIPTOR.message_types_by_name['LatticePKMetadata'] = _LATTICEPKMETADATA
 DESCRIPTOR.message_types_by_name['TokenMetadata'] = _TOKENMETADATA
 DESCRIPTOR.message_types_by_name['EncryptedEphemeralMessage'] = _ENCRYPTEDEPHEMERALMESSAGE
 DESCRIPTOR.message_types_by_name['AddressList'] = _ADDRESSLIST
 DESCRIPTOR.message_types_by_name['BlockHeightData'] = _BLOCKHEIGHTDATA
 DESCRIPTOR.message_types_by_name['BlockMetaData'] = _BLOCKMETADATA
 DESCRIPTOR.message_types_by_name['BlockNumberMapping'] = _BLOCKNUMBERMAPPING
-DESCRIPTOR.message_types_by_name['StateLoader'] = _STATELOADER
-DESCRIPTOR.message_types_by_name['StateObjects'] = _STATEOBJECTS
-DESCRIPTOR.message_types_by_name['LRUStateCache'] = _LRUSTATECACHE
 DESCRIPTOR.message_types_by_name['PeerStat'] = _PEERSTAT
 DESCRIPTOR.message_types_by_name['NodeChainState'] = _NODECHAINSTATE
 DESCRIPTOR.message_types_by_name['NodeHeaderHash'] = _NODEHEADERHASH
 DESCRIPTOR.message_types_by_name['P2PAcknowledgement'] = _P2PACKNOWLEDGEMENT
 DESCRIPTOR.message_types_by_name['PeerInfo'] = _PEERINFO
 DESCRIPTOR.message_types_by_name['Peers'] = _PEERS
+DESCRIPTOR.message_types_by_name['DevConfig'] = _DEVCONFIG
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), dict(
@@ -4266,6 +7222,41 @@ GetAddressStateResp = _reflection.GeneratedProtocolMessageType('GetAddressStateR
   ))
 _sym_db.RegisterMessage(GetAddressStateResp)
 
+GetOptimizedAddressStateResp = _reflection.GeneratedProtocolMessageType('GetOptimizedAddressStateResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETOPTIMIZEDADDRESSSTATERESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetOptimizedAddressStateResp)
+  ))
+_sym_db.RegisterMessage(GetOptimizedAddressStateResp)
+
+GetMultiSigAddressStateReq = _reflection.GeneratedProtocolMessageType('GetMultiSigAddressStateReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETMULTISIGADDRESSSTATEREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetMultiSigAddressStateReq)
+  ))
+_sym_db.RegisterMessage(GetMultiSigAddressStateReq)
+
+GetMultiSigAddressStateResp = _reflection.GeneratedProtocolMessageType('GetMultiSigAddressStateResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETMULTISIGADDRESSSTATERESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetMultiSigAddressStateResp)
+  ))
+_sym_db.RegisterMessage(GetMultiSigAddressStateResp)
+
+IsSlaveReq = _reflection.GeneratedProtocolMessageType('IsSlaveReq', (_message.Message,), dict(
+  DESCRIPTOR = _ISSLAVEREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.IsSlaveReq)
+  ))
+_sym_db.RegisterMessage(IsSlaveReq)
+
+IsSlaveResp = _reflection.GeneratedProtocolMessageType('IsSlaveResp', (_message.Message,), dict(
+  DESCRIPTOR = _ISSLAVERESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.IsSlaveResp)
+  ))
+_sym_db.RegisterMessage(IsSlaveResp)
+
 ParseAddressReq = _reflection.GeneratedProtocolMessageType('ParseAddressReq', (_message.Message,), dict(
   DESCRIPTOR = _PARSEADDRESSREQ,
   __module__ = 'qrl_pb2'
@@ -4336,6 +7327,27 @@ PushTransactionResp = _reflection.GeneratedProtocolMessageType('PushTransactionR
   ))
 _sym_db.RegisterMessage(PushTransactionResp)
 
+MultiSigCreateTxnReq = _reflection.GeneratedProtocolMessageType('MultiSigCreateTxnReq', (_message.Message,), dict(
+  DESCRIPTOR = _MULTISIGCREATETXNREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.MultiSigCreateTxnReq)
+  ))
+_sym_db.RegisterMessage(MultiSigCreateTxnReq)
+
+MultiSigSpendTxnReq = _reflection.GeneratedProtocolMessageType('MultiSigSpendTxnReq', (_message.Message,), dict(
+  DESCRIPTOR = _MULTISIGSPENDTXNREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.MultiSigSpendTxnReq)
+  ))
+_sym_db.RegisterMessage(MultiSigSpendTxnReq)
+
+MultiSigVoteTxnReq = _reflection.GeneratedProtocolMessageType('MultiSigVoteTxnReq', (_message.Message,), dict(
+  DESCRIPTOR = _MULTISIGVOTETXNREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.MultiSigVoteTxnReq)
+  ))
+_sym_db.RegisterMessage(MultiSigVoteTxnReq)
+
 MessageTxnReq = _reflection.GeneratedProtocolMessageType('MessageTxnReq', (_message.Message,), dict(
   DESCRIPTOR = _MESSAGETXNREQ,
   __module__ = 'qrl_pb2'
@@ -4364,12 +7376,47 @@ SlaveTxnReq = _reflection.GeneratedProtocolMessageType('SlaveTxnReq', (_message.
   ))
 _sym_db.RegisterMessage(SlaveTxnReq)
 
+LatticeTxnReq = _reflection.GeneratedProtocolMessageType('LatticeTxnReq', (_message.Message,), dict(
+  DESCRIPTOR = _LATTICETXNREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.LatticeTxnReq)
+  ))
+_sym_db.RegisterMessage(LatticeTxnReq)
+
 MiniTransaction = _reflection.GeneratedProtocolMessageType('MiniTransaction', (_message.Message,), dict(
   DESCRIPTOR = _MINITRANSACTION,
   __module__ = 'qrl_pb2'
   # @@protoc_insertion_point(class_scope:qrl.MiniTransaction)
   ))
 _sym_db.RegisterMessage(MiniTransaction)
+
+GetTransactionReq = _reflection.GeneratedProtocolMessageType('GetTransactionReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETTRANSACTIONREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetTransactionReq)
+  ))
+_sym_db.RegisterMessage(GetTransactionReq)
+
+GetTransactionResp = _reflection.GeneratedProtocolMessageType('GetTransactionResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETTRANSACTIONRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetTransactionResp)
+  ))
+_sym_db.RegisterMessage(GetTransactionResp)
+
+GetMiniTransactionsByAddressReq = _reflection.GeneratedProtocolMessageType('GetMiniTransactionsByAddressReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETMINITRANSACTIONSBYADDRESSREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetMiniTransactionsByAddressReq)
+  ))
+_sym_db.RegisterMessage(GetMiniTransactionsByAddressReq)
+
+GetMiniTransactionsByAddressResp = _reflection.GeneratedProtocolMessageType('GetMiniTransactionsByAddressResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETMINITRANSACTIONSBYADDRESSRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetMiniTransactionsByAddressResp)
+  ))
+_sym_db.RegisterMessage(GetMiniTransactionsByAddressResp)
 
 GetTransactionsByAddressReq = _reflection.GeneratedProtocolMessageType('GetTransactionsByAddressReq', (_message.Message,), dict(
   DESCRIPTOR = _GETTRANSACTIONSBYADDRESSREQ,
@@ -4385,19 +7432,89 @@ GetTransactionsByAddressResp = _reflection.GeneratedProtocolMessageType('GetTran
   ))
 _sym_db.RegisterMessage(GetTransactionsByAddressResp)
 
-GetTransactionReq = _reflection.GeneratedProtocolMessageType('GetTransactionReq', (_message.Message,), dict(
-  DESCRIPTOR = _GETTRANSACTIONREQ,
+GetMultiSigSpendTxsByAddressReq = _reflection.GeneratedProtocolMessageType('GetMultiSigSpendTxsByAddressReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETMULTISIGSPENDTXSBYADDRESSREQ,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.GetTransactionReq)
+  # @@protoc_insertion_point(class_scope:qrl.GetMultiSigSpendTxsByAddressReq)
   ))
-_sym_db.RegisterMessage(GetTransactionReq)
+_sym_db.RegisterMessage(GetMultiSigSpendTxsByAddressReq)
 
-GetTransactionResp = _reflection.GeneratedProtocolMessageType('GetTransactionResp', (_message.Message,), dict(
-  DESCRIPTOR = _GETTRANSACTIONRESP,
+GetMultiSigSpendTxsByAddressResp = _reflection.GeneratedProtocolMessageType('GetMultiSigSpendTxsByAddressResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETMULTISIGSPENDTXSBYADDRESSRESP,
   __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.GetTransactionResp)
+  # @@protoc_insertion_point(class_scope:qrl.GetMultiSigSpendTxsByAddressResp)
   ))
-_sym_db.RegisterMessage(GetTransactionResp)
+_sym_db.RegisterMessage(GetMultiSigSpendTxsByAddressResp)
+
+GetVoteStatsReq = _reflection.GeneratedProtocolMessageType('GetVoteStatsReq', (_message.Message,), dict(
+  DESCRIPTOR = _GETVOTESTATSREQ,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetVoteStatsReq)
+  ))
+_sym_db.RegisterMessage(GetVoteStatsReq)
+
+GetVoteStatsResp = _reflection.GeneratedProtocolMessageType('GetVoteStatsResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETVOTESTATSRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetVoteStatsResp)
+  ))
+_sym_db.RegisterMessage(GetVoteStatsResp)
+
+TokenDetail = _reflection.GeneratedProtocolMessageType('TokenDetail', (_message.Message,), dict(
+  DESCRIPTOR = _TOKENDETAIL,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.TokenDetail)
+  ))
+_sym_db.RegisterMessage(TokenDetail)
+
+GetTokensByAddressResp = _reflection.GeneratedProtocolMessageType('GetTokensByAddressResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETTOKENSBYADDRESSRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetTokensByAddressResp)
+  ))
+_sym_db.RegisterMessage(GetTokensByAddressResp)
+
+SlaveDetail = _reflection.GeneratedProtocolMessageType('SlaveDetail', (_message.Message,), dict(
+  DESCRIPTOR = _SLAVEDETAIL,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.SlaveDetail)
+  ))
+_sym_db.RegisterMessage(SlaveDetail)
+
+GetSlavesByAddressResp = _reflection.GeneratedProtocolMessageType('GetSlavesByAddressResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETSLAVESBYADDRESSRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetSlavesByAddressResp)
+  ))
+_sym_db.RegisterMessage(GetSlavesByAddressResp)
+
+LatticePKsDetail = _reflection.GeneratedProtocolMessageType('LatticePKsDetail', (_message.Message,), dict(
+  DESCRIPTOR = _LATTICEPKSDETAIL,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.LatticePKsDetail)
+  ))
+_sym_db.RegisterMessage(LatticePKsDetail)
+
+GetLatticePKsByAddressResp = _reflection.GeneratedProtocolMessageType('GetLatticePKsByAddressResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETLATTICEPKSBYADDRESSRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetLatticePKsByAddressResp)
+  ))
+_sym_db.RegisterMessage(GetLatticePKsByAddressResp)
+
+MultiSigDetail = _reflection.GeneratedProtocolMessageType('MultiSigDetail', (_message.Message,), dict(
+  DESCRIPTOR = _MULTISIGDETAIL,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.MultiSigDetail)
+  ))
+_sym_db.RegisterMessage(MultiSigDetail)
+
+GetMultiSigAddressesByAddressResp = _reflection.GeneratedProtocolMessageType('GetMultiSigAddressesByAddressResp', (_message.Message,), dict(
+  DESCRIPTOR = _GETMULTISIGADDRESSESBYADDRESSRESP,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.GetMultiSigAddressesByAddressResp)
+  ))
+_sym_db.RegisterMessage(GetMultiSigAddressesByAddressResp)
 
 GetBalanceReq = _reflection.GeneratedProtocolMessageType('GetBalanceReq', (_message.Message,), dict(
   DESCRIPTOR = _GETBALANCEREQ,
@@ -4433,6 +7550,13 @@ GetOTSReq = _reflection.GeneratedProtocolMessageType('GetOTSReq', (_message.Mess
   # @@protoc_insertion_point(class_scope:qrl.GetOTSReq)
   ))
 _sym_db.RegisterMessage(GetOTSReq)
+
+OTSBitfieldByPage = _reflection.GeneratedProtocolMessageType('OTSBitfieldByPage', (_message.Message,), dict(
+  DESCRIPTOR = _OTSBITFIELDBYPAGE,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.OTSBitfieldByPage)
+  ))
+_sym_db.RegisterMessage(OTSBitfieldByPage)
 
 GetOTSResp = _reflection.GeneratedProtocolMessageType('GetOTSResp', (_message.Message,), dict(
   DESCRIPTOR = _GETOTSRESP,
@@ -4547,6 +7671,48 @@ AddressState = _reflection.GeneratedProtocolMessageType('AddressState', (_messag
 _sym_db.RegisterMessage(AddressState)
 _sym_db.RegisterMessage(AddressState.TokensEntry)
 _sym_db.RegisterMessage(AddressState.SlavePksAccessTypeEntry)
+
+OptimizedAddressState = _reflection.GeneratedProtocolMessageType('OptimizedAddressState', (_message.Message,), dict(
+  DESCRIPTOR = _OPTIMIZEDADDRESSSTATE,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.OptimizedAddressState)
+  ))
+_sym_db.RegisterMessage(OptimizedAddressState)
+
+MultiSigAddressState = _reflection.GeneratedProtocolMessageType('MultiSigAddressState', (_message.Message,), dict(
+  DESCRIPTOR = _MULTISIGADDRESSSTATE,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.MultiSigAddressState)
+  ))
+_sym_db.RegisterMessage(MultiSigAddressState)
+
+MultiSigAddressesList = _reflection.GeneratedProtocolMessageType('MultiSigAddressesList', (_message.Message,), dict(
+  DESCRIPTOR = _MULTISIGADDRESSESLIST,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.MultiSigAddressesList)
+  ))
+_sym_db.RegisterMessage(MultiSigAddressesList)
+
+DataList = _reflection.GeneratedProtocolMessageType('DataList', (_message.Message,), dict(
+  DESCRIPTOR = _DATALIST,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.DataList)
+  ))
+_sym_db.RegisterMessage(DataList)
+
+Bitfield = _reflection.GeneratedProtocolMessageType('Bitfield', (_message.Message,), dict(
+  DESCRIPTOR = _BITFIELD,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.Bitfield)
+  ))
+_sym_db.RegisterMessage(Bitfield)
+
+TransactionHashList = _reflection.GeneratedProtocolMessageType('TransactionHashList', (_message.Message,), dict(
+  DESCRIPTOR = _TRANSACTIONHASHLIST,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.TransactionHashList)
+  ))
+_sym_db.RegisterMessage(TransactionHashList)
 
 LatticePK = _reflection.GeneratedProtocolMessageType('LatticePK', (_message.Message,), dict(
   DESCRIPTOR = _LATTICEPK,
@@ -4676,6 +7842,62 @@ Transaction = _reflection.GeneratedProtocolMessageType('Transaction', (_message.
     # @@protoc_insertion_point(class_scope:qrl.Transaction.Slave)
     ))
   ,
+
+  MultiSigCreate = _reflection.GeneratedProtocolMessageType('MultiSigCreate', (_message.Message,), dict(
+    DESCRIPTOR = _TRANSACTION_MULTISIGCREATE,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.Transaction.MultiSigCreate)
+    ))
+  ,
+
+  MultiSigSpend = _reflection.GeneratedProtocolMessageType('MultiSigSpend', (_message.Message,), dict(
+    DESCRIPTOR = _TRANSACTION_MULTISIGSPEND,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.Transaction.MultiSigSpend)
+    ))
+  ,
+
+  MultiSigVote = _reflection.GeneratedProtocolMessageType('MultiSigVote', (_message.Message,), dict(
+    DESCRIPTOR = _TRANSACTION_MULTISIGVOTE,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.Transaction.MultiSigVote)
+    ))
+  ,
+
+  ProposalCreate = _reflection.GeneratedProtocolMessageType('ProposalCreate', (_message.Message,), dict(
+
+    QIP = _reflection.GeneratedProtocolMessageType('QIP', (_message.Message,), dict(
+      DESCRIPTOR = _TRANSACTION_PROPOSALCREATE_QIP,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.Transaction.ProposalCreate.QIP)
+      ))
+    ,
+
+    Config = _reflection.GeneratedProtocolMessageType('Config', (_message.Message,), dict(
+      DESCRIPTOR = _TRANSACTION_PROPOSALCREATE_CONFIG,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.Transaction.ProposalCreate.Config)
+      ))
+    ,
+
+    Other = _reflection.GeneratedProtocolMessageType('Other', (_message.Message,), dict(
+      DESCRIPTOR = _TRANSACTION_PROPOSALCREATE_OTHER,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.Transaction.ProposalCreate.Other)
+      ))
+    ,
+    DESCRIPTOR = _TRANSACTION_PROPOSALCREATE,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.Transaction.ProposalCreate)
+    ))
+  ,
+
+  ProposalVote = _reflection.GeneratedProtocolMessageType('ProposalVote', (_message.Message,), dict(
+    DESCRIPTOR = _TRANSACTION_PROPOSALVOTE,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.Transaction.ProposalVote)
+    ))
+  ,
   DESCRIPTOR = _TRANSACTION,
   __module__ = 'qrl_pb2'
   # @@protoc_insertion_point(class_scope:qrl.Transaction)
@@ -4688,6 +7910,35 @@ _sym_db.RegisterMessage(Transaction.Message)
 _sym_db.RegisterMessage(Transaction.Token)
 _sym_db.RegisterMessage(Transaction.TransferToken)
 _sym_db.RegisterMessage(Transaction.Slave)
+_sym_db.RegisterMessage(Transaction.MultiSigCreate)
+_sym_db.RegisterMessage(Transaction.MultiSigSpend)
+_sym_db.RegisterMessage(Transaction.MultiSigVote)
+_sym_db.RegisterMessage(Transaction.ProposalCreate)
+_sym_db.RegisterMessage(Transaction.ProposalCreate.QIP)
+_sym_db.RegisterMessage(Transaction.ProposalCreate.Config)
+_sym_db.RegisterMessage(Transaction.ProposalCreate.Other)
+_sym_db.RegisterMessage(Transaction.ProposalVote)
+
+VoteStats = _reflection.GeneratedProtocolMessageType('VoteStats', (_message.Message,), dict(
+  DESCRIPTOR = _VOTESTATS,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.VoteStats)
+  ))
+_sym_db.RegisterMessage(VoteStats)
+
+ProposalVoteStats = _reflection.GeneratedProtocolMessageType('ProposalVoteStats', (_message.Message,), dict(
+  DESCRIPTOR = _PROPOSALVOTESTATS,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.ProposalVoteStats)
+  ))
+_sym_db.RegisterMessage(ProposalVoteStats)
+
+ProposalRecord = _reflection.GeneratedProtocolMessageType('ProposalRecord', (_message.Message,), dict(
+  DESCRIPTOR = _PROPOSALRECORD,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.ProposalRecord)
+  ))
+_sym_db.RegisterMessage(ProposalRecord)
 
 TokenList = _reflection.GeneratedProtocolMessageType('TokenList', (_message.Message,), dict(
   DESCRIPTOR = _TOKENLIST,
@@ -4695,6 +7946,27 @@ TokenList = _reflection.GeneratedProtocolMessageType('TokenList', (_message.Mess
   # @@protoc_insertion_point(class_scope:qrl.TokenList)
   ))
 _sym_db.RegisterMessage(TokenList)
+
+TokenBalance = _reflection.GeneratedProtocolMessageType('TokenBalance', (_message.Message,), dict(
+  DESCRIPTOR = _TOKENBALANCE,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.TokenBalance)
+  ))
+_sym_db.RegisterMessage(TokenBalance)
+
+SlaveMetadata = _reflection.GeneratedProtocolMessageType('SlaveMetadata', (_message.Message,), dict(
+  DESCRIPTOR = _SLAVEMETADATA,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.SlaveMetadata)
+  ))
+_sym_db.RegisterMessage(SlaveMetadata)
+
+LatticePKMetadata = _reflection.GeneratedProtocolMessageType('LatticePKMetadata', (_message.Message,), dict(
+  DESCRIPTOR = _LATTICEPKMETADATA,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.LatticePKMetadata)
+  ))
+_sym_db.RegisterMessage(LatticePKMetadata)
 
 TokenMetadata = _reflection.GeneratedProtocolMessageType('TokenMetadata', (_message.Message,), dict(
   DESCRIPTOR = _TOKENMETADATA,
@@ -4746,27 +8018,6 @@ BlockNumberMapping = _reflection.GeneratedProtocolMessageType('BlockNumberMappin
   ))
 _sym_db.RegisterMessage(BlockNumberMapping)
 
-StateLoader = _reflection.GeneratedProtocolMessageType('StateLoader', (_message.Message,), dict(
-  DESCRIPTOR = _STATELOADER,
-  __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.StateLoader)
-  ))
-_sym_db.RegisterMessage(StateLoader)
-
-StateObjects = _reflection.GeneratedProtocolMessageType('StateObjects', (_message.Message,), dict(
-  DESCRIPTOR = _STATEOBJECTS,
-  __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.StateObjects)
-  ))
-_sym_db.RegisterMessage(StateObjects)
-
-LRUStateCache = _reflection.GeneratedProtocolMessageType('LRUStateCache', (_message.Message,), dict(
-  DESCRIPTOR = _LRUSTATECACHE,
-  __module__ = 'qrl_pb2'
-  # @@protoc_insertion_point(class_scope:qrl.LRUStateCache)
-  ))
-_sym_db.RegisterMessage(LRUStateCache)
-
 PeerStat = _reflection.GeneratedProtocolMessageType('PeerStat', (_message.Message,), dict(
   DESCRIPTOR = _PEERSTAT,
   __module__ = 'qrl_pb2'
@@ -4809,6 +8060,101 @@ Peers = _reflection.GeneratedProtocolMessageType('Peers', (_message.Message,), d
   ))
 _sym_db.RegisterMessage(Peers)
 
+DevConfig = _reflection.GeneratedProtocolMessageType('DevConfig', (_message.Message,), dict(
+
+  Chain = _reflection.GeneratedProtocolMessageType('Chain', (_message.Message,), dict(
+    DESCRIPTOR = _DEVCONFIG_CHAIN,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.DevConfig.Chain)
+    ))
+  ,
+
+  Block = _reflection.GeneratedProtocolMessageType('Block', (_message.Message,), dict(
+
+    BlockSizeController = _reflection.GeneratedProtocolMessageType('BlockSizeController', (_message.Message,), dict(
+      DESCRIPTOR = _DEVCONFIG_BLOCK_BLOCKSIZECONTROLLER,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.DevConfig.Block.BlockSizeController)
+      ))
+    ,
+    DESCRIPTOR = _DEVCONFIG_BLOCK,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.DevConfig.Block)
+    ))
+  ,
+
+  Transaction = _reflection.GeneratedProtocolMessageType('Transaction', (_message.Message,), dict(
+
+    Message = _reflection.GeneratedProtocolMessageType('Message', (_message.Message,), dict(
+      DESCRIPTOR = _DEVCONFIG_TRANSACTION_MESSAGE,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.DevConfig.Transaction.Message)
+      ))
+    ,
+
+    Slave = _reflection.GeneratedProtocolMessageType('Slave', (_message.Message,), dict(
+      DESCRIPTOR = _DEVCONFIG_TRANSACTION_SLAVE,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.DevConfig.Transaction.Slave)
+      ))
+    ,
+
+    Token = _reflection.GeneratedProtocolMessageType('Token', (_message.Message,), dict(
+      DESCRIPTOR = _DEVCONFIG_TRANSACTION_TOKEN,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.DevConfig.Transaction.Token)
+      ))
+    ,
+
+    Lattice = _reflection.GeneratedProtocolMessageType('Lattice', (_message.Message,), dict(
+      DESCRIPTOR = _DEVCONFIG_TRANSACTION_LATTICE,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.DevConfig.Transaction.Lattice)
+      ))
+    ,
+
+    FoundationMultiSig = _reflection.GeneratedProtocolMessageType('FoundationMultiSig', (_message.Message,), dict(
+      DESCRIPTOR = _DEVCONFIG_TRANSACTION_FOUNDATIONMULTISIG,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.DevConfig.Transaction.FoundationMultiSig)
+      ))
+    ,
+
+    Proposal = _reflection.GeneratedProtocolMessageType('Proposal', (_message.Message,), dict(
+      DESCRIPTOR = _DEVCONFIG_TRANSACTION_PROPOSAL,
+      __module__ = 'qrl_pb2'
+      # @@protoc_insertion_point(class_scope:qrl.DevConfig.Transaction.Proposal)
+      ))
+    ,
+    DESCRIPTOR = _DEVCONFIG_TRANSACTION,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.DevConfig.Transaction)
+    ))
+  ,
+
+  POW = _reflection.GeneratedProtocolMessageType('POW', (_message.Message,), dict(
+    DESCRIPTOR = _DEVCONFIG_POW,
+    __module__ = 'qrl_pb2'
+    # @@protoc_insertion_point(class_scope:qrl.DevConfig.POW)
+    ))
+  ,
+  DESCRIPTOR = _DEVCONFIG,
+  __module__ = 'qrl_pb2'
+  # @@protoc_insertion_point(class_scope:qrl.DevConfig)
+  ))
+_sym_db.RegisterMessage(DevConfig)
+_sym_db.RegisterMessage(DevConfig.Chain)
+_sym_db.RegisterMessage(DevConfig.Block)
+_sym_db.RegisterMessage(DevConfig.Block.BlockSizeController)
+_sym_db.RegisterMessage(DevConfig.Transaction)
+_sym_db.RegisterMessage(DevConfig.Transaction.Message)
+_sym_db.RegisterMessage(DevConfig.Transaction.Slave)
+_sym_db.RegisterMessage(DevConfig.Transaction.Token)
+_sym_db.RegisterMessage(DevConfig.Transaction.Lattice)
+_sym_db.RegisterMessage(DevConfig.Transaction.FoundationMultiSig)
+_sym_db.RegisterMessage(DevConfig.Transaction.Proposal)
+_sym_db.RegisterMessage(DevConfig.POW)
+
 
 _ADDRESSSTATE_TOKENSENTRY.has_options = True
 _ADDRESSSTATE_TOKENSENTRY._options = _descriptor._ParseOptions(descriptor_pb2.MessageOptions(), _b('8\001'))
@@ -4823,8 +8169,8 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   options=None,
-  serialized_start=7897,
-  serialized_end=9415,
+  serialized_start=15249,
+  serialized_end=17924,
   methods=[
   _descriptor.MethodDescriptor(
     name='GetNodeState',
@@ -4872,9 +8218,36 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
     options=None,
   ),
   _descriptor.MethodDescriptor(
+    name='GetOptimizedAddressState',
+    full_name='qrl.PublicAPI.GetOptimizedAddressState',
+    index=5,
+    containing_service=None,
+    input_type=_GETADDRESSSTATEREQ,
+    output_type=_GETOPTIMIZEDADDRESSSTATERESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetMultiSigAddressState',
+    full_name='qrl.PublicAPI.GetMultiSigAddressState',
+    index=6,
+    containing_service=None,
+    input_type=_GETMULTISIGADDRESSSTATEREQ,
+    output_type=_GETMULTISIGADDRESSSTATERESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='IsSlave',
+    full_name='qrl.PublicAPI.IsSlave',
+    index=7,
+    containing_service=None,
+    input_type=_ISSLAVEREQ,
+    output_type=_ISSLAVERESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
     name='GetObject',
     full_name='qrl.PublicAPI.GetObject',
-    index=5,
+    index=8,
     containing_service=None,
     input_type=_GETOBJECTREQ,
     output_type=_GETOBJECTRESP,
@@ -4883,7 +8256,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetLatestData',
     full_name='qrl.PublicAPI.GetLatestData',
-    index=6,
+    index=9,
     containing_service=None,
     input_type=_GETLATESTDATAREQ,
     output_type=_GETLATESTDATARESP,
@@ -4892,7 +8265,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='PushTransaction',
     full_name='qrl.PublicAPI.PushTransaction',
-    index=7,
+    index=10,
     containing_service=None,
     input_type=_PUSHTRANSACTIONREQ,
     output_type=_PUSHTRANSACTIONRESP,
@@ -4901,7 +8274,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='TransferCoins',
     full_name='qrl.PublicAPI.TransferCoins',
-    index=8,
+    index=11,
     containing_service=None,
     input_type=_TRANSFERCOINSREQ,
     output_type=_TRANSFERCOINSRESP,
@@ -4910,7 +8283,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='ParseAddress',
     full_name='qrl.PublicAPI.ParseAddress',
-    index=9,
+    index=12,
     containing_service=None,
     input_type=_PARSEADDRESSREQ,
     output_type=_PARSEADDRESSRESP,
@@ -4919,7 +8292,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetChainStats',
     full_name='qrl.PublicAPI.GetChainStats',
-    index=10,
+    index=13,
     containing_service=None,
     input_type=_GETCHAINSTATSREQ,
     output_type=_GETCHAINSTATSRESP,
@@ -4928,16 +8301,43 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetAddressFromPK',
     full_name='qrl.PublicAPI.GetAddressFromPK',
-    index=11,
+    index=14,
     containing_service=None,
     input_type=_GETADDRESSFROMPKREQ,
     output_type=_GETADDRESSFROMPKRESP,
     options=None,
   ),
   _descriptor.MethodDescriptor(
+    name='GetMultiSigCreateTxn',
+    full_name='qrl.PublicAPI.GetMultiSigCreateTxn',
+    index=15,
+    containing_service=None,
+    input_type=_MULTISIGCREATETXNREQ,
+    output_type=_TRANSFERCOINSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetMultiSigSpendTxn',
+    full_name='qrl.PublicAPI.GetMultiSigSpendTxn',
+    index=16,
+    containing_service=None,
+    input_type=_MULTISIGSPENDTXNREQ,
+    output_type=_TRANSFERCOINSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetMultiSigVoteTxn',
+    full_name='qrl.PublicAPI.GetMultiSigVoteTxn',
+    index=17,
+    containing_service=None,
+    input_type=_MULTISIGVOTETXNREQ,
+    output_type=_TRANSFERCOINSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
     name='GetMessageTxn',
     full_name='qrl.PublicAPI.GetMessageTxn',
-    index=12,
+    index=18,
     containing_service=None,
     input_type=_MESSAGETXNREQ,
     output_type=_TRANSFERCOINSRESP,
@@ -4946,7 +8346,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetTokenTxn',
     full_name='qrl.PublicAPI.GetTokenTxn',
-    index=13,
+    index=19,
     containing_service=None,
     input_type=_TOKENTXNREQ,
     output_type=_TRANSFERCOINSRESP,
@@ -4955,7 +8355,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetTransferTokenTxn',
     full_name='qrl.PublicAPI.GetTransferTokenTxn',
-    index=14,
+    index=20,
     containing_service=None,
     input_type=_TRANSFERTOKENTXNREQ,
     output_type=_TRANSFERCOINSRESP,
@@ -4964,34 +8364,106 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetSlaveTxn',
     full_name='qrl.PublicAPI.GetSlaveTxn',
-    index=15,
+    index=21,
     containing_service=None,
     input_type=_SLAVETXNREQ,
     output_type=_TRANSFERCOINSRESP,
     options=None,
   ),
   _descriptor.MethodDescriptor(
-    name='GetTransactionsByAddress',
-    full_name='qrl.PublicAPI.GetTransactionsByAddress',
-    index=16,
+    name='GetLatticeTxn',
+    full_name='qrl.PublicAPI.GetLatticeTxn',
+    index=22,
     containing_service=None,
-    input_type=_GETTRANSACTIONSBYADDRESSREQ,
-    output_type=_GETTRANSACTIONSBYADDRESSRESP,
+    input_type=_LATTICETXNREQ,
+    output_type=_TRANSFERCOINSRESP,
     options=None,
   ),
   _descriptor.MethodDescriptor(
     name='GetTransaction',
     full_name='qrl.PublicAPI.GetTransaction',
-    index=17,
+    index=23,
     containing_service=None,
     input_type=_GETTRANSACTIONREQ,
     output_type=_GETTRANSACTIONRESP,
     options=None,
   ),
   _descriptor.MethodDescriptor(
+    name='GetMiniTransactionsByAddress',
+    full_name='qrl.PublicAPI.GetMiniTransactionsByAddress',
+    index=24,
+    containing_service=None,
+    input_type=_GETMINITRANSACTIONSBYADDRESSREQ,
+    output_type=_GETMINITRANSACTIONSBYADDRESSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetTransactionsByAddress',
+    full_name='qrl.PublicAPI.GetTransactionsByAddress',
+    index=25,
+    containing_service=None,
+    input_type=_GETTRANSACTIONSBYADDRESSREQ,
+    output_type=_GETTRANSACTIONSBYADDRESSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetTokensByAddress',
+    full_name='qrl.PublicAPI.GetTokensByAddress',
+    index=26,
+    containing_service=None,
+    input_type=_GETTRANSACTIONSBYADDRESSREQ,
+    output_type=_GETTOKENSBYADDRESSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetSlavesByAddress',
+    full_name='qrl.PublicAPI.GetSlavesByAddress',
+    index=27,
+    containing_service=None,
+    input_type=_GETTRANSACTIONSBYADDRESSREQ,
+    output_type=_GETSLAVESBYADDRESSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetLatticePKsByAddress',
+    full_name='qrl.PublicAPI.GetLatticePKsByAddress',
+    index=28,
+    containing_service=None,
+    input_type=_GETTRANSACTIONSBYADDRESSREQ,
+    output_type=_GETLATTICEPKSBYADDRESSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetMultiSigAddressesByAddress',
+    full_name='qrl.PublicAPI.GetMultiSigAddressesByAddress',
+    index=29,
+    containing_service=None,
+    input_type=_GETTRANSACTIONSBYADDRESSREQ,
+    output_type=_GETMULTISIGADDRESSESBYADDRESSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetMultiSigSpendTxsByAddress',
+    full_name='qrl.PublicAPI.GetMultiSigSpendTxsByAddress',
+    index=30,
+    containing_service=None,
+    input_type=_GETMULTISIGSPENDTXSBYADDRESSREQ,
+    output_type=_GETMULTISIGSPENDTXSBYADDRESSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='GetVoteStats',
+    full_name='qrl.PublicAPI.GetVoteStats',
+    index=31,
+    containing_service=None,
+    input_type=_GETVOTESTATSREQ,
+    output_type=_GETVOTESTATSRESP,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
     name='GetBalance',
     full_name='qrl.PublicAPI.GetBalance',
-    index=18,
+    index=32,
     containing_service=None,
     input_type=_GETBALANCEREQ,
     output_type=_GETBALANCERESP,
@@ -5000,7 +8472,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetTotalBalance',
     full_name='qrl.PublicAPI.GetTotalBalance',
-    index=19,
+    index=33,
     containing_service=None,
     input_type=_GETTOTALBALANCEREQ,
     output_type=_GETTOTALBALANCERESP,
@@ -5009,7 +8481,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetOTS',
     full_name='qrl.PublicAPI.GetOTS',
-    index=20,
+    index=34,
     containing_service=None,
     input_type=_GETOTSREQ,
     output_type=_GETOTSRESP,
@@ -5018,7 +8490,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetHeight',
     full_name='qrl.PublicAPI.GetHeight',
-    index=21,
+    index=35,
     containing_service=None,
     input_type=_GETHEIGHTREQ,
     output_type=_GETHEIGHTRESP,
@@ -5027,7 +8499,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetBlock',
     full_name='qrl.PublicAPI.GetBlock',
-    index=22,
+    index=36,
     containing_service=None,
     input_type=_GETBLOCKREQ,
     output_type=_GETBLOCKRESP,
@@ -5036,7 +8508,7 @@ _PUBLICAPI = _descriptor.ServiceDescriptor(
   _descriptor.MethodDescriptor(
     name='GetBlockByNumber',
     full_name='qrl.PublicAPI.GetBlockByNumber',
-    index=23,
+    index=37,
     containing_service=None,
     input_type=_GETBLOCKBYNUMBERREQ,
     output_type=_GETBLOCKBYNUMBERRESP,
@@ -5054,8 +8526,8 @@ _ADMINAPI = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=1,
   options=None,
-  serialized_start=9417,
-  serialized_end=9427,
+  serialized_start=17926,
+  serialized_end=17936,
   methods=[
 ])
 _sym_db.RegisterServiceDescriptor(_ADMINAPI)

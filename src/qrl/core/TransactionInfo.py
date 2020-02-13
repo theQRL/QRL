@@ -48,21 +48,20 @@ class TransactionInfo:
     def update_block_number(self, current_block_number: int):
         self._block_number = current_block_number
 
-    def validate(self, state) -> bool:
+    def validate(self, new_state_container, update_state_container, block_number) -> bool:
         addresses_set = set()
         self.transaction.set_affected_address(addresses_set)
+        state_container = new_state_container(addresses_set,
+                                              block_number,
+                                              False,
+                                              None)
 
-        addresses_state = dict()
-        for address in addresses_set:
-            addresses_state[address] = state.get_address_state(address)
-
-        addr_from_pk_state = addresses_state[self.transaction.addr_from]
-        addr_from_pk = Transaction.get_slave(self.transaction)
-
-        if addr_from_pk:
-            addr_from_pk_state = addresses_state[addr_from_pk]
-
-        if not self.transaction.validate_extended(addresses_state[self.transaction.addr_from], addr_from_pk_state):
+        if not update_state_container(self.transaction, state_container):
             return False
 
+        # Nonce should not be checked during transaction validation,
+        # as the appropriate nonce can be set by miner before placing
+        # the txn into block
+        if not self.transaction.validate_all(state_container, False):
+            return False
         return True

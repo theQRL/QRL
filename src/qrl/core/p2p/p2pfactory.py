@@ -20,9 +20,13 @@ from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.LatticeTransaction import LatticeTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
+from qrl.core.txs.multisig.MultiSigCreate import MultiSigCreate
+from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
+from qrl.core.txs.multisig.MultiSigVote import MultiSigVote
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 p2p_msg_priority = {
@@ -53,6 +57,10 @@ p2p_msg_priority = {
             qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
             qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
             qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
+
+            qrllegacy_pb2.LegacyMessage.MC: 1,
+            qrllegacy_pb2.LegacyMessage.MS: 1,
+            qrllegacy_pb2.LegacyMessage.MV: 1,
         }
 
 
@@ -402,6 +410,14 @@ class P2PFactory(ServerFactory):
             legacy_type = qrllegacy_pb2.LegacyMessage.TT
         elif isinstance(tx, SlaveTransaction):
             legacy_type = qrllegacy_pb2.LegacyMessage.SL
+        elif isinstance(tx, LatticeTransaction):
+            legacy_type = qrllegacy_pb2.LegacyMessage.LT
+        elif isinstance(tx, MultiSigCreate):
+            legacy_type = qrllegacy_pb2.LegacyMessage.MC
+        elif isinstance(tx, MultiSigSpend):
+            legacy_type = qrllegacy_pb2.LegacyMessage.MS
+        elif isinstance(tx, MultiSigVote):
+            legacy_type = qrllegacy_pb2.LegacyMessage.MV
         else:
             raise ValueError('Invalid Transaction Type')
         self.register_and_broadcast(legacy_type, tx.get_message_hash(), tx.pbdata)

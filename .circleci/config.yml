@@ -2,7 +2,7 @@ version: 2
 jobs:
   build:
     docker:
-      - image: qrledger/qrl-docker:xenial
+      - image: qrledger/qrl-docker-ci:xenial
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -14,7 +14,7 @@ jobs:
       
   test_leaks_CLI:
     docker:
-      - image: qrledger/qrl-docker:xenial
+      - image: qrledger/qrl-docker-ci:xenial
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -25,7 +25,7 @@ jobs:
 
   flake8:
     docker:
-      - image: qrledger/qrl-docker:xenial
+      - image: qrledger/qrl-docker-ci:xenial
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -33,7 +33,7 @@ jobs:
 
   test_leaks_other:
     docker:
-      - image: qrledger/qrl-docker:xenial
+      - image: qrledger/qrl-docker-ci:xenial
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -44,7 +44,7 @@ jobs:
 
   build_trusty:
     docker:
-      - image: qrledger/qrl-docker:trusty
+      - image: qrledger/qrl-docker-ci:trusty
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -55,7 +55,7 @@ jobs:
 
   build_bionic:
     docker:
-      - image: qrledger/qrl-docker:bionic
+      - image: qrledger/qrl-docker-ci:bionic
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -65,7 +65,7 @@ jobs:
 
   integration_fast:
     docker:
-      - image: qrledger/qrl-docker:xenial
+      - image: qrledger/qrl-docker-ci:xenial
     environment:
       PYTHONPATH: /root/project:/root/project/tests_integration
       TESTINPLACE: 1
@@ -79,7 +79,7 @@ jobs:
 
   integration_smoke:
     docker:
-      - image: qrledger/qrl-docker:xenial
+      - image: qrledger/qrl-docker-ci:xenial
     environment:
       PYTHONPATH: /root/project:/root/project/tests_integration
       TESTINPLACE: 1
@@ -95,21 +95,20 @@ jobs:
 
   integration_fuzzing:
     docker:
-      - image: qrledger/qrl-docker:xenial
+      - image: qrledger/qrl-docker-ci:xenial
     environment:
       PYTHONPATH: /root/project:/root/project/tests_integration
       TESTINPLACE: 1
     steps:
       - checkout
       - run: git submodule update --init --recursive --remote
-      - run: apt install -y python3-venv
       - run: pip install -U -r tests_integration/requirements.txt
       - run: pip install git+https://github.com/CurataEng/hypothesis-protobuf.git
       - run: pytest tests_integration/tests/python/fuzzing
 
   deploy-pypi:
     docker:
-      - image: qrledger/qrl-docker:xenial
+      - image: qrledger/qrl-docker-ci:xenial
     steps:
       - checkout
       - run: git submodule update --init --recursive

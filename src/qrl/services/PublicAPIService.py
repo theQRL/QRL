@@ -38,6 +38,10 @@ class PublicAPIService(PublicAPIServicer):
 
         return peers_stat_resp
 
+    @GrpcExceptionWrapper(qrl_pb2.IsSlaveResp)
+    def IsSlave(self, request: qrl_pb2.IsSlaveReq, context) -> qrl_pb2.IsSlaveResp:
+        return qrl_pb2.IsSlaveResp(result=self.qrlnode.is_slave(request.master_address, request.slave_pk))
+
     @GrpcExceptionWrapper(qrl_pb2.GetNodeStateResp)
     def GetNodeState(self, request: qrl_pb2.GetNodeStateReq, context) -> qrl_pb2.GetNodeStateResp:
         return qrl_pb2.GetNodeStateResp(info=self.qrlnode.get_node_info())
@@ -103,17 +107,30 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.GetAddressStateResp)
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:
         address_state = self.qrlnode.get_address_state(request.address)
-        if request.exclude_ots_bitfield:
-            del address_state.pbdata.ots_bitfield[:]
-        if request.exclude_transaction_hashes:
-            del address_state.pbdata.transaction_hashes[:]
         return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetOptimizedAddressStateResp)
+    def GetOptimizedAddressState(self,
+                                 request: qrl_pb2.GetAddressStateReq,
+                                 context) -> qrl_pb2.GetOptimizedAddressStateResp:
+        address_state = self.qrlnode.get_optimized_address_state(request.address)
+        return qrl_pb2.GetOptimizedAddressStateResp(state=address_state.pbdata)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetMultiSigAddressStateResp)
+    def GetMultiSigAddressState(self,
+                                request: qrl_pb2.GetMultiSigAddressStateReq,
+                                context) -> qrl_pb2.GetMultiSigAddressStateResp:
+        multi_sig_address_state = self.qrlnode.get_multi_sig_address_state(request.address)
+        if multi_sig_address_state is None:
+            return qrl_pb2.GetMultiSigAddressStateResp()
+        return qrl_pb2.GetMultiSigAddressStateResp(state=multi_sig_address_state.pbdata)
 
     @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
     def TransferCoins(self, request: qrl_pb2.TransferCoinsReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] TransferCoins")
         tx = self.qrlnode.create_send_tx(addrs_to=request.addresses_to,
                                          amounts=request.amounts,
+                                         message_data=request.message_data,
                                          fee=request.fee,
                                          xmss_pk=request.xmss_pk,
                                          master_addr=request.master_addr)
@@ -150,9 +167,55 @@ class PublicAPIService(PublicAPIServicer):
         return answer
 
     @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
-    def GetMessageTxn(self, request: qrl_pb2.TokenTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+    def GetMultiSigCreateTxn(self, request: qrl_pb2.MultiSigCreateTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetMultiSigCreateTxnReq")
+        tx = self.qrlnode.create_multi_sig_txn(signatories=request.signatories,
+                                               weights=request.weights,
+                                               threshold=request.threshold,
+                                               fee=request.fee,
+                                               xmss_pk=request.xmss_pk,
+                                               master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetMultiSigSpendTxn(self, request: qrl_pb2.MultiSigSpendTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetMultiSigSpendTxnReq")
+        tx = self.qrlnode.create_multi_sig_spend_txn(multi_sig_address=request.multi_sig_address,
+                                                     addrs_to=request.addrs_to,
+                                                     amounts=request.amounts,
+                                                     expiry_block_number=request.expiry_block_number,
+                                                     fee=request.fee,
+                                                     xmss_pk=request.xmss_pk,
+                                                     master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetMultiSigVoteTxn(self, request: qrl_pb2.MultiSigVoteTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetMultiSigSpendTxnReq")
+        tx = self.qrlnode.create_multi_sig_vote_txn(shared_key=request.shared_key,
+                                                    unvote=request.unvote,
+                                                    fee=request.fee,
+                                                    xmss_pk=request.xmss_pk,
+                                                    master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetMessageTxn(self, request: qrl_pb2.MessageTxnReq, context) -> qrl_pb2.TransferCoinsResp:
         logger.debug("[PublicAPI] GetMessageTxn")
         tx = self.qrlnode.create_message_txn(message_hash=request.message,
+                                             addr_to=request.addr_to,
                                              fee=request.fee,
                                              xmss_pk=request.xmss_pk,
                                              master_addr=request.master_addr)
@@ -209,6 +272,22 @@ class PublicAPIService(PublicAPIServicer):
                                                                     size=tx.size)
         return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
 
+    @GrpcExceptionWrapper(qrl_pb2.TransferCoinsResp)
+    def GetLatticeTxn(self, request: qrl_pb2.LatticeTxnReq, context) -> qrl_pb2.TransferCoinsResp:
+        logger.debug("[PublicAPI] GetLatticeTxn")
+        tx = self.qrlnode.create_lattice_tx(pk1=request.pk1,
+                                            pk2=request.pk2,
+                                            pk3=request.pk3,
+                                            pk4=request.pk4,
+                                            fee=request.fee,
+                                            xmss_pk=request.xmss_pk,
+                                            master_addr=request.master_addr)
+
+        extended_transaction_unsigned = qrl_pb2.TransactionExtended(tx=tx.pbdata,
+                                                                    addr_from=tx.addr_from,
+                                                                    size=tx.size)
+        return qrl_pb2.TransferCoinsResp(extended_transaction_unsigned=extended_transaction_unsigned)
+
     @GrpcExceptionWrapper(qrl_pb2.GetObjectResp)
     def GetObject(self, request: qrl_pb2.GetObjectReq, context) -> qrl_pb2.GetObjectResp:
         logger.debug("[PublicAPI] GetObject")
@@ -221,7 +300,7 @@ class PublicAPIService(PublicAPIServicer):
         try:
             if AddressState.address_is_valid(query):
                 if self.qrlnode.get_address_is_used(query):
-                    address_state = self.qrlnode.get_address_state(query)
+                    address_state = self.qrlnode.get_optimized_address_state(query)
                     if address_state is not None:
                         answer.found = True
                         answer.address_state.CopyFrom(address_state.pbdata)
@@ -256,7 +335,6 @@ class PublicAPIService(PublicAPIServicer):
         # NOTE: This is temporary, indexes are accepted for blocks
         try:
             block = self.qrlnode.get_block_from_hash(query)
-            # The condition after or is to avoid a bug, where a block is deserialized by BlockNumberMapping
             if block is None or (block.block_number == 0 and block.prev_headerhash != config.user.genesis_prev_headerhash):
                 query_str = query.decode()
                 query_index = int(query_str)
@@ -332,16 +410,88 @@ class PublicAPIService(PublicAPIServicer):
 
         return response
 
+    # Obsolete
+    # @GrpcExceptionWrapper(qrl_pb2.GetTransactionsByAddressResp)
+    # def GetTransactionsByAddress(self,
+    #                              request: qrl_pb2.GetTransactionsByAddressReq,
+    #                              context) -> qrl_pb2.GetTransactionsByAddressResp:
+    #     logger.debug("[PublicAPI] GetTransactionsByAddress")
+    #     response = qrl_pb2.GetTransactionsByAddressResp()
+    #     mini_transactions, balance = self.qrlnode.get_transactions_by_address(request.address)
+    #     response.mini_transactions.extend(mini_transactions)
+    #     response.balance = balance
+    #     return response
+
+    @GrpcExceptionWrapper(qrl_pb2.GetMiniTransactionsByAddressResp)
+    def GetMiniTransactionsByAddress(self,
+                                     request: qrl_pb2.GetMiniTransactionsByAddressReq,
+                                     context) -> qrl_pb2.GetMiniTransactionsByAddressResp:
+        logger.debug("[PublicAPI] GetTransactionsByAddress")
+        return self.qrlnode.get_mini_transactions_by_address(request.address,
+                                                             request.item_per_page,
+                                                             request.page_number)
+
     @GrpcExceptionWrapper(qrl_pb2.GetTransactionsByAddressResp)
     def GetTransactionsByAddress(self,
                                  request: qrl_pb2.GetTransactionsByAddressReq,
                                  context) -> qrl_pb2.GetTransactionsByAddressResp:
         logger.debug("[PublicAPI] GetTransactionsByAddress")
-        response = qrl_pb2.GetTransactionsByAddressResp()
-        mini_transactions, balance = self.qrlnode.get_transactions_by_address(request.address)
-        response.mini_transactions.extend(mini_transactions)
-        response.balance = balance
-        return response
+        return self.qrlnode.get_transactions_by_address(request.address,
+                                                        request.item_per_page,
+                                                        request.page_number)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetTokensByAddressResp)
+    def GetTokensByAddress(self,
+                           request: qrl_pb2.GetTransactionsByAddressReq,
+                           context) -> qrl_pb2.GetTokensByAddressResp:
+        logger.debug("[PublicAPI] GetTokensByAddress")
+        return self.qrlnode.get_tokens_by_address(request.address,
+                                                  request.item_per_page,
+                                                  request.page_number)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetSlavesByAddressResp)
+    def GetSlavesByAddress(self,
+                           request: qrl_pb2.GetTransactionsByAddressReq,
+                           context) -> qrl_pb2.GetSlavesByAddressResp:
+        logger.debug("[PublicAPI] GetSlavesByAddress")
+        return self.qrlnode.get_slaves_by_address(request.address,
+                                                  request.item_per_page,
+                                                  request.page_number)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetLatticePKsByAddressResp)
+    def GetLatticePKsByAddress(self,
+                               request: qrl_pb2.GetTransactionsByAddressReq,
+                               context) -> qrl_pb2.GetLatticePKsByAddressResp:
+        logger.debug("[PublicAPI] GetLatticePKsByAddress")
+        return self.qrlnode.get_lattice_pks_by_address(request.address,
+                                                       request.item_per_page,
+                                                       request.page_number)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetMultiSigAddressesByAddressResp)
+    def GetMultiSigAddressesByAddress(self,
+                                      request: qrl_pb2.GetTransactionsByAddressReq,
+                                      context) -> qrl_pb2.GetMultiSigAddressesByAddressResp:
+        logger.debug("[PublicAPI] GetMultiSigAddressesByAddress")
+        return self.qrlnode.get_multi_sig_addresses_by_address(request.address,
+                                                               request.item_per_page,
+                                                               request.page_number)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetMultiSigSpendTxsByAddressResp)
+    def GetMultiSigSpendTxsByAddress(self,
+                                     request: qrl_pb2.GetMultiSigSpendTxsByAddressReq,
+                                     context) -> qrl_pb2.GetMultiSigSpendTxsByAddressResp:
+        logger.debug("[PublicAPI] GetMultiSigSpendTxsByAddress")
+        return self.qrlnode.get_multi_sig_spend_txs_by_address(request.address,
+                                                               request.item_per_page,
+                                                               request.page_number,
+                                                               request.filter_type)
+
+    @GrpcExceptionWrapper(qrl_pb2.GetVoteStatsResp)
+    def GetVoteStats(self,
+                     request: qrl_pb2.GetVoteStatsReq,
+                     context) -> qrl_pb2.GetVoteStatsResp:
+        logger.debug("[PublicAPI] GetVoteStats")
+        return self.qrlnode.get_vote_stats(request.multi_sig_spend_tx_hash)
 
     @GrpcExceptionWrapper(qrl_pb2.GetTransactionResp)
     def GetTransaction(self, request: qrl_pb2.GetTransactionReq, context) -> qrl_pb2.GetTransactionResp:
@@ -364,7 +514,7 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.GetBalanceResp)
     def GetBalance(self, request: qrl_pb2.GetBalanceReq, context) -> qrl_pb2.GetBalanceResp:
         logger.debug("[PublicAPI] GetBalance")
-        address_state = self.qrlnode.get_address_state(request.address)
+        address_state = self.qrlnode.get_optimized_address_state(request.address)
         response = qrl_pb2.GetBalanceResp(balance=address_state.balance)
         return response
 
@@ -374,7 +524,7 @@ class PublicAPIService(PublicAPIServicer):
         response = qrl_pb2.GetBalanceResp(balance=0)
 
         for address in request.addresses:
-            address_state = self.qrlnode.get_address_state(address)
+            address_state = self.qrlnode.get_optimized_address_state(address)
             response.balance += address_state.balance
 
         return response
@@ -382,9 +532,14 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.GetOTSResp)
     def GetOTS(self, request: qrl_pb2.GetOTSReq, context) -> qrl_pb2.GetOTSResp:
         logger.debug("[PublicAPI] GetOTS")
-        address_state = self.qrlnode.get_address_state(request.address)
-        response = qrl_pb2.GetOTSResp(ots_bitfield=address_state.ots_bitfield,
-                                      next_unused_ots_index=address_state.get_unused_ots_index())
+        ots_bitfield_by_page, next_unused_ots_index, unused_ots_index_found = \
+            self.qrlnode.get_ots(request.address,
+                                 request.page_from,
+                                 request.page_count,
+                                 request.unused_ots_index_from)
+        response = qrl_pb2.GetOTSResp(ots_bitfield_by_page=ots_bitfield_by_page,
+                                      next_unused_ots_index=next_unused_ots_index,
+                                      unused_ots_index_found=unused_ots_index_found)
         return response
 
     @GrpcExceptionWrapper(qrl_pb2.GetHeightResp)

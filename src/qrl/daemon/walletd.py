@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 import os
 import logging
 import grpc
+from typing import Optional
 from time import sleep
 from daemonize import Daemonize
 
@@ -332,7 +333,7 @@ class WalletD:
 
         ots_index = slave_address_state.get_unused_ots_index(slave.index)
 
-        if ots_index == None:  # noqa
+        if ots_index is None:  # noqa
             self._wallet.set_slave_ots_index(index,
                                              group_index,
                                              slave_index,
@@ -348,6 +349,21 @@ class WalletD:
 
         return xmss
 
+    def is_slave(self, master_address: bytes, slave_pk: bytes) -> bool:
+        request = qrl_pb2.IsSlaveReq(master_address=master_address,
+                                     slave_pk=slave_pk)
+
+        resp = self._public_stub.IsSlave(request=request)
+        return resp.result
+
+    def get_unused_ots_index(self, address: bytes, unused_ots_index_from: int) -> Optional[int]:
+        request = qrl_pb2.GetOTSReq(address=address,
+                                    unused_ots_index_from=unused_ots_index_from)
+        resp = self._public_stub.GetOTS(request=request)
+        if not resp.unused_ots_index_found:
+            return None
+        return resp.next_unused_ots_index
+
     def get_slave(self, master_qaddress):
         index, item = self._wallet.get_address_item(master_qaddress)
         if index is None:
@@ -356,105 +372,179 @@ class WalletD:
         # Should we check available OTS for master
         # Get slave list using address state
         address_state = self.get_address_state(master_qaddress)
+        group_index = len(item.slaves) - 1
+        slave_group = None
+        while group_index >= 0:
+            slave = item.slaves[group_index][0]
+            if self.is_slave(address_state.address, bytes(hstr2bin(slave.pk))):
+                slave_group = item.slaves[group_index]
+                break
+            group_index -= 1
+        if group_index > 0:
+            xmss = self.try_txn_with_last_slave(item, index, group_index - 1)
+            if xmss:
+                return index, group_index - 1, len(item.slaves[group_index - 1]) - 1, xmss
 
-        slave = item.slaves[-1][0]
-        if not address_state.validate_slave_with_access_type(str(bytes(hstr2bin(slave.pk))), [0]):
-            if len(item.slaves) == 1:
-                qaddress = item.qaddress
-                target_address_item = item
-                group_index = None
-            else:
-                qaddress = item.slaves[-2][-1].qaddress
-                target_address_item = item.slaves[-2][-1]
-                group_index = -2
+        if slave_group is None:
+            # Relay slave txn using master address using ots index 0
+            return index, -1, -1, None
 
-            address_state = self.get_address_state(qaddress)
-            ots_index = address_state.get_unused_ots_index()
+        for slave_index, slave in enumerate(slave_group):
+            if slave.index > 2 ** slave.height - 1:
+                continue
 
-            if ots_index >= UNRESERVED_OTS_INDEX_START:
-                raise Exception('Fatal Error!!! No reserved OTS index found')
+            if slave_index + 1 == len(slave_group) and slave.index >= 2 ** slave.height - 5:
+                continue
 
             if self._passphrase:
-                target_address_item = self._wallet.decrypt_address_item(target_address_item, self._passphrase)
+                slave = self._wallet.decrypt_address_item(slave, self._passphrase)
 
-            xmss = self._wallet.get_xmss_by_item(target_address_item, ots_index)
+            slave_address_state = self.get_address_state(slave.qaddress)
 
-            slaves_pk = [bytes(hstr2bin(slave_item.pk)) for slave_item in item.slaves[-1]]
-            tx = self.generate_slave_tx(xmss.pk,
-                                        slaves_pk,
-                                        self.qaddress_to_address(master_qaddress))
+            ots_index = self.get_unused_ots_index(slave_address_state.address, slave.index)
+            if slave_index + 1 == len(slave_group) and max(ots_index, slave.index) > 2 ** slave.height - 100:
+                ots_index_reserved = self.get_unused_ots_index(slave_address_state.address, 0)
+                if ots_index_reserved >= UNRESERVED_OTS_INDEX_START:
+                    raise Exception("Fatal Error, no unused reserved OTS index", ots_index_reserved)
 
-            self.sign_and_push_transaction(tx,
-                                           xmss,
-                                           index,
-                                           enable_save=False)
+                curr_slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index_reserved)
 
-            if len(item.slaves) > 1:
-                if self.try_txn_with_last_slave(item, index, group_index, xmss):
-                    return index, len(item.slaves) - 2, len(item.slaves[group_index]) - 1, xmss
+                slave_xmss_list = self._wallet.add_slave(index=index,
+                                                         height=slave.height,
+                                                         number_of_slaves=config.user.number_of_slaves,
+                                                         passphrase=self._passphrase,
+                                                         force=True)
+                slave_pk_list = self.get_pk_list_from_xmss_list(slave_xmss_list)
 
-        else:
-            if len(item.slaves) > 1:
-                group_index = len(item.slaves) - 2
-                xmss = self.try_txn_with_last_slave(item, index, group_index)
-                if xmss:
-                    return index, group_index, len(item.slaves[group_index]) - 1, xmss
-            group_index = len(item.slaves) - 1
-            last_slaves = item.slaves[-1]
-            for slave_index in range(len(last_slaves)):
-                slave = last_slaves[slave_index]
+                tx = self.generate_slave_tx(bytes(hstr2bin(slave.pk)),
+                                            slave_pk_list,
+                                            self.qaddress_to_address(item.qaddress))
 
-                # Check if all ots index has been marked as used
-                if slave.index > 2 ** slave.height - 1:
-                    continue
+                self.sign_and_push_transaction(tx,
+                                               curr_slave_xmss,
+                                               index,
+                                               enable_save=False)
 
-                # Ignore usage of last 5 ots indexes for the last slave in slave group
-                if slave_index + 1 == len(last_slaves) and slave.index >= 2 ** slave.height - 5:
-                    continue
+            if ots_index is None:
+                self._wallet.set_slave_ots_index(index,
+                                                 group_index,
+                                                 slave_index,
+                                                 2 ** slave.height)
+                continue
 
-                if self._passphrase:
-                    slave = self._wallet.decrypt_address_item(slave, self._passphrase)
+            slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
 
-                slave_address_state = self.get_address_state(slave.qaddress)
-
-                if slave_index + 1 == len(last_slaves) and slave.index > 2 ** slave.height - 100:
-
-                    ots_index = slave_address_state.get_unused_ots_index(0)
-                    if ots_index >= UNRESERVED_OTS_INDEX_START:
-                        raise Exception("Fatal Error, no unused reserved OTS index")
-
-                    curr_slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
-
-                    slave_xmss_list = self._wallet.add_slave(index=index,
-                                                             height=slave.height,
-                                                             number_of_slaves=config.user.number_of_slaves,
-                                                             passphrase=self._passphrase,
-                                                             force=True)
-                    slave_pk_list = self.get_pk_list_from_xmss_list(slave_xmss_list)
-
-                    tx = self.generate_slave_tx(bytes(hstr2bin(slave.pk)),
-                                                slave_pk_list,
-                                                self.qaddress_to_address(item.qaddress))
-
-                    self.sign_and_push_transaction(tx,
-                                                   curr_slave_xmss,
-                                                   index,
-                                                   enable_save=False)
-
-                ots_index = slave_address_state.get_unused_ots_index(slave.index)
-
-                if ots_index == None:  # noqa
-                    self._wallet.set_slave_ots_index(index,
-                                                     group_index,
-                                                     slave_index,
-                                                     2 ** slave.height)
-                    continue
-
-                slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
-
-                return index, group_index, slave_index, slave_xmss
+            return index, group_index, slave_index, slave_xmss
 
         return index, -1, -1, None
+
+    # def get_slave(self, master_qaddress):
+    #     index, item = self._wallet.get_address_item(master_qaddress)
+    #     if index is None:
+    #         raise Exception("Signer Address Not Found ", master_qaddress)
+    #
+    #     # Should we check available OTS for master
+    #     # Get slave list using address state
+    #     address_state = self.get_address_state(master_qaddress)
+    #
+    #     slave = item.slaves[-1][0]
+    #     if not address_state.validate_slave_with_access_type(str(bytes(hstr2bin(slave.pk))), [0]):
+    #         if len(item.slaves) == 1:
+    #             qaddress = item.qaddress
+    #             target_address_item = item
+    #             group_index = None
+    #         else:
+    #             qaddress = item.slaves[-2][-1].qaddress
+    #             target_address_item = item.slaves[-2][-1]
+    #             group_index = -2
+    #
+    #         address_state = self.get_address_state(qaddress)
+    #         ots_index = address_state.get_unused_ots_index()
+    #
+    #         if ots_index >= UNRESERVED_OTS_INDEX_START:
+    #             raise Exception('Fatal Error!!! No reserved OTS index found')
+    #
+    #         if self._passphrase:
+    #             target_address_item = self._wallet.decrypt_address_item(target_address_item, self._passphrase)
+    #
+    #         xmss = self._wallet.get_xmss_by_item(target_address_item, ots_index)
+    #
+    #         slaves_pk = [bytes(hstr2bin(slave_item.pk)) for slave_item in item.slaves[-1]]
+    #         tx = self.generate_slave_tx(xmss.pk,
+    #                                     slaves_pk,
+    #                                     self.qaddress_to_address(master_qaddress))
+    #
+    #         self.sign_and_push_transaction(tx,
+    #                                        xmss,
+    #                                        index,
+    #                                        enable_save=False)
+    #
+    #         if len(item.slaves) > 1:
+    #             if self.try_txn_with_last_slave(item, index, group_index, xmss):
+    #                 return index, len(item.slaves) - 2, len(item.slaves[group_index]) - 1, xmss
+    #
+    #     else:
+    #         if len(item.slaves) > 1:
+    #             group_index = len(item.slaves) - 2
+    #             xmss = self.try_txn_with_last_slave(item, index, group_index)
+    #             if xmss:
+    #                 return index, group_index, len(item.slaves[group_index]) - 1, xmss
+    #         group_index = len(item.slaves) - 1
+    #         last_slaves = item.slaves[-1]
+    #         for slave_index in range(len(last_slaves)):
+    #             slave = last_slaves[slave_index]
+    #
+    #             # Check if all ots index has been marked as used
+    #             if slave.index > 2 ** slave.height - 1:
+    #                 continue
+    #
+    #             # Ignore usage of last 5 ots indexes for the last slave in slave group
+    #             if slave_index + 1 == len(last_slaves) and slave.index >= 2 ** slave.height - 5:
+    #                 continue
+    #
+    #             if self._passphrase:
+    #                 slave = self._wallet.decrypt_address_item(slave, self._passphrase)
+    #
+    #             slave_address_state = self.get_address_state(slave.qaddress)
+    #
+    #             if slave_index + 1 == len(last_slaves) and slave.index > 2 ** slave.height - 100:
+    #
+    #                 ots_index = slave_address_state.get_unused_ots_index(0)
+    #                 if ots_index >= UNRESERVED_OTS_INDEX_START:
+    #                     raise Exception("Fatal Error, no unused reserved OTS index")
+    #
+    #                 curr_slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
+    #
+    #                 slave_xmss_list = self._wallet.add_slave(index=index,
+    #                                                          height=slave.height,
+    #                                                          number_of_slaves=config.user.number_of_slaves,
+    #                                                          passphrase=self._passphrase,
+    #                                                          force=True)
+    #                 slave_pk_list = self.get_pk_list_from_xmss_list(slave_xmss_list)
+    #
+    #                 tx = self.generate_slave_tx(bytes(hstr2bin(slave.pk)),
+    #                                             slave_pk_list,
+    #                                             self.qaddress_to_address(item.qaddress))
+    #
+    #                 self.sign_and_push_transaction(tx,
+    #                                                curr_slave_xmss,
+    #                                                index,
+    #                                                enable_save=False)
+    #
+    #             ots_index = slave_address_state.get_unused_ots_index(slave.index)
+    #
+    #             if ots_index == None:  # noqa
+    #                 self._wallet.set_slave_ots_index(index,
+    #                                                  group_index,
+    #                                                  slave_index,
+    #                                                  2 ** slave.height)
+    #                 continue
+    #
+    #             slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
+    #
+    #             return index, group_index, slave_index, slave_xmss
+    #
+    #     return index, -1, -1, None
 
     def get_slave_xmss(self, master_qaddress):
         index, group_index, slave_index, slave_xmss = self.get_slave(master_qaddress)
@@ -470,9 +560,10 @@ class WalletD:
 
     def verify_ots(self, signer_address, xmss, user_ots_index):
         addr_state = self.get_address_state(signer_address)
-        verified_ots_index = addr_state.get_unused_ots_index(xmss.ots_index)
 
-        if verified_ots_index == None:  # noqa
+        verified_ots_index = self.get_unused_ots_index(addr_state.address, xmss.ots_index)
+
+        if verified_ots_index is None:  # noqa
             raise Exception("No Unused OTS key found")
 
         if user_ots_index > 0:
@@ -494,6 +585,7 @@ class WalletD:
 
         tx = TransferTransaction.create(addrs_to=self.qaddresses_to_address(qaddresses_to),
                                         amounts=amounts,
+                                        message_data=None,
                                         fee=fee,
                                         xmss_pk=xmss.pk,
                                         master_addr=self.qaddress_to_address(master_qaddress))
@@ -514,6 +606,7 @@ class WalletD:
 
         tx = TransferTransaction.create(addrs_to=self.qaddresses_to_address(qaddresses_to),
                                         amounts=amounts,
+                                        message_data=None,
                                         fee=fee,
                                         xmss_pk=slave_xmss.pk,
                                         master_addr=self.qaddress_to_address(master_qaddress))
@@ -533,6 +626,7 @@ class WalletD:
         self.verify_ots(signer_address, xmss, user_ots_index=ots_index)
 
         tx = MessageTransaction.create(message_hash=message.encode(),
+                                       addr_to=None,
                                        fee=fee,
                                        xmss_pk=xmss.pk,
                                        master_addr=self.qaddress_to_address(master_qaddress))
@@ -551,6 +645,7 @@ class WalletD:
             raise Exception("No Slave Found")
 
         tx = MessageTransaction.create(message_hash=message.encode(),
+                                       addr_to=None,
                                        fee=fee,
                                        xmss_pk=slave_xmss.pk,
                                        master_addr=self.qaddress_to_address(master_qaddress))
@@ -767,9 +862,12 @@ class WalletD:
         self.lock_wallet()
         logger.info("Passphrase Changed")
 
-    def get_transactions_by_address(self, qaddress: str) -> tuple:
+    def get_mini_transactions_by_address(self, qaddress: str, item_per_page: int, page_number: int) -> tuple:
         address = self.qaddress_to_address(qaddress)
-        response = self._public_stub.GetTransactionsByAddress(qrl_pb2.GetTransactionsByAddressReq(address=address))
+        response = self._public_stub.GetMiniTransactionsByAddress(
+            qrl_pb2.GetMiniTransactionsByAddressReq(address=address,
+                                                    item_per_page=item_per_page,
+                                                    page_number=page_number))
         return response.mini_transactions, response.balance
 
     def get_transaction(self, tx_hash: str):
@@ -798,7 +896,7 @@ class WalletD:
     def get_ots(self, qaddress: str):
         address = self.qaddress_to_address(qaddress)
         response = self._public_stub.GetOTS(qrl_pb2.GetOTSReq(address=address))
-        return response.ots_bitfield, response.next_unused_ots_index
+        return response.ots_bitfield_by_page, response.next_unused_ots_index, response.unused_ots_index_found
 
     def get_height(self) -> int:
         response = self._public_stub.GetHeight(qrl_pb2.GetHeightReq())

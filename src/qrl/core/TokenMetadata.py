@@ -5,6 +5,10 @@
 from google.protobuf.json_format import MessageToJson, Parse
 
 from qrl.generated import qrl_pb2
+from qrl.core.misc import logger
+from qrl.core.State import State
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 
 
 class TokenMetadata(object):
@@ -69,3 +73,42 @@ class TokenMetadata(object):
         pbdata = qrl_pb2.TokenMetadata()
         pbdata.ParseFromString(bytes(data))
         return TokenMetadata(pbdata)
+
+    @staticmethod
+    def get_token_metadata(state: State, token_txhash: bytes):
+        try:
+            data = state._db.get_raw(b'token_' + token_txhash)
+            return TokenMetadata.deserialize(data)
+        except KeyError:
+            pass
+        except Exception as e:
+            logger.error('[get_token_metadata] %s', e)
+
+        return None
+
+    @staticmethod
+    def update_token_metadata(state: State, transfer_token: TransferTokenTransaction, batch):
+        token_metadata = TokenMetadata.get_token_metadata(state, transfer_token.token_txhash)
+        token_metadata.update([transfer_token.txhash])
+        state._db.put_raw(b'token_' + transfer_token.token_txhash,
+                          token_metadata.serialize(),
+                          batch)
+
+    @staticmethod
+    def create_token_metadata(state: State, token: TokenTransaction, batch):
+        token_metadata = TokenMetadata.create(token_txhash=token.txhash, transfer_token_txhashes=[token.txhash])
+        state._db.put_raw(b'token_' + token.txhash,
+                          token_metadata.serialize(),
+                          batch)
+
+    @staticmethod
+    def remove_transfer_token_metadata(state: State, transfer_token: TransferTokenTransaction, batch):
+        token_metadata = TokenMetadata.get_token_metadata(state, transfer_token.token_txhash)
+        token_metadata.remove(transfer_token.txhash)
+        state._db.put_raw(b'token_' + transfer_token.token_txhash,
+                          token_metadata.serialize(),
+                          batch)
+
+    @staticmethod
+    def remove_token_metadata(state: State, token: TokenTransaction, batch):
+        state._db.delete(b'token_' + token.txhash, batch)

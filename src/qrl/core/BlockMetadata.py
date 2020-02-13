@@ -3,7 +3,10 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from google.protobuf.json_format import MessageToJson, Parse
 
+from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
+from qrl.core.misc import logger
+from qrl.core.State import State
 from qrl.generated import qrl_pb2
 
 
@@ -102,3 +105,20 @@ class BlockMetadata(object):
         pbdata = qrl_pb2.BlockMetaData()
         pbdata.ParseFromString(bytes(data))
         return BlockMetadata(pbdata)
+
+    @staticmethod
+    def put_block_metadata(state: State, headerhash: bytes, block_metadata, batch):
+        state._db.put_raw(b'metadata_' + headerhash, block_metadata.serialize(), batch)
+
+    @staticmethod
+    def get_block_metadata(state: State, header_hash: bytes):
+        try:
+            data = state._db.get_raw(b'metadata_' + header_hash)
+            return BlockMetadata.deserialize(data)
+        except KeyError:
+            logger.debug('[get_block_metadata] Block header_hash %s not found',
+                         b'metadata_' + bin2hstr(header_hash).encode())
+        except Exception as e:
+            logger.error('[get_block_metadata] %s', e)
+
+        return None

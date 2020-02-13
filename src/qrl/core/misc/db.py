@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 # leveldb code for maintaining account state data
-import leveldb
+import plyvel
 import os
 
 from qrl.core import config
@@ -13,14 +13,31 @@ __author__ = 'pete'
 
 
 class DB:
-    def __init__(self):
+    def __init__(self, db_dir=None):
         self.db_dir = os.path.join(config.user.data_dir, config.dev.db_name)
+        if db_dir:
+            self.db_dir = db_dir
         logger.info('DB path: %s', self.db_dir)
 
         os.makedirs(self.db_dir, exist_ok=True)
 
-        # TODO: leveldb python module is not very active. Decouple and replace
-        self.db = leveldb.LevelDB(self.db_dir)
+        try:
+            self.db = plyvel.DB(self.db_dir, max_open_files=1000, lru_cache_size=5 * 1024)
+        except Exception:
+            self.db = plyvel.DB(self.db_dir,
+                                max_open_files=1000,
+                                lru_cache_size=5 * 1024,
+                                create_if_missing=True,
+                                compression='snappy')
+            self.db.put(b'state_version', str(1).encode())
+
+    def close(self):
+        del self.db
+
+    def open(self, db_dir=None):
+        if db_dir:
+            self.db_dir = db_dir
+        self.db = plyvel.DB(self.db_dir, max_open_files=1000, lru_cache_size=5 * 1024)
 
     def RangeIter(self, key_obj_start, key_obj_end):
         if not isinstance(key_obj_start, bytes):
@@ -36,23 +53,27 @@ class DB:
 
     def delete(self, key_obj: bytes, batch=None):
         if batch:
-            batch.Delete(key_obj)
+            batch.delete(key_obj)
         else:
-            self.db.Delete(key_obj)
+            self.db.delete(key_obj)
 
     def put_raw(self, key, value, batch=None):
         if batch:
-            batch.Put(key, value)
+            batch.put(key, value)
         else:
-            self.db.Put(key, value)
+            self.db.put(key, value)
 
     def get_raw(self, key):
         if isinstance(key, str):
             key = bytes(key, 'utf-8')
-        return self.db.Get(key)
+        value = self.db.get(key)
+        if value is None:
+            raise KeyError
+        return value
 
     def get_batch(self):
-        return leveldb.WriteBatch()
+        return self.db.write_batch()
 
-    def write_batch(self, batch):
-        self.db.Write(batch, sync=True)
+    @staticmethod
+    def write_batch(batch, sync=True):
+        batch.write()

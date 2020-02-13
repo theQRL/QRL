@@ -11,7 +11,7 @@ class GetTXMetadata:
     def register_tx_metadata(self, tx: Transaction, block_number: int):
         self.data[tx.txhash] = [tx, block_number]
 
-    def get_tx_metadata(self, txhash):
+    def get_tx_metadata(self, _, txhash):
         if txhash in self.data:
             return self.data[txhash]
 

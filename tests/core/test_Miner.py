@@ -1,17 +1,19 @@
 from unittest import TestCase
 
-from mock import Mock, patch, create_autospec, MagicMock
+from mock import Mock, patch, MagicMock
 from pyqryptonight.pyqryptonight import StringToUInt256
 
-from qrl.core.AddressState import AddressState
+from qrl.core.OptimizedAddressState import OptimizedAddressState
+from qrl.core import config
+from qrl.core.Indexer import Indexer
 from qrl.core.Block import Block
 from qrl.core.misc import logger
 from qrl.core.ChainManager import ChainManager
+from qrl.core.StateContainer import StateContainer
 from qrl.core.Miner import Miner
 from qrl.core.TransactionPool import TransactionPool
 from qrl.core.misc.helper import parse_qaddress
 from qrl.core.node import POW
-from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, replacement_getTime
@@ -32,18 +34,18 @@ class TestMiner(TestCase):
         self.m_mining_address = parse_qaddress(self.m_mining_qaddress)
 
         self.chain_manager = Mock(spec=ChainManager)
+        self.chain_manager.get_block_size_limit.return_value = 500
+        self.chain_manager.get_config_by_block_number.return_value = config.dev
         self.parent_block = Block()
         self.parent_difficulty = StringToUInt256('0')  # tuple (0,0,0,0,0...) length 32
 
         self.m_pre_block_logic = Mock(spec=POW.pre_block_logic, name='hello')
-        m_add_unprocessed_txn_fn = create_autospec(P2PFactory.add_unprocessed_txn)
         mining_thread_count = 1
 
-        self.miner = Miner(self.m_pre_block_logic,
+        self.miner = Miner(self.chain_manager,
+                           self.m_pre_block_logic,
                            self.m_mining_address,
-                           self.chain_manager,
-                           mining_thread_count,
-                           m_add_unprocessed_txn_fn)
+                           mining_thread_count)
 
         self.txpool = Mock(spec=TransactionPool)
         self.txpool.transactions = []
@@ -65,7 +67,8 @@ class TestMiner(TestCase):
         self.miner.prepare_next_unmined_block_template(self.m_mining_address,
                                                        self.txpool,
                                                        self.parent_block,
-                                                       self.parent_difficulty)
+                                                       self.parent_difficulty,
+                                                       config.dev)
 
         self.assertEqual(self.miner._current_difficulty, StringToUInt256('2'))
         self.assertEqual(self.miner._current_target, StringToUInt256(
@@ -87,7 +90,8 @@ class TestMiner(TestCase):
         self.miner.prepare_next_unmined_block_template(self.m_mining_address,
                                                        self.txpool,
                                                        self.parent_block,
-                                                       self.parent_difficulty)
+                                                       self.parent_difficulty,
+                                                       config.dev)
 
         self.assertIsNone(self.miner._current_difficulty)
         self.assertIsNone(self.miner._current_target)
@@ -107,8 +111,8 @@ class TestMiner(TestCase):
             StringToUInt256('115792089237316195423570985008687907853269984665640564039457584007913129639807')
 
         # start() is from Qryptominer, let's not actually mine in a test
-        with patch('qrl.core.Miner.Miner.start', spec=True) as m_start:
-            self.miner.start_mining(self.parent_block, self.parent_difficulty)
+        with patch('qrl.core.miners.qryptonight7.CNv1Miner.CNv1Miner.start', spec=True) as m_start:
+            self.miner.start_mining(self.parent_block, self.parent_difficulty, config.dev)
             m_start.assert_called_once()
 
     def test_get_block_to_mine_no_existing_block_being_mined_upon(self, m_getTime, m_logger):
@@ -136,7 +140,7 @@ class TestMiner(TestCase):
         m_getTime.return_value = 1526830525
         self.miner._current_difficulty = StringToUInt256('1')
         m_mining_block = Mock(autospec=Block)
-        m_mining_block.mining_blob = b'big_bad_blob'
+        m_mining_block.mining_blob.return_value = b'big_bad_blob'
         m_mining_block.prev_headerhash = b'nothing should be equal to this'
         self.miner._mining_block = m_mining_block
 
@@ -156,11 +160,13 @@ class TestMiner(TestCase):
         m_coinbase.coinbase.addr_to = self.m_mining_address
 
         m_parent_block = Mock(autospec=Block, name='mock parent_block')
+        m_parent_block.block_number = 10
+        m_parent_block.timestamp = 0
         m_parent_block.transactions = [m_coinbase]
 
         m_mining_block = Mock(autospec=Block, name='mock _mining_block')
         m_mining_block.transactions = [m_coinbase]
-        m_mining_block.mining_blob = b'this is the blob you should iterate the nonce upon'
+        m_mining_block.mining_blob.return_value = b'this is the blob you should iterate the nonce upon'
 
         self.miner._mining_block = m_mining_block
         self.miner._current_difficulty = StringToUInt256('1')
@@ -186,11 +192,13 @@ class TestMiner(TestCase):
         m_coinbase.coinbase.addr_to = self.m_mining_address
 
         m_parent_block = Mock(autospec=Block, name='mock parent_block')
+        m_parent_block.block_number = 10
+        m_parent_block.timestamp = 0
         m_parent_block.transactions = [m_coinbase]
 
         m_mining_block = Mock(autospec=Block, name='mock _mining_block')
         m_mining_block.transactions = [m_coinbase]
-        m_mining_block.mining_blob = b'this is the blob you should iterate the nonce upon'
+        m_mining_block.mining_blob.return_value = b'this is the blob you should iterate the nonce upon'
 
         self.miner._mining_block = m_mining_block
         self.miner._current_difficulty = StringToUInt256('1')
@@ -212,6 +220,7 @@ class TestMiner(TestCase):
     def test_get_block_to_mine_chokes_on_invalid_mining_address(self, m_getTime, m_logger):
         invalid_address = self.m_mining_qaddress + 'aaaa'
         m_parent_block = Mock(autospec=Block, name='mock parent_block')
+        m_parent_block.block_number = 10
         with self.assertRaises(ValueError):
             self.miner.get_block_to_mine(invalid_address.encode(), self.txpool, m_parent_block, self.parent_difficulty)
 
@@ -224,6 +233,7 @@ class TestMiner(TestCase):
         :return:
         """
         m_mining_block = Mock(autospec=Block, name='mock _mining_block')
+        m_mining_block.block_number = 10
         m_mining_block.verify_blob.return_value = False
         self.miner._mining_block = m_mining_block
         blob = 'this is a blob12345that was the nonce'.encode()
@@ -250,22 +260,24 @@ class TestMinerWithRealTransactionPool(TestCase):
         self.m_mining_qaddress = alice.qaddress
         self.m_mining_address = parse_qaddress(self.m_mining_qaddress)
 
+        self.alice_address_state = Mock(autospec=OptimizedAddressState,
+                                        name='mock alice OptimizedAddressState')
+
         self.chain_manager = Mock(spec=ChainManager)
         self.chain_manager.get_block_size_limit.return_value = 500
-        self.chain_manager.get_address_state.return_value = Mock(autospec=AddressState, name='mock alice AddressState')
+        self.chain_manager.get_address_state.return_value = self.alice_address_state
+        self.chain_manager.get_config_by_block_number.return_value = config.dev
 
         self.parent_block = Block()
         self.parent_difficulty = StringToUInt256('0')  # tuple (0,0,0,0,0...) length 32
 
         self.m_pre_block_logic = Mock(spec=POW.pre_block_logic, name='hello')
-        m_add_unprocessed_txn_fn = create_autospec(P2PFactory.add_unprocessed_txn)
         mining_thread_count = 1
 
-        self.miner = Miner(self.m_pre_block_logic,
+        self.miner = Miner(self.chain_manager,
+                           self.m_pre_block_logic,
                            self.m_mining_address,
-                           self.chain_manager,
-                           mining_thread_count,
-                           m_add_unprocessed_txn_fn)
+                           mining_thread_count)
 
         self.txpool = TransactionPool(None)
 
@@ -283,9 +295,26 @@ class TestMinerWithRealTransactionPool(TestCase):
                           "set_affected_address": replacement_set_affected_address
                           }
 
+    def mock_new_state_container(self):
+        addresses_state = {alice.address: self.alice_address_state}
+        self.chain_manager.new_state_container.return_value = StateContainer(addresses_state=addresses_state,
+                                                                             tokens=Indexer(b'token', None),
+                                                                             slaves=Indexer(b'slave', None),
+                                                                             lattice_pk=Indexer(b'lattice_pk', None),
+                                                                             multi_sig_spend_txs=dict(),
+                                                                             votes_stats=dict(),
+                                                                             block_number=5,
+                                                                             total_coin_supply=0,
+                                                                             current_dev_config=config.dev,
+                                                                             write_access=False,
+                                                                             my_db=None,
+                                                                             batch=None)
+
     @patch('qrl.core.Miner.Block.create')
     def test_create_block_with_one_transaction(self, m_create, m_logger):
+        self.mock_new_state_container()
         m_tx = Mock(autospec=TransferTransaction, name='mock TransferTransaction')
+        m_tx.fee = 0
         m_tx.configure_mock(**self.m_tx_args)
 
         m_create.return_value = Mock(autospec=Block, name='mock Block', size=205)
@@ -295,13 +324,17 @@ class TestMinerWithRealTransactionPool(TestCase):
         self.miner.create_block(last_block=self.parent_block, mining_nonce=0, tx_pool=self.txpool,
                                 miner_address=self.m_mining_address)
 
-        m_create.assert_called_with(block_number=1, prev_headerhash=b'', prev_timestamp=0, transactions=[m_tx],
-                                    miner_address=alice.address)
+        seed_block = self.chain_manager.get_block_by_number(
+            self.miner._qn.get_seed_height(self.parent_block.block_number + 1))
+        m_create.assert_called_with(dev_config=config.dev, block_number=1, prev_headerhash=b'', prev_timestamp=0,
+                                    transactions=[m_tx], miner_address=alice.address,
+                                    seed_height=seed_block.block_number, seed_hash=seed_block.headerhash)
 
     @patch('qrl.core.Miner.Block.create')
     def test_create_block_does_not_include_invalid_txs_from_txpool(self, m_create, m_logger):
-        self.m_tx_args["validate_extended.return_value"] = False
+        self.mock_new_state_container()
         m_tx = Mock(autospec=TransferTransaction, name='mock TransferTransaction')
+        m_tx.validate_all.return_value = False
         m_tx.configure_mock(**self.m_tx_args)
 
         m_create.return_value = Mock(autospec=Block, name='mock Block', size=205)
@@ -311,5 +344,8 @@ class TestMinerWithRealTransactionPool(TestCase):
         self.miner.create_block(last_block=self.parent_block, mining_nonce=0, tx_pool=self.txpool,
                                 miner_address=self.m_mining_address)
 
-        m_create.assert_called_with(block_number=1, prev_headerhash=b'', prev_timestamp=0, transactions=[],
-                                    miner_address=alice.address)
+        seed_block = self.chain_manager.get_block_by_number(
+            self.miner._qn.get_seed_height(self.parent_block.block_number + 1))
+        m_create.assert_called_with(dev_config=config.dev, block_number=1, prev_headerhash=b'', prev_timestamp=0,
+                                    transactions=[], miner_address=alice.address,
+                                    seed_height=seed_block.block_number, seed_hash=seed_block.headerhash)
