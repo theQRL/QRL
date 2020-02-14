@@ -5,6 +5,7 @@ from qrl.core.StateContainer import StateContainer
 from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
+from qrl.generated.qrl_pb2 import TokenBalance
 
 
 class TransferTokenTransaction(Transaction):
@@ -134,10 +135,10 @@ class TransferTokenTransaction(Transaction):
             return False
 
         token_balance = state_container.tokens.data[(self.addr_from, self.token_txhash)]
-        if token_balance < total_amount:
+        if token_balance.balance < total_amount:
             logger.info('Insufficient amount of token')
             logger.info('Token Balance: %s, Sent Token Amount: %s',
-                        token_balance,
+                        token_balance.balance,
                         total_amount)
             return False
 
@@ -152,6 +153,7 @@ class TransferTokenTransaction(Transaction):
               state: State,
               state_container: StateContainer) -> bool:
         state_container.tokens.data[(self.addr_from, self.token_txhash)].balance -= self.total_amount
+        decimals = state_container.tokens.data[(self.addr_from, self.token_txhash)].decimals
         address_state = state_container.addresses_state[self.addr_from]
         address_state.update_balance(state_container, self.fee, subtract=True)
         state_container.paginated_tx_hash.insert(address_state, self.txhash)
@@ -161,6 +163,13 @@ class TransferTokenTransaction(Transaction):
             amount = self.amounts[index]
             address_state = state_container.addresses_state[addr_to]
 
+            # If receiver doesn't have this token before, then initialize token balance data into state
+            # before adding the new balance.
+            if (addr_to, self.token_txhash) not in state_container.tokens.data:
+                state_container.tokens.data[(addr_to,
+                                             self.token_txhash)] = TokenBalance(balance=0,
+                                                                                decimals=decimals,
+                                                                                delete=False)
             state_container.tokens.data[(addr_to, self.token_txhash)].balance += amount
 
             if self.addr_from != addr_to:
