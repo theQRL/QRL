@@ -31,7 +31,7 @@ def set_logger(args, sync_state):
     logger.initialize_default(force_console_output=not args.quiet).setLevel(log_level)
     custom_filter = ContextFilter(sync_state, config.dev.version)
     logger.logger.addFilter(custom_filter)
-    file_handler = logger.log_to_file()
+    file_handler = logger.log_to_file(config.user.log_path)
     file_handler.addFilter(custom_filter)
     file_handler.setLevel(logging.DEBUG)
     logger.set_colors(not args.no_colors, LOG_FORMAT_CUSTOM)
