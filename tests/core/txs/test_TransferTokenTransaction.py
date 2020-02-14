@@ -12,6 +12,7 @@ from qrl.core.State import State
 from qrl.core.StateContainer import StateContainer
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.generated import qrl_pb2
 from tests.core.txs.testdata import test_json_TransferToken, test_signature_TransferToken
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir
 
@@ -191,7 +192,9 @@ class TestTransferTokenTransaction(TestCase):
             alice_address_state.address: alice_address_state
         }
         tokens = Indexer(b'token', None)
-        tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+        tokens.data[(self.alice.address, tx.token_txhash)] = qrl_pb2.TokenBalance(balance=1000,
+                                                                                  decimals=0,
+                                                                                  delete=False)
 
         state_container = StateContainer(addresses_state=addresses_state,
                                          tokens=tokens,
@@ -211,7 +214,9 @@ class TestTransferTokenTransaction(TestCase):
         # Invalid master XMSS/slave XMSS relationship
         m_validate_slave.return_value = False
         state_container.tokens = Indexer(b'token', None)
-        state_container.tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+        state_container.tokens.data[(self.alice.address, tx.token_txhash)] = qrl_pb2.TokenBalance(balance=1000,
+                                                                                                  decimals=0,
+                                                                                                  delete=False)
         result = tx.validate_all(state_container)
         self.assertFalse(result)
         m_validate_slave.return_value = True
@@ -221,7 +226,9 @@ class TestTransferTokenTransaction(TestCase):
                    new_callable=PropertyMock) as m_fee:
             m_fee.return_value = -1
             tokens = Indexer(b'token', None)
-            tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+            tokens.data[(self.alice.address, tx.token_txhash)] = qrl_pb2.TokenBalance(balance=1000,
+                                                                                      decimals=0,
+                                                                                      delete=False)
             state_container.tokens = tokens
             result = tx._validate_extended(state_container)
             self.assertFalse(result)
@@ -231,7 +238,9 @@ class TestTransferTokenTransaction(TestCase):
                    new_callable=PropertyMock) as m_total_amount:
             m_total_amount.return_value = -100
             tokens = Indexer(b'token', None)
-            tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+            tokens.data[(self.alice.address, tx.token_txhash)] = qrl_pb2.TokenBalance(balance=1000,
+                                                                                      decimals=0,
+                                                                                      delete=False)
             state_container.tokens = tokens
             result = tx._validate_extended(state_container)
             self.assertFalse(result)
@@ -239,7 +248,9 @@ class TestTransferTokenTransaction(TestCase):
         # balance = 0, cannot pay the Transaction fee
         alice_address_state.pbdata.balance = 0
         tokens = Indexer(b'token', None)
-        tokens.data[(self.alice.address, tx.token_txhash)] = 1000
+        tokens.data[(self.alice.address, tx.token_txhash)] = qrl_pb2.TokenBalance(balance=1000,
+                                                                                  decimals=0,
+                                                                                  delete=False)
         state_container.tokens = tokens
         result = tx._validate_extended(state_container)
         self.assertFalse(result)
@@ -252,7 +263,9 @@ class TestTransferTokenTransaction(TestCase):
 
         # addr_from doesn't have enough tokens
         tokens = Indexer(b'token', None)
-        tokens.data[(self.alice.address, tx.token_txhash)] = 99
+        tokens.data[(self.alice.address, tx.token_txhash)] = qrl_pb2.TokenBalance(balance=99,
+                                                                                  decimals=0,
+                                                                                  delete=False)
         state_container.tokens = tokens
         result = tx._validate_extended(state_container)
         self.assertFalse(result)
