@@ -1,0 +1,4 @@
+peer_list: [ "18.130.83.207", "35.176.41.49", "18.130.187.220", "35.176.33.242" ]
+genesis_prev_headerhash: 'The Testnet Genesis'
+genesis_timestamp: 1530004179
+genesis_difficulty: 5000
