@@ -310,6 +310,8 @@ class ChainManager:
                 parent_difficulty=parent_metadata.block_difficulty,
                 dev_config=dev_config)
 
+            mining_blob = blockheader.mining_blob(dev_config)
+
             if enable_logging:
                 logger.debug('-----------------START--------------------')
                 logger.debug('Validate                #%s', blockheader.block_number)
@@ -318,15 +320,15 @@ class ChainManager:
                 logger.debug('parent_block.difficulty %s', UInt256ToString(parent_metadata.block_difficulty))
                 logger.debug('diff                    %s', UInt256ToString(diff))
                 logger.debug('target                  %s', bin2hstr(target))
+                logger.debug('mining blob             %s', bin2hstr(mining_blob))
                 logger.debug('-------------------END--------------------')
 
             qn = Qryptonight()
             seed_block = self.get_block_by_number(qn.get_seed_height(blockheader.block_number))
-
             if not PoWValidator().verify_input(blockheader.block_number,
                                                seed_block.block_number,
                                                seed_block.headerhash,
-                                               blockheader.mining_blob(dev_config),
+                                               mining_blob,
                                                target):
                 if enable_logging:
                     logger.warning("PoW verification failed")
