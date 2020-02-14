@@ -3,7 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
 import faulthandler
-from os.path import expanduser
+import os
 
 from mock import MagicMock
 from twisted.internet import reactor
@@ -32,6 +32,8 @@ def parse_arguments():
                         help="Disables color output")
     parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level")
+    parser.add_argument('--network-type', dest='network_type', choices=['mainnet', 'testnet'],
+                        default='mainnet', required=False, help="Runs QRL Testnet Node")
     parser.add_argument('--miningAddress', dest='mining_address', required=False,
                         help="QRL Wallet address on which mining reward has to be credited.")
     parser.add_argument('--mockGetMeasurement', dest='measurement', required=False, type=int, default=-1,
@@ -63,10 +65,19 @@ def get_mining_address(mining_address: str):
 def main():
     args = parse_arguments()
 
+    qrl_dir_post_fix = ''
+    copy_files = []
+    if args.network_type == 'testnet':
+        qrl_dir_post_fix = '-testnet'
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        copy_files.append(os.path.join(package_directory, 'network/testnet/genesis.yml'))
+        copy_files.append(os.path.join(package_directory, 'network/testnet/config.yml'))
+
     logger.debug("=====================================================================================")
     logger.info("QRL Path: %s", args.qrl_dir)
-    config.user.qrl_dir = expanduser(args.qrl_dir)
-    config.create_path(config.user.qrl_dir)
+    config.user.qrl_dir = os.path.expanduser(os.path.normpath(args.qrl_dir) + qrl_dir_post_fix)
+    config.create_path(config.user.qrl_dir, copy_files)
+    config.user.load_yaml(config.user.config_path)
     logger.debug("=====================================================================================")
 
     config.create_path(config.user.wallet_dir)

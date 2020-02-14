@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import shutil
 import decimal
 from os.path import expanduser
 from pyqrllib.pyqrllib import hstr2bin
@@ -187,11 +188,15 @@ class UserConfig(object):
                     self.__dict__.update(**dataMap)
 
 
-def create_path(path):
-    # FIXME: Obsolete. Refactor/remove. Use makedirs from python3
+def create_path(path, copy_files=None):
     tmp_path = os.path.join(path)
-    if not os.path.isdir(tmp_path):
-        os.makedirs(tmp_path)
+    if os.path.isdir(tmp_path):
+        return
+    os.makedirs(tmp_path)
+    if not copy_files:
+        return
+    for file in copy_files:
+        shutil.copy(file, tmp_path)
 
 
 class DevConfig(object):

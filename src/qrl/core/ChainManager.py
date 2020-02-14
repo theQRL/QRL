@@ -310,6 +310,8 @@ class ChainManager:
                 parent_difficulty=parent_metadata.block_difficulty,
                 dev_config=dev_config)
 
+            mining_blob = blockheader.mining_blob(dev_config)
+
             if enable_logging:
                 logger.debug('-----------------START--------------------')
                 logger.debug('Validate                #%s', blockheader.block_number)
@@ -318,15 +320,15 @@ class ChainManager:
                 logger.debug('parent_block.difficulty %s', UInt256ToString(parent_metadata.block_difficulty))
                 logger.debug('diff                    %s', UInt256ToString(diff))
                 logger.debug('target                  %s', bin2hstr(target))
+                logger.debug('mining blob             %s', bin2hstr(mining_blob))
                 logger.debug('-------------------END--------------------')
 
             qn = Qryptonight()
             seed_block = self.get_block_by_number(qn.get_seed_height(blockheader.block_number))
-
             if not PoWValidator().verify_input(blockheader.block_number,
                                                seed_block.block_number,
                                                seed_block.headerhash,
-                                               blockheader.mining_blob(dev_config),
+                                               mining_blob,
                                                target):
                 if enable_logging:
                     logger.warning("PoW verification failed")
@@ -816,27 +818,27 @@ class ChainManager:
             if slave_addr is not None:
                 key = (tx.addr_from, tx.PK)
                 if key not in state_container.slaves.data:
-                    slaves.load(key)
+                    slaves.load(key, qrl_pb2.SlaveMetadata())
 
         if isinstance(tx, TransferTokenTransaction):
             key = (tx.addr_from, tx.token_txhash)
             if key not in state_container.tokens.data:
-                tokens.load(key)
+                tokens.load(key, qrl_pb2.TokenBalance())
 
             for address in tx.addrs_to:
                 key = (address, tx.token_txhash)
                 if key in state_container.tokens.data:
                     continue
-                tokens.load(key)
+                tokens.load(key, qrl_pb2.TokenBalance())
         elif isinstance(tx, SlaveTransaction):
             for slave_pk in tx.slave_pks:
                 key = (tx.addr_from, slave_pk)
                 if key not in state_container.slaves.data:
-                    slaves.load(key)
+                    slaves.load(key, qrl_pb2.SlaveMetadata())
         elif isinstance(tx, LatticeTransaction):
             key = (tx.addr_from, tx.pk1, tx.pk2, tx.pk3, tx.pk4)
             if key not in state_container.lattice_pk.data:
-                lattice_pk.load(key)
+                lattice_pk.load(key, qrl_pb2.LatticePKMetadata())
         # elif isinstance(tx, TokenTransaction):
         #     for initial_balance in tx.initial_balances:
         #         if (initial_balance.address, tx.txhash) not in tokens:
