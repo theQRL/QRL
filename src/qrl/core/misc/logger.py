@@ -10,8 +10,6 @@ import os
 from colorlog import ColoredFormatter
 from logging.handlers import RotatingFileHandler
 
-from qrl.core import config
-
 LOG_NAME = 'qrl'
 
 LOG_MAXBYTES = 100 * 1024 * 1024
