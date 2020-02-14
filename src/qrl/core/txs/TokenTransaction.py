@@ -183,9 +183,10 @@ class TokenTransaction(Transaction):
             if initial_balance.address == addr_from_pk:
                 addr_from_pk_processed = True
 
-            state_container.tokens.data[(initial_balance.address, self.txhash)] = TokenBalance(balance=initial_balance.amount,
-                                                                                               decimals=self.decimals,
-                                                                                               delete=False)
+            state_container.tokens.data[(initial_balance.address,
+                                         self.txhash)] = TokenBalance(balance=initial_balance.amount,
+                                                                      decimals=self.decimals,
+                                                                      delete=False)
             address_state = state_container.addresses_state[initial_balance.address]
             state_container.paginated_tx_hash.insert(address_state, self.txhash)
             state_container.paginated_tokens_hash.insert(address_state, self.txhash)
