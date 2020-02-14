@@ -70,7 +70,6 @@ def main():
     if args.network_type == 'testnet':
         qrl_dir_post_fix = '-testnet'
         package_directory = os.path.dirname(os.path.abspath(__file__))
-        print(package_directory)
         copy_files.append(os.path.join(package_directory, 'network/testnet/genesis.yml'))
         copy_files.append(os.path.join(package_directory, 'network/testnet/config.yml'))
 
