@@ -687,7 +687,8 @@ class QRLNode:
             transaction_detail = qrl_pb2.LatticePKsDetail(pk1=tx.pk1,
                                                           pk2=tx.pk2,
                                                           pk3=tx.pk3,
-                                                          pk4=tx.pk4)
+                                                          pk4=tx.pk4,
+                                                          tx_hash=tx_hash)
             response.lattice_pks_detail.extend([transaction_detail])
 
         return response
