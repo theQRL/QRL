@@ -481,6 +481,7 @@ message LatticePKsDetail {
     bytes pk2 = 2;
     bytes pk3 = 3;
     bytes pk4 = 4;
+    bytes tx_hash = 5;
 }
 
 message GetLatticePKsByAddressResp {
