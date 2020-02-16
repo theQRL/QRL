@@ -383,9 +383,8 @@ message LatticeTxnReq {
     bytes pk1 = 2;
     bytes pk2 = 3;
     bytes pk3 = 4;
-    bytes pk4 = 5;
-    uint64 fee = 6;
-    bytes xmss_pk = 7;
+    uint64 fee = 5;
+    bytes xmss_pk = 6;
 }
 
 message MiniTransaction {
@@ -480,8 +479,7 @@ message LatticePKsDetail {
     bytes pk1 = 1;
     bytes pk2 = 2;
     bytes pk3 = 3;
-    bytes pk4 = 4;
-    bytes tx_hash = 5;
+    bytes tx_hash = 4;
 }
 
 message GetLatticePKsByAddressResp {
@@ -789,7 +787,6 @@ message Transaction {
         bytes pk1 = 1;  // kyber_pk
         bytes pk2 = 2;  // dilithium_pk
         bytes pk3 = 3;  // ecdsa_pk
-        bytes pk4 = 4;  // ecies_pk
     }
 
     message Message {
@@ -876,19 +873,18 @@ message Transaction {
             uint64 lattice_pk1_max_length = 16;
             uint64 lattice_pk2_max_length = 17;
             uint64 lattice_pk3_max_length = 18;
-            uint64 lattice_pk4_max_length = 19;
 
-            uint64 foundation_multi_sig_address_threshold_percentage = 20;
+            uint64 foundation_multi_sig_address_threshold_percentage = 19;
 
-            uint64 proposal_threshold_per = 21;
-            repeated string proposal_default_options = 22;
-            uint64 description_max_length = 23;
-            uint64 options_max_number = 24;
-            uint64 option_max_text_length = 25;
-            uint64 proposal_config_activation_delay = 26;
+            uint64 proposal_threshold_per = 20;
+            repeated string proposal_default_options = 21;
+            uint64 description_max_length = 22;
+            uint64 options_max_number = 23;
+            uint64 option_max_text_length = 24;
+            uint64 proposal_config_activation_delay = 25;
 
-            uint64 N_measurement = 27;
-            uint64 kp = 28;
+            uint64 N_measurement = 26;
+            uint64 kp = 27;
         }
 
         message Other {
@@ -1081,7 +1077,6 @@ message DevConfig {
             uint64 pk1_max_length = 1;
             uint64 pk2_max_length = 2;
             uint64 pk3_max_length = 3;
-            uint64 pk4_max_length = 4;
         }
 
         message FoundationMultiSig {

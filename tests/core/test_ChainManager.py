@@ -717,7 +717,6 @@ class TestChainManagerReal(TestCase):
             lattice_pk = LatticeTransaction.create(pk1=b'alice_pk1',
                                                    pk2=b'alice_pk2',
                                                    pk3=b'alice_pk3',
-                                                   pk4=b'alice_pk4',
                                                    fee=5,
                                                    xmss_pk=alice_xmss.pk)
             lattice_pk.sign(alice_xmss)
@@ -758,7 +757,6 @@ class TestChainManagerReal(TestCase):
             lattice_pk2 = LatticeTransaction.create(pk1=b'alice_pk11',
                                                     pk2=b'alice_pk12',
                                                     pk3=b'alice_pk13',
-                                                    pk4=b'alice_pk14',
                                                     fee=5,
                                                     xmss_pk=alice_xmss.pk)
             lattice_pk2.sign(alice_xmss)

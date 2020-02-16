@@ -836,7 +836,7 @@ class ChainManager:
                 if key not in state_container.slaves.data:
                     slaves.load(key, qrl_pb2.SlaveMetadata())
         elif isinstance(tx, LatticeTransaction):
-            key = (tx.addr_from, tx.pk1, tx.pk2, tx.pk3, tx.pk4)
+            key = (tx.addr_from, tx.pk1, tx.pk2, tx.pk3)
             if key not in state_container.lattice_pk.data:
                 lattice_pk.load(key, qrl_pb2.LatticePKMetadata())
         # elif isinstance(tx, TokenTransaction):
