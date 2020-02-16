@@ -425,10 +425,6 @@ class DevConfig(object):
         return self.pbdata.transaction.lattice.pk3_max_length
 
     @property
-    def lattice_pk4_max_length(self):
-        return self.pbdata.transaction.lattice.pk4_max_length
-
-    @property
     def proposal_threshold_per(self):
         return self.pbdata.transaction.proposal.threshold_per
 
@@ -502,11 +498,9 @@ class DevConfig(object):
         token = qrl_pb2.DevConfig.Transaction.Token(symbol_max_length=10,
                                                     name_max_length=30)
 
-        # TODO: Change following values before hard fork
-        lattice = qrl_pb2.DevConfig.Transaction.Lattice(pk1_max_length=2000,
-                                                        pk2_max_length=2000,
-                                                        pk3_max_length=2000,
-                                                        pk4_max_length=2000)
+        lattice = qrl_pb2.DevConfig.Transaction.Lattice(pk1_max_length=1088,
+                                                        pk2_max_length=1472,
+                                                        pk3_max_length=65)
 
         foundation_multi_sig = qrl_pb2.DevConfig.Transaction.FoundationMultiSig(threshold_percentage=10)
 

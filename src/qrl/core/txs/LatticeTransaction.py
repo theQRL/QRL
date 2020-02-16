@@ -24,20 +24,15 @@ class LatticeTransaction(Transaction):
     def pk3(self):  # ecdsa_pk
         return self._data.latticePK.pk3
 
-    @property
-    def pk4(self):  # ecies_pk
-        return self._data.latticePK.pk4
-
     def get_data_bytes(self):
         return self.master_addr + \
                self.fee.to_bytes(8, byteorder='big', signed=False) + \
                self.pk1 + \
                self.pk2 + \
-               self.pk3 + \
-               self.pk4
+               self.pk3
 
     @staticmethod
-    def create(pk1: bytes, pk2: bytes, pk3: bytes, pk4: bytes, fee: int, xmss_pk: bytes, master_addr: bytes = None):
+    def create(pk1: bytes, pk2: bytes, pk3: bytes, fee: int, xmss_pk: bytes, master_addr: bytes = None):
         transaction = LatticeTransaction()
 
         if master_addr:
@@ -49,7 +44,6 @@ class LatticeTransaction(Transaction):
         transaction._data.latticePK.pk1 = bytes(pk1)
         transaction._data.latticePK.pk2 = bytes(pk2)
         transaction._data.latticePK.pk3 = bytes(pk3)
-        transaction._data.latticePK.pk4 = bytes(pk4)
 
         transaction.validate_or_raise(verify_signature=False)
 
@@ -83,11 +77,6 @@ class LatticeTransaction(Transaction):
             logger.warning('Found length %s', len(self.pk3))
             return False
 
-        if len(self.pk4) > dev_config.lattice_pk4_max_length:  # TODO: to fix ecies pk value
-            logger.warning('ECIES PK length cannot be more than %s bytes', dev_config.lattice_pk4_max_length)
-            logger.warning('Found length %s', len(self.pk4))
-            return False
-
         tx_balance = state_container.addresses_state[self.addr_from].balance
 
         if tx_balance < self.fee:
@@ -95,7 +84,7 @@ class LatticeTransaction(Transaction):
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
-        if (self.addr_from, self.pk1, self.pk2, self.pk3, self.pk4) in state_container.lattice_pk.data:
+        if (self.addr_from, self.pk1, self.pk2, self.pk3) in state_container.lattice_pk.data:
             logger.info('State validation failed for %s because: Lattice PKs already exists for this address',
                         bin2hstr(self.txhash))
             return False
@@ -114,7 +103,7 @@ class LatticeTransaction(Transaction):
         state_container.paginated_tx_hash.insert(address_state, self.txhash)
 
         state_container.lattice_pk.data[(self.addr_from,
-                                         self.pk1, self.pk2, self.pk3, self.pk4)] = LatticePKMetadata(enabled=True)
+                                         self.pk1, self.pk2, self.pk3)] = LatticePKMetadata(enabled=True)
 
         return self._apply_state_changes_for_PK(state_container)
 
@@ -127,6 +116,6 @@ class LatticeTransaction(Transaction):
         state_container.paginated_tx_hash.remmove(address_state, self.txhash)
 
         state_container.lattice_pk.data[(self.addr_from,
-                                         self.pk1, self.pk2, self.pk3, self.pk4)] = LatticePKMetadata(enabled=False)
+                                         self.pk1, self.pk2, self.pk3)] = LatticePKMetadata(enabled=False)
 
         return self._revert_state_changes_for_PK(state_container)

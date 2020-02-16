@@ -278,7 +278,6 @@ class PublicAPIService(PublicAPIServicer):
         tx = self.qrlnode.create_lattice_tx(pk1=request.pk1,
                                             pk2=request.pk2,
                                             pk3=request.pk3,
-                                            pk4=request.pk4,
                                             fee=request.fee,
                                             xmss_pk=request.xmss_pk,
                                             master_addr=request.master_addr)
