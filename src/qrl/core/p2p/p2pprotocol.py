@@ -55,7 +55,7 @@ class P2PProtocol(Protocol):
 
     @property
     def ip_public_port(self):
-        return "{}:{}".format(self.transport.getHost().host, self._public_port)
+        return "{}:{}".format(self.transport.getPeer().host, self._public_port)
 
     @property
     def connected_at(self):
