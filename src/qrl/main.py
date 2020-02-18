@@ -129,7 +129,6 @@ def main():
     admin_service, grpc_service, mining_service, debug_service = start_services(qrlnode)
 
     qrlnode.start_listening()
-    qrlnode.connect_peers()
 
     qrlnode.start_pow(args.mining_thread_count)
 

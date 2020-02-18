@@ -39,6 +39,8 @@ class P2PProtocol(Protocol):
         self._connected_at = ntp.getTime()
         self._valid_message_count = 0
 
+        self._public_port = 0
+
     @property
     def peer(self):
         return IPMetadata(self.transport.getPeer().host, self.transport.getPeer().port)
@@ -46,6 +48,14 @@ class P2PProtocol(Protocol):
     @property
     def host(self):
         return IPMetadata(self.transport.getHost().host, self.transport.getHost().port)
+
+    @property
+    def public_port(self):
+        return self._public_port
+
+    @property
+    def ip_public_port(self):
+        return "{}:{}".format(self.transport.getHost().host, self._public_port)
 
     @property
     def connected_at(self):
@@ -73,6 +83,9 @@ class P2PProtocol(Protocol):
     def tx_manager(self):
         # FIXME: this is breaking encapsulation
         return self.factory._qrl_node.tx_manager
+
+    def set_public_port(self, public_port):
+        self._public_port = public_port
 
     def register(self, message_type, func: Callable):
         self._observable.register(message_type, func)
