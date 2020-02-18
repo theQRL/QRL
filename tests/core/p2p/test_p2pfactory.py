@@ -56,6 +56,7 @@ class TestP2PFactory(TestCase):
         self.m_qrlnode = Mock(autospec=QRLNode, name='Fake QRLNode')
         self.m_qrlnode.peer_manager = Mock(autospec=P2PPeerManager, name='Fake PeerManager')
         self.m_qrlnode.peer_manager.is_banned.return_value = False
+        self.m_qrlnode.peer_manager.load_known_peers.return_value = ['8.8.8.8', '9.9.9.9']
 
         self.channel_1 = Mock(autospec=P2PProtocol,
                               name='mock Channel 1',
@@ -175,22 +176,22 @@ class TestP2PFactory(TestCase):
         """
         connecting to previously unconnected peers should work.
         """
-        self.factory.connect_peer('127.0.0.1:9000')
+        self.factory.connect_peer(['127.0.0.1:9000'])
         m_reactor.connectTCP.assert_called_once()
 
         m_reactor.connectTCP.reset_mock()
-        self.factory.connect_peer('5.5.5.5:9000')
+        self.factory.connect_peer(['5.5.5.5:9000'])
         m_reactor.connectTCP.assert_called_once()
 
         m_reactor.connectTCP.reset_mock()
-        self.factory.connect_peer('5.5.5.5')
+        self.factory.connect_peer(['5.5.5.5'])
         m_reactor.connectTCP.assert_called_once()
 
     def test_connect_peer_bad_ipport(self, m_reactor, m_logger):
-        self.factory.connect_peer('1.1.1.1:65536')
+        self.factory.connect_peer(['1.1.1.1:65536'])
         m_reactor.connectTCP.assert_not_called()
 
-        self.factory.connect_peer('1.1.1.1:')
+        self.factory.connect_peer(['1.1.1.1:'])
         m_reactor.connectTCP.assert_not_called()
 
     def test_monitor_connections(self, m_reactor, m_logger):
@@ -205,8 +206,9 @@ class TestP2PFactory(TestCase):
         self.factory.connect_peer = Mock(autospec=P2PFactory.connect_peer)
         with patch('qrl.core.p2p.p2pfactory.config', autospec=True) as m_config:
             m_config.user.peer_list = ['1.1.1.1', '2.2.2.2', '3.3.3.3', '4.4.4.4']
+            m_config.user.max_peers_limit = 100
             self.factory.monitor_connections()
-            self.factory.connect_peer.assert_called_once_with(make_address('4.4.4.4'))
+            self.factory.connect_peer.assert_called_once_with([make_address('4.4.4.4')])
 
     def test_monitor_connections_no_peers_connected(self, m_reactor, m_logger):
         self.factory.remove_connection(self.channel_1)
@@ -215,7 +217,7 @@ class TestP2PFactory(TestCase):
 
         self.factory.connect_peer = Mock(autospec=P2PFactory.connect_peer)
         self.factory.monitor_connections()
-        self.factory.connect_peer.assert_not_called()
+        self.assertEqual(self.factory.connect_peer.call_count, 5)
 
     def test_request_full_message(self, m_reactor, m_logger):
         """

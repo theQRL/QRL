@@ -41,7 +41,6 @@ class QRLNode:
 
         self.peer_manager = P2PPeerManager()
         self.peer_manager.load_peer_addresses()
-        self.peer_manager.register(P2PPeerManager.EventType.NO_PEERS, self.connect_peers)
 
         self.p2pchain_manager = P2PChainManager()
 
@@ -152,9 +151,6 @@ class QRLNode:
     def get_peers_stat(self) -> list:
         return self.peer_manager.get_peers_stat()
 
-    def connect_peers(self):
-        self.peer_manager.connect_peers()
-
     ####################################################
     ####################################################
     ####################################################
@@ -203,7 +199,7 @@ class QRLNode:
                                       sync_state=self.sync_state,
                                       qrl_node=self)  # FIXME: Try to avoid cyclic references
 
-        self.peer_manager._p2pfactory = self._p2pfactory
+        self.peer_manager.set_p2p_factory(self._p2pfactory)
         self._p2pfactory.start_listening()
 
     ####################################################

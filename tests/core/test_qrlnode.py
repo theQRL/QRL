@@ -541,7 +541,3 @@ class TestQRLNodeProperties(TestCase):
     def test_get_peers_stat(self):
         self.qrlnode.get_peers_stat()
         self.m_peer_manager.get_peers_stat.assert_called_once()
-
-    def test_connect_peers(self):
-        self.qrlnode.connect_peers()
-        self.m_peer_manager.connect_peers.assert_called_once()
