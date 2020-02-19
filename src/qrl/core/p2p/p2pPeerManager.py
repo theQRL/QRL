@@ -182,10 +182,9 @@ class P2PPeerManager(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
         channel.register(qrllegacy_pb2.LegacyMessage.P2P_ACK, self.handle_p2p_acknowledgement)
 
-    def _get_version_compatibility(self,  version) -> bool:
+    def _get_version_compatibility(self, version) -> bool:
         if self._p2p_factory is None:
             return True
-        
         if self._p2p_factory.chain_height >= config.dev.hard_fork_heights[0]:
             try:
                 major_version = version.split(".")[0]
