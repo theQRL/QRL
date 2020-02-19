@@ -182,6 +182,19 @@ class P2PPeerManager(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.SYNC, self.handle_sync)
         channel.register(qrllegacy_pb2.LegacyMessage.P2P_ACK, self.handle_p2p_acknowledgement)
 
+    def _get_version_compatibility(self, version) -> bool:
+        if self._p2p_factory is None:
+            return True
+        if self._p2p_factory.chain_height >= config.dev.hard_fork_heights[0]:
+            try:
+                major_version = version.split(".")[0]
+                if int(major_version) < 2:
+                    return False
+            except Exception:
+                return False
+
+        return True
+
     def handle_version(self, source, message: qrllegacy_pb2.LegacyMessage):
         """
         Version
@@ -205,6 +218,13 @@ class P2PPeerManager(P2PBaseObserver):
                     source.peer.ip,
                     message.veData.version,
                     message.veData.genesis_prev_hash)
+
+        if not self._get_version_compatibility(message.veData.version):
+            logger.warning("Disconnecting from Peer %s running incompatible node version %s",
+                           source.peer.ip,
+                           message.veData.version)
+            source.loseConnection()
+            return
 
         source.rate_limit = min(config.user.peer_rate_limit, message.veData.rate_limit)
 
@@ -278,7 +298,6 @@ class P2PPeerManager(P2PBaseObserver):
         self._observable.notify(ObservableEvent(self.EventType.NO_PEERS))
 
     def handle_chain_state(self, source, message: qrllegacy_pb2.LegacyMessage):
-        # FIXME: Not sure this belongs to peer management
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.CHAINSTATE)
 
         message.chainStateData.timestamp = ntp.getTime()  # Receiving time
@@ -291,6 +310,13 @@ class P2PPeerManager(P2PBaseObserver):
             return
 
         self._peer_node_status[source] = message.chainStateData
+
+        if not self._get_version_compatibility(message.chainStateData.version):
+            logger.warning("Disconnecting from Peer %s running incompatible node version %s",
+                           source.peer.ip,
+                           message.veData.version)
+            source.loseConnection()
+            return
 
     def handle_p2p_acknowledgement(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.P2P_ACK)
