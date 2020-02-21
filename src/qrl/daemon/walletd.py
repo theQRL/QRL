@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from concurrent.futures import ThreadPoolExecutor
 
+import argparse
 import os
 import logging
 import grpc
@@ -946,7 +947,30 @@ def run():
         wallet_server.stop(0)
 
 
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='QRL node')
+    parser.add_argument('--qrldir', '-d', dest='qrl_dir', default=config.user.qrl_dir,
+                        help="Use a different directory for node data/configuration")
+    parser.add_argument('--network-type', dest='network_type', choices=['mainnet', 'testnet'],
+                        default='mainnet', required=False, help="Runs QRL Testnet Node")
+    return parser.parse_args()
+
+
 def main():
+    args = parse_arguments()
+
+    qrl_dir_post_fix = ''
+    copy_files = []
+    if args.network_type == 'testnet':
+        qrl_dir_post_fix = '-testnet'
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        copy_files.append(os.path.join(package_directory, '../network/testnet/genesis.yml'))
+        copy_files.append(os.path.join(package_directory, '../network/testnet/config.yml'))
+
+    config.user.qrl_dir = os.path.expanduser(os.path.normpath(args.qrl_dir) + qrl_dir_post_fix)
+    config.create_path(config.user.qrl_dir, copy_files)
+    config.user.load_yaml(config.user.config_path)
+
     daemon = Daemonize(app="qrl_walletd", pid=pid, action=run)
     daemon.start()
 
