@@ -170,11 +170,12 @@ class TransferTokenTransaction(Transaction):
                                              self.token_txhash)] = TokenBalance(balance=0,
                                                                                 decimals=decimals,
                                                                                 delete=False)
+                state_container.paginated_tokens_hash.insert(address_state, self.txhash)
+
             state_container.tokens.data[(addr_to, self.token_txhash)].balance += amount
 
             if self.addr_from != addr_to:
                 state_container.paginated_tx_hash.insert(address_state, self.txhash)
-                state_container.paginated_tokens_hash.insert(address_state, self.txhash)
 
         return self._apply_state_changes_for_PK(state_container)
 
