@@ -2,7 +2,6 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import heapq
-from math import ceil
 from unittest import TestCase
 
 from grpc import ServicerContext, StatusCode
@@ -178,8 +177,7 @@ class TestPublicAPI(TestCase):
             self.assertEqual(alice_xmss.address, response.state.address)
             self.assertEqual(25, response.state.nonce)
             self.assertEqual(10, response.state.balance)
-            count = int(ceil((2 ** optimized_address_state.height) / 8))
-            self.assertEqual([b'\x00'] * count, response.state.ots_bitfield)
+            self.assertEqual([b'\x00'] * config.dev.ots_bitfield_size, response.state.ots_bitfield)
             self.assertEqual([], response.state.transaction_hashes)
 
     def test_getObject(self):
