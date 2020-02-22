@@ -104,33 +104,46 @@ class ChainManager:
         Transform Optimized Address State into Older Address State format
         """
         optimized_address_state = self.get_optimized_address_state(address)
-        ots_bitfield = [b'\x00'] * int(ceil((2 ** optimized_address_state.height) / 8))
+        ots_bitfield = [b'\x00'] * max(1024, int(ceil((2 ** optimized_address_state.height) / 8)))
+        transaction_hashes = list()
         tokens = dict()
         slave_pks_access_type = dict()
 
-        max_bitfield_page = (2 ** optimized_address_state.height) // config.dev.ots_tracking_per_page
+        max_bitfield_page = ceil((2 ** optimized_address_state.height) / config.dev.ots_tracking_per_page)
 
         offset = 0
         for page in range(1, max_bitfield_page + 1):
             page_data = self.get_bitfield(address, page)
             for data in page_data:
+                if offset >= len(ots_bitfield):
+                    break
                 ots_bitfield[offset] = data
                 offset += 1
             offset = (page - 1) * config.dev.ots_tracking_per_page
 
-        for page in range(1, optimized_address_state.tokens_count() + 1):
-            page_data = self.get_token_transaction_hashes(address, page)
+        max_transaction_hash_page = ceil(optimized_address_state.transaction_hash_count() / config.dev.data_per_page)
+
+        for page in range(0, max_transaction_hash_page + 1):
+            page_data = self.get_transaction_hashes(address, page * config.dev.data_per_page)
+            transaction_hashes.extend(page_data)
+
+        max_token_page = ceil(optimized_address_state.tokens_count() / config.dev.data_per_page)
+
+        for page in range(0, max_token_page + 1):
+            page_data = self.get_token_transaction_hashes(address, page * config.dev.data_per_page)
             for token_txn_hash in page_data:
                 token_balance = self.get_token(address, token_txn_hash)
                 tokens[token_txn_hash] = token_balance.balance
 
-        for page in range(1, optimized_address_state.slaves_count() + 1):
-            page_data = self.get_slave_transaction_hashes(address, page)
+        max_slave_page = ceil(optimized_address_state.slaves_count() / config.dev.data_per_page)
+
+        for page in range(0, max_slave_page + 1):
+            page_data = self.get_slave_transaction_hashes(address, page * config.dev.data_per_page)
             for slave_txn_hash in page_data:
                 tx, _ = self.get_tx_metadata(slave_txn_hash)
                 for slave_pk in tx.slave_pks:
                     slave_meta_data = self.get_slave_pk_access_type(address, slave_pk)
-                    slave_pks_access_type[slave_pk] = slave_meta_data.access_type
+                    slave_pks_access_type[str(slave_pk)] = slave_meta_data.access_type
 
         addr_state = AddressState.create(address=optimized_address_state.address,
                                          nonce=optimized_address_state.nonce,
@@ -139,6 +152,7 @@ class ChainManager:
                                          tokens=tokens,
                                          slave_pks_access_type=slave_pks_access_type,
                                          ots_counter=0)
+        addr_state.transaction_hashes.extend(transaction_hashes)
 
         return addr_state
 
@@ -177,12 +191,12 @@ class ChainManager:
             return p.get_paginated_data(multi_sig_address, item_index)
 
     def get_token_transaction_hashes(self, address: bytes, item_index: int) -> list:
-        p = PaginatedData(b'p_token', False, self._state._db)
+        p = PaginatedData(b'p_tokens', False, self._state._db)
         with self.lock:
             return p.get_paginated_data(address, item_index)
 
     def get_slave_transaction_hashes(self, address: bytes, item_index: int) -> list:
-        p = PaginatedData(b'p_slave', False, self._state._db)
+        p = PaginatedData(b'p_slaves', False, self._state._db)
         with self.lock:
             return p.get_paginated_data(address, item_index)
 
