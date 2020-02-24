@@ -33,6 +33,8 @@ class OptimizedAddressState(object):
                                                    self.update_multi_sig_address_count),
             b"p_multi_sig_spend": counter_mapping(self.multi_sig_spend_count,
                                                   self.update_multi_sig_spend_count),
+            b"p_inbox_message": counter_mapping(self.inbox_message_count,
+                                                self.update_inbox_message_count),
         }
 
     @staticmethod
@@ -110,6 +112,9 @@ class OptimizedAddressState(object):
 
     def multi_sig_spend_count(self):
         return self._data.multi_sig_spend_count
+
+    def inbox_message_count(self):
+        return self._data.inbox_message_count
 
     def get_counter_by_name(self, name: bytes):
         return self._counter_by_name[name].get()
@@ -189,6 +194,12 @@ class OptimizedAddressState(object):
             self._data.multi_sig_spend_count -= value
         else:
             self._data.multi_sig_spend_count += value
+
+    def update_inbox_message_count(self, value=1, subtract=False):
+        if subtract:
+            self._data.inbox_message_count -= value
+        else:
+            self._data.inbox_message_count += value
 
     def increase_nonce(self):
         self._data.nonce += 1

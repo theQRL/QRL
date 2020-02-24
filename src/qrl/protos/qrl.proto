@@ -633,12 +633,13 @@ message OptimizedAddressState {
     uint64 lattice_pk_count = 9;
     uint64 multi_sig_address_count = 10;
     uint64 multi_sig_spend_count = 11;
+    uint64 inbox_message_count = 12;
 
-    repeated bytes foundation_multi_sig_spend_txn_hash = 12;
-    repeated bytes foundation_multi_sig_vote_txn_hash = 13;
-    repeated bytes unvotes = 14;
+    repeated bytes foundation_multi_sig_spend_txn_hash = 13;
+    repeated bytes foundation_multi_sig_vote_txn_hash = 14;
+    repeated bytes unvotes = 15;
 
-    repeated Transaction proposal_vote_stats = 15;
+    repeated Transaction proposal_vote_stats = 16;
 }
 
 message MultiSigAddressState {

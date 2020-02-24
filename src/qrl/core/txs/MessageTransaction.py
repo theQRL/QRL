@@ -98,6 +98,7 @@ class MessageTransaction(Transaction):
             address_state = state_container.addresses_state[self.addr_to]
             if self.addr_to not in (self.addr_from, addr_from_pk):
                 state_container.paginated_tx_hash.insert(address_state, self.txhash)
+                state_container.paginated_inbox_message.insert(address_state, self.txhash)
 
         return self._apply_state_changes_for_PK(state_container)
 
@@ -113,5 +114,6 @@ class MessageTransaction(Transaction):
             address_state = state_container.addresses_state[self.addr_to]
             if self.addr_to not in (self.addr_from, addr_from_pk):
                 state_container.paginated_tx_hash.remove(address_state, self.txhash)
+                state_container.paginated_inbox_message.remove(address_state, self.txhash)
 
         return self._revert_state_changes_for_PK(state_container)
