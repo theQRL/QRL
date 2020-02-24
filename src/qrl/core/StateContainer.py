@@ -27,6 +27,7 @@ class StateContainer:
         self.paginated_lattice_pk = PaginatedData(b'p_lattice_pk', write_access, my_db)
         self.paginated_multisig_address = PaginatedData(b'p_multisig_address', write_access, my_db)
         self.paginated_multi_sig_spend = PaginatedData(b'p_multi_sig_spend', write_access, my_db)
+        self.paginated_inbox_message = PaginatedData(b'p_inbox_message', write_access, my_db)
 
         self.addresses_state = addresses_state
 

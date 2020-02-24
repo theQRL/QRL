@@ -926,6 +926,8 @@ class ChainManager:
 
         state_container.paginated_multi_sig_spend.put_paginated_data(batch)
 
+        state_container.paginated_inbox_message.put_paginated_data(batch)
+
         # TODO: Add Key value storage to lattice pk
         state_container.tokens.put(batch)
         # This is needed to show list of tokens owned by an address on Web Wallet
@@ -1027,6 +1029,10 @@ class ChainManager:
 
         if not state_container.paginated_multi_sig_spend.put_paginated_data(batch):
             logger.warning("Failed Revert Multi Sig Spend")
+            return False
+
+        if not state_container.paginated_inbox_message.put_paginated_data(batch):
+            logger.warning("Failed Revert Inbox Message")
             return False
 
         if not state_container.paginated_multisig_address.put_paginated_data(batch):
