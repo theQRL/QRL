@@ -210,6 +210,11 @@ class ChainManager:
         with self.lock:
             return p.get_paginated_data(address, item_index)
 
+    def get_inbox_message_transaction_hashes(self, address: bytes, item_index: int) -> list:
+        p = PaginatedData(b'p_inbox_message', False, self._state._db)
+        with self.lock:
+            return p.get_paginated_data(address, item_index)
+
     def get_vote_stats(self, multi_sig_spend_txn_hash: bytes):
         with self.lock:
             return VoteStats.get_state(state=self._state, shared_key=multi_sig_spend_txn_hash)
