@@ -485,6 +485,15 @@ class PublicAPIService(PublicAPIServicer):
                                                                request.page_number,
                                                                request.filter_type)
 
+    @GrpcExceptionWrapper(qrl_pb2.GetInboxMessagesByAddressResp)
+    def GetInboxMessagesByAddress(self,
+                                  request: qrl_pb2.GetTransactionsByAddressReq,
+                                  context) -> qrl_pb2.GetInboxMessagesByAddressResp:
+        logger.debug("[PublicAPI] GetInboxMessagesByAddress")
+        return self.qrlnode.get_inbox_messages_by_address(request.address,
+                                                          request.item_per_page,
+                                                          request.page_number)
+
     @GrpcExceptionWrapper(qrl_pb2.GetVoteStatsResp)
     def GetVoteStats(self,
                      request: qrl_pb2.GetVoteStatsReq,

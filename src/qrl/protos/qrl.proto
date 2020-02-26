@@ -80,6 +80,8 @@ service PublicAPI
 
     rpc GetVoteStats(GetVoteStatsReq) returns (GetVoteStatsResp);
 
+    rpc GetInboxMessagesByAddress(GetTransactionsByAddressReq) returns (GetInboxMessagesByAddressResp);
+
     rpc GetBalance(GetBalanceReq) returns (GetBalanceResp);
 
     rpc GetTotalBalance(GetTotalBalanceReq) returns (GetTotalBalanceResp);
@@ -453,6 +455,18 @@ message GetVoteStatsReq {
 
 message GetVoteStatsResp {
     VoteStats vote_stats = 1;
+}
+
+message GetInboxMessagesByAddressResp {
+    repeated GetTransactionResp transactions_detail = 1;
+}
+
+message InboxMessage {
+    bytes addr_from = 1;
+    uint64 timestamp = 2;
+    bytes message = 3;
+    bytes tx_hash = 4;
+    uint64 block_number = 5;
 }
 
 message TokenDetail {

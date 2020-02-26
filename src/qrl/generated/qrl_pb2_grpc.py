@@ -182,6 +182,11 @@ class PublicAPIStub(object):
         request_serializer=qrl__pb2.GetVoteStatsReq.SerializeToString,
         response_deserializer=qrl__pb2.GetVoteStatsResp.FromString,
         )
+    self.GetInboxMessagesByAddress = channel.unary_unary(
+        '/qrl.PublicAPI/GetInboxMessagesByAddress',
+        request_serializer=qrl__pb2.GetTransactionsByAddressReq.SerializeToString,
+        response_deserializer=qrl__pb2.GetInboxMessagesByAddressResp.FromString,
+        )
     self.GetBalance = channel.unary_unary(
         '/qrl.PublicAPI/GetBalance',
         request_serializer=qrl__pb2.GetBalanceReq.SerializeToString,
@@ -418,6 +423,12 @@ class PublicAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
+  def GetInboxMessagesByAddress(self, request, context):
+    # missing associated documentation comment in .proto file
+    context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+    context.set_details('Method not implemented!')
+    raise NotImplementedError('Method not implemented!')
+
   def GetBalance(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -616,6 +627,11 @@ def add_PublicAPIServicer_to_server(servicer, server):
           servicer.GetVoteStats,
           request_deserializer=qrl__pb2.GetVoteStatsReq.FromString,
           response_serializer=qrl__pb2.GetVoteStatsResp.SerializeToString,
+      ),
+      'GetInboxMessagesByAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.GetInboxMessagesByAddress,
+          request_deserializer=qrl__pb2.GetTransactionsByAddressReq.FromString,
+          response_serializer=qrl__pb2.GetInboxMessagesByAddressResp.SerializeToString,
       ),
       'GetBalance': grpc.unary_unary_rpc_method_handler(
           servicer.GetBalance,

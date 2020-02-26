@@ -524,6 +524,21 @@ class QRLNode:
                                                                                    actual_start_item_index))
         return multi_sig_addresses[:item_per_page][-1::-1]
 
+    def _load_inbox_message_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        address_state = self._chain_manager.get_optimized_address_state(address)
+        start_item_index = max(0, address_state.inbox_message_count() - item_per_page * page_number)
+        end_item_index = min(address_state.inbox_message_count(), start_item_index + item_per_page)
+
+        transaction_hashes = self._chain_manager.get_inbox_message_transaction_hashes(address,
+                                                                                      start_item_index)
+        actual_start_item_index = (start_item_index // config.dev.data_per_page) * config.dev.data_per_page
+        inbox_message_transaction_hashes = transaction_hashes[start_item_index - actual_start_item_index:]
+        while actual_start_item_index < end_item_index:
+            actual_start_item_index += config.dev.data_per_page
+            inbox_message_transaction_hashes.extend(self._chain_manager.get_inbox_message_transaction_hashes(address,
+                                                                                                             actual_start_item_index))
+        return inbox_message_transaction_hashes[:item_per_page][-1::-1]
+
     def get_mini_transactions_by_address(self, address: bytes, item_per_page: int, page_number: int):
         if item_per_page == 0:
             return None
@@ -637,6 +652,27 @@ class QRLNode:
     def get_vote_stats(self, multi_sig_spend_tx_hash: bytes):
         vote_stats = self._chain_manager.get_vote_stats(multi_sig_spend_tx_hash)
         return qrl_pb2.GetVoteStatsResp(vote_stats=vote_stats)
+
+    def get_inbox_messages_by_address(self, address: bytes, item_per_page: int, page_number: int):
+        if item_per_page == 0:
+            return None
+        transaction_hashes = self._load_inbox_message_transaction_hashes(address,
+                                                                         item_per_page,
+                                                                         page_number)
+
+        response = qrl_pb2.GetTransactionsByAddressResp()
+        for tx_hash in transaction_hashes:
+            tx, block_number = self._chain_manager.get_tx_metadata(tx_hash)
+            b = self.get_block_from_index(block_number)
+            transaction_detail = qrl_pb2.GetTransactionResp(tx=tx.pbdata,
+                                                            confirmations=self.block_height - block_number + 1,
+                                                            block_number=block_number,
+                                                            block_header_hash=b.headerhash,
+                                                            timestamp=b.timestamp,
+                                                            addr_from=tx.addr_from)
+            response.transactions_detail.extend([transaction_detail])
+
+        return response
 
     def get_tokens_by_address(self, address: bytes, item_per_page: int, page_number: int):
         if item_per_page == 0:
