@@ -157,6 +157,7 @@ class Miner:
             if not tx.validate_all(state_container, check_nonce=False):
                 if not state_container.revert_update():
                     return None
+                tx_pool.remove_tx_from_pool(tx)
                 continue
             if not self._chain_manager.apply_txn(tx, state_container):
                 logger.error("[create_block] Failed to apply txn")

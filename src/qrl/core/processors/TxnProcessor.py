@@ -32,6 +32,12 @@ class TxnProcessor:
         if not self.chain_manager.validate_all(tx, check_nonce=False):
             return False
 
+        is_valid_pool_state = tx.validate_transaction_pool(self.transaction_pool_obj.transaction_pool)
+
+        if not is_valid_pool_state:
+            logger.info('>>>TX %s failed is_valid_pool_state', bin2hstr(tx.txhash))
+            return False
+
         logger.info('A TXN has been Processed %s', bin2hstr(tx.txhash))
         self.transaction_pool_obj.add_tx_to_pool(tx, self.chain_manager.last_block.block_number, timestamp)
         self.broadcast_tx(tx)

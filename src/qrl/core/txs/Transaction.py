@@ -205,7 +205,7 @@ class Transaction(object, metaclass=ABCMeta):
             if txn.ots_key == self.ots_key:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected',
                             bin2hstr(self.txhash))
-                logger.info('Subtype %s', type(self))
+                logger.info('Subtype %s', self.type)
                 return False
 
         return True
