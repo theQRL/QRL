@@ -877,9 +877,6 @@ class ChainManager:
                 for address in multi_sig_spend_tx.addrs_to:
                     if address not in state_container.addresses_state:
                         address_set.add(address)
-        elif isinstance(tx, LatticeTransaction):
-            # TODO: Load lattice_pk and lattice_pk_tx_hashes
-            pass
 
         addresses_state, success = self.get_state_mainchain(address_set,
                                                             ignore_addresses_set=state_container.addresses_state.keys())
