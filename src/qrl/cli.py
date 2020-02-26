@@ -142,8 +142,8 @@ def _print_addresses(ctx, addresses: List[OutputMessage], source_description):
 def _public_get_address_balance(ctx, address):
     stub = ctx.obj.get_stub_public_api()
     get_address_state_req = qrl_pb2.GetAddressStateReq(address=parse_qaddress(address))
-    get_address_state_resp = stub.GetAddressState(get_address_state_req, timeout=CONNECTION_TIMEOUT)
-    return get_address_state_resp.state.balance
+    get_optimized_address_state_resp = stub.GetOptimizedAddressState(get_address_state_req, timeout=CONNECTION_TIMEOUT)
+    return get_optimized_address_state_resp.state.balance
 
 
 def _select_wallet(ctx, address_or_index):
