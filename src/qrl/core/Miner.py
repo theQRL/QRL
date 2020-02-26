@@ -221,7 +221,7 @@ class Miner:
             return False
 
         blockheader = copy.deepcopy(self._mining_block.blockheader)
-        blockheader.set_mining_nonce_from_blob(blob)
+        blockheader.set_mining_nonce_from_blob(blob, dev_config)
 
         dev_config = self._chain_manager.get_config_by_block_number(blockheader.block_number)
 
