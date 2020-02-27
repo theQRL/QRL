@@ -709,6 +709,17 @@ class TestChainManagerReal(TestCase):
     @set_hard_fork_block_number()
     @patch('qrl.core.misc.ntp.getTime')
     def test_add_block4(self, time_mock):
+        """
+        Features Tested
+        - Behavior of Block validation with lattice transctions
+
+        Expectation
+        - Block 1 and 2 must be added as both of them have valid lattice transaction
+        - Block 3 must not be added, as it includes a lattice txn adding duplicate public keys
+
+        :param time_mock:
+        :return:
+        """
         with patch.object(DifficultyTracker, 'get', return_value=ask_difficulty_tracker('2', config.dev)):
             self.chain_manager.load(self.genesis_block)
 
@@ -777,6 +788,32 @@ class TestChainManagerReal(TestCase):
             result = self.chain_manager.add_block(block_2)
 
             self.assertTrue(result)
+            self.assertEqual(self.chain_manager.last_block, block_2)
+
+            # Duplicate set of public keys in lattice transaction
+            lattice_pk3 = LatticeTransaction.create(pk1=b'alice_pk11',
+                                                    pk2=b'alice_pk12',
+                                                    pk3=b'alice_pk13',
+                                                    fee=5,
+                                                    xmss_pk=alice_xmss.pk)
+            lattice_pk3.sign(alice_xmss)
+            lattice_pk3.pbdata.nonce = 3
+
+            seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(3))
+            block_3 = Block.create(dev_config=config.dev,
+                                   block_number=3,
+                                   prev_headerhash=block_2.headerhash,
+                                   prev_timestamp=block_2.timestamp,
+                                   transactions=[lattice_pk3],
+                                   miner_address=bob_xmss.address,
+                                   seed_height=seed_block.block_number,
+                                   seed_hash=seed_block.headerhash)
+            block_3.set_nonces(config.dev, 1, 0)
+
+            self.assertTrue(block_3.validate(self.chain_manager, {}))
+            result = self.chain_manager.add_block(block_3)
+
+            self.assertFalse(result)
             self.assertEqual(self.chain_manager.last_block, block_2)
 
     @set_default_balance_size()
