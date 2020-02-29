@@ -59,6 +59,42 @@ test_json_MessageTransaction = """{
     "messageHash": "VGVzdCBNZXNzYWdl"
   }
 }"""
+test_json_MultiSigCreate = """{
+  "multiSigCreate": {
+    "signatories": [
+      "AQMAodonTmjIiwzPRI4LGRb6eJsB6y7U6a1WXOJkyTkHgqnGGsAv",
+      "AQMAHWXX5ZrtXvvq5kJG4PMYTXxCQRQh6zhbow8sHABahevEQZz9",
+      "AQIAZwJGsAJkNrcX8Znj7FMgumq2HV7d/4EawZmp6bhx0ygBeLND"
+    ],
+    "threshold": 30,
+    "weights": [
+      20,
+      30,
+      10
+    ]
+  },
+  "publicKey": "AQIAsGVJRyiiO8joHbY4VZG1roHa31u5nxY+ITxV1jMdC38Q3DZ80OopZx3kIiEaiH+z0Zmwp/GzwC+qYq3DTTpdqw=="
+}"""
+test_json_MultiSigSpend = """{
+  "multiSigSpend": {
+    "addrsTo": [
+      "AQMAHWXX5ZrtXvvq5kJG4PMYTXxCQRQh6zhbow8sHABahevEQZz9"
+    ],
+    "amounts": [
+      "100"
+    ],
+    "expiryBlockNumber": "15000",
+    "multiSigAddress": "EQAAOQFwwkX2TVVwVgQi6XffhVe7j7F0BmGgPdcBXaOaTQOGQq0C"
+  },
+  "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg=="
+}"""
+test_json_MultiSigVote = """{
+  "multiSigVote": {
+    "sharedKey": "+J13jHTkcybczOMHDHqDjo97JhvUYsRx+adev5c/a4E="
+  },
+  "publicKey": "AQMAOOpjdQafgnLMGmYBs8dsIVGUVWA9NwA2uXx3mto1ZYVOOYO9VkKYxJri5/puKNS5VNjNWTmPEiWwjWFEhUruDg=="
+}"""
+
 test_signature_Simple = "0000000a899e73cfbf8c57027f5a0f853b9906701ee378ad169d34ce45153f13" \
                         "3c3f3f6cd87250b2ad225ced6b8c902a5fa1ecfacaa6744f6f42323ee586d873" \
                         "f066388ab9f17ad396aed963678edeab3e6e35c082ecd7bb8ef568f2da92fb2a" \

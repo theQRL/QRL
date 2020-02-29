@@ -12,16 +12,19 @@ import simplejson as json
 from mock import mock
 from pyqrllib.pyqrllib import XmssFast
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
+from pyqryptonight.pyqryptonight import StringToUInt256
 
 from qrl.core import config
-from qrl.core.misc import logger
+from qrl.core.Block import Block
+from qrl.core.BlockMetadata import BlockMetadata
+from qrl.core.ChainManager import ChainManager
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.GenesisBlock import GenesisBlock
+from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
-
-logger.initialize_default()
 
 
 def replacement_getTime():
@@ -36,6 +39,16 @@ def set_default_balance_size(new_value=100 * int(config.dev.shor_per_quanta)):
         yield
     finally:
         config.dev.default_account_balance = old_value
+
+
+@contextlib.contextmanager
+def set_hard_fork_block_number(hard_fork_index=0, new_value=1):
+    old_value = config.dev.hard_fork_heights[hard_fork_index]
+    try:
+        config.dev.hard_fork_heights[hard_fork_index] = new_value
+        yield
+    finally:
+        config.dev.hard_fork_heights[hard_fork_index] = old_value
 
 
 @contextlib.contextmanager
@@ -71,6 +84,21 @@ def set_qrl_dir(data_name):
     finally:
         shutil.rmtree(dst_dir)
         config.user.qrl_dir = prev_val
+
+
+def get_genesis_with_only_coin_base_txn(coin_base_reward_addr, dev_config):
+    g = GenesisBlock()
+
+    coin_base_tx = Transaction.from_pbdata(g.transactions[0])
+    coin_base_tx.update_mining_address(coin_base_reward_addr)
+
+    # Remove all other transaction except CoinBase txn
+    del g.transactions[:]
+
+    g.pbdata.transactions.extend([coin_base_tx.pbdata])
+    g.blockheader.generate_headerhash(dev_config)
+
+    return g
 
 
 def read_data_file(filename):
@@ -185,3 +213,60 @@ def get_random_master():
     slave_data = json.loads(json.dumps([bin2hstr(random_master.address), [random_master.extended_seed], None]))
     slave_data[0] = bytes(hstr2bin(slave_data[0]))
     return slave_data
+
+
+def gen_blocks(block_count, state, miner_address):
+    blocks = []
+    block = None
+    with mock.patch('qrl.core.misc.ntp.getTime') as time_mock:
+        time_mock.return_value = 1615270948
+        addresses_state = dict()
+        for i in range(0, block_count):
+            if i == 0:
+                block = GenesisBlock()
+                for genesis_balance in GenesisBlock().genesis_balance:
+                    bytes_addr = genesis_balance.address
+                    addresses_state[bytes_addr] = OptimizedAddressState.get_default(bytes_addr)
+                    addresses_state[bytes_addr]._data.balance = genesis_balance.balance
+            else:
+                block = Block.create(dev_config=config.dev,
+                                     block_number=i,
+                                     prev_headerhash=block.headerhash,
+                                     prev_timestamp=block.timestamp,
+                                     transactions=[],
+                                     miner_address=miner_address,
+                                     seed_height=None,
+                                     seed_hash=None)
+                addresses_set = ChainManager.set_affected_address(block)
+                coin_base_tx = Transaction.from_pbdata(block.transactions[0])
+                coin_base_tx.set_affected_address(addresses_set)
+
+                chain_manager = ChainManager(state)
+                state_container = chain_manager.new_state_container(addresses_set,
+                                                                    block.block_number,
+                                                                    False,
+                                                                    None)
+                coin_base_tx.apply(state, state_container)
+
+                for tx_idx in range(1, len(block.transactions)):
+                    tx = Transaction.from_pbdata(block.transactions[tx_idx])
+                    if not chain_manager.update_state_container(tx, state_container):
+                        return False
+                    tx.apply(state, state_container)
+
+                block.set_nonces(dev_config=config.dev, mining_nonce=10, extra_nonce=0)
+            blocks.append(block)
+
+            metadata = BlockMetadata()
+            metadata.set_block_difficulty(StringToUInt256('256'))
+            BlockMetadata.put_block_metadata(state, block.headerhash, metadata, None)
+
+            Block.put_block(state, block, None)
+            bm = qrl_pb2.BlockNumberMapping(headerhash=block.headerhash,
+                                            prev_headerhash=block.prev_headerhash)
+
+            Block.put_block_number_mapping(state, block.block_number, bm, None)
+            state.update_mainchain_height(block.block_number, None)
+            OptimizedAddressState.put_optimized_addresses_state(state, addresses_state)
+
+    return blocks

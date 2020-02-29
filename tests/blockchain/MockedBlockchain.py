@@ -51,14 +51,19 @@ class MockedBlockchain(object):
         self.time_mock.return_value = self.time_mock.return_value + time_offset
         self.ntp_mock.return_value = self.ntp_mock.return_value + time_offset
 
-        block_new = Block.create(block_number=block_idx,
+        block_new = Block.create(dev_config=config.dev,
+                                 block_number=block_idx,
                                  prev_headerhash=block_prev.headerhash,
                                  prev_timestamp=block_prev.timestamp,
                                  transactions=transactions,
-                                 miner_address=mining_address)
+                                 miner_address=mining_address,
+                                 seed_height=0,
+                                 seed_hash=None)
 
-        while not self.qrlnode._chain_manager.validate_mining_nonce(blockheader=block_new.blockheader):
-            block_new.set_nonces(block_new.mining_nonce + 1, 0)
+        dev_config = self.qrlnode._chain_manager.get_config_by_block_number(block_new.block_number)
+        while not self.qrlnode._chain_manager.validate_mining_nonce(blockheader=block_new.blockheader,
+                                                                    dev_config=dev_config):
+            block_new.set_nonces(config.dev, block_new.mining_nonce + 1, 0)
 
         return block_new
 
@@ -81,7 +86,7 @@ class MockedBlockchain(object):
     @contextlib.contextmanager
     def create(num_blocks, mining_address=None):
         tmp_gen = GenesisBlock()
-        start_time = tmp_gen.timestamp + config.dev.mining_setpoint_blocktime
+        start_time = tmp_gen.timestamp + config.dev.block_timing_in_seconds
         with mock.patch('qrl.core.misc.ntp.getTime') as ntp_mock, \
                 set_qrl_dir('no_data'), \
                 State() as state, \
@@ -101,7 +106,7 @@ class MockedBlockchain(object):
                 chain_manager._difficulty_tracker = Mock()
                 dt = DifficultyTracker()
                 tmp_difficulty = StringToUInt256('2')
-                tmp_target = dt.get_target(tmp_difficulty)
+                tmp_target = dt.get_target(tmp_difficulty, config.dev)
 
                 chain_manager._difficulty_tracker.get = MagicMock(return_value=(tmp_difficulty, tmp_target))
 

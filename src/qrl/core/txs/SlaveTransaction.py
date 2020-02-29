@@ -1,9 +1,10 @@
 from pyqrllib.pyqrllib import bin2hstr
 
-from qrl.core import config
-from qrl.core.AddressState import AddressState
+from qrl.core.State import State
+from qrl.core.StateContainer import StateContainer
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
+from qrl.generated.qrl_pb2 import SlaveMetadata
 
 
 class SlaveTransaction(Transaction):
@@ -50,17 +51,16 @@ class SlaveTransaction(Transaction):
         return transaction
 
     def _validate_custom(self) -> bool:
-        if (len(self.slave_pks) > config.dev.transaction_multi_output_limit or
-                len(self.access_types) > config.dev.transaction_multi_output_limit):
-            logger.warning('List has more than 100 slave pks or access_types')
-            logger.warning('Slave pks len %s', len(self.slave_pks))
-            logger.warning('Access types len %s', len(self.access_types))
-            return False
-
         if len(self.slave_pks) != len(self.access_types):
             logger.warning('Number of slave pks are not equal to the number of access types provided')
             logger.warning('Slave pks len %s', len(self.slave_pks))
             logger.warning('Access types len %s', len(self.access_types))
+            return False
+
+        if len(set(self.slave_pks)) != len(self.slave_pks):
+            logger.warning('Duplicate Slave PKS found')
+            logger.warning('Unique Slave pks len %s', len(set(self.slave_pks)))
+            logger.warning('Slave pks len %s', len(self.slave_pks))
             return False
 
         for access_type in self.access_types:
@@ -68,45 +68,69 @@ class SlaveTransaction(Transaction):
                 logger.warning('Invalid Access type %s', access_type)
                 return False
 
-        return True
-
-    def validate_extended(self, addr_from_state: AddressState, addr_from_pk_state: AddressState) -> bool:
-        if not self.validate_slave(addr_from_state, addr_from_pk_state):
-            return False
-
-        tx_balance = addr_from_state.balance
-
         if self.fee < 0:
             logger.info('Slave: State validation failed for %s because: Negative send', bin2hstr(self.txhash))
             return False
+
+        return True
+
+    def _validate_extended(self, state_container: StateContainer) -> bool:
+        if (len(self.slave_pks) > state_container.current_dev_config.transaction_multi_output_limit or
+                len(self.access_types) > state_container.current_dev_config.transaction_multi_output_limit):
+            logger.warning('List has more than %s slave pks or access_types',
+                           state_container.current_dev_config.transaction_multi_output_limit)
+            logger.warning('Slave pks len %s', len(self.slave_pks))
+            logger.warning('Access types len %s', len(self.access_types))
+            return False
+
+        tx_balance = state_container.addresses_state[self.addr_from].balance
 
         if tx_balance < self.fee:
             logger.info('Slave: State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
             logger.info('balance: %s, amount: %s', tx_balance, self.fee)
             return False
 
-        if addr_from_pk_state.ots_key_reuse(self.ots_key):
-            logger.info('Slave: State validation failed for %s because: OTS Public key re-use detected',
-                        bin2hstr(self.txhash))
-            return False
+        for i in range(len(self.slave_pks)):
+            slave_pk = self.slave_pks[i]
+            if state_container.block_number < state_container.current_dev_config.hard_fork_heights[0]:
+                if len(slave_pk) > state_container.current_dev_config.slave_pk_max_length:
+                    logger.info("[Slave Transaction] Slave PK length is beyond limit")
+                    return False
+            if (self.addr_from, slave_pk) in state_container.slaves.data:
+                logger.info("[Slave Transaction] Invalid slave transaction as %s is already a slave for this address",
+                            slave_pk)
+                return False
 
         return True
 
-    def apply_state_changes(self, addresses_state):
-        if self.addr_from in addresses_state:
-            addresses_state[self.addr_from].balance -= self.fee
-            for index in range(0, len(self.slave_pks)):
-                addresses_state[self.addr_from].add_slave_pks_access_type(self.slave_pks[index],
-                                                                          self.access_types[index])
-            addresses_state[self.addr_from].transaction_hashes.append(self.txhash)
+    def set_affected_address(self, addresses_set: set):
+        super().set_affected_address(addresses_set)
 
-        self._apply_state_changes_for_PK(addresses_state)
+    def apply(self,
+              state: State,
+              state_container: StateContainer) -> bool:
+        address_state = state_container.addresses_state[self.addr_from]
+        address_state.update_balance(state_container, self.fee, subtract=True)
+        for idx in range(0, len(self.slave_pks)):
+            state_container.slaves.data[(self.addr_from,
+                                         self.slave_pks[idx])] = SlaveMetadata(access_type=self.access_types[idx],
+                                                                               tx_hash=self.txhash)
+        state_container.paginated_slaves_hash.insert(address_state, self.txhash)
+        state_container.paginated_tx_hash.insert(address_state, self.txhash)
 
-    def revert_state_changes(self, addresses_state, chain_manager):
-        if self.addr_from in addresses_state:
-            addresses_state[self.addr_from].balance += self.fee
-            for index in range(0, len(self.slave_pks)):
-                addresses_state[self.addr_from].remove_slave_pks_access_type(self.slave_pks[index])
-            addresses_state[self.addr_from].transaction_hashes.remove(self.txhash)
+        return self._apply_state_changes_for_PK(state_container)
 
-        self._revert_state_changes_for_PK(addresses_state, chain_manager)
+    def revert(self,
+               state: State,
+               state_container: StateContainer) -> bool:
+        address_state = state_container.addresses_state[self.addr_from]
+        address_state.update_balance(state_container, self.fee)
+        for idx in range(0, len(self.slave_pks)):
+            state_container.slaves.data[(self.addr_from,
+                                         self.slave_pks[idx])] = SlaveMetadata(access_type=self.access_types[idx],
+                                                                               tx_hash=self.txhash,
+                                                                               delete=True)
+        state_container.paginated_slaves_hash.remove(address_state, self.txhash)
+        state_container.paginated_tx_hash.remove(address_state, self.txhash)
+
+        return self._revert_state_changes_for_PK(state_container)

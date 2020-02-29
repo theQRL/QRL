@@ -9,9 +9,11 @@ from google.protobuf.json_format import MessageToJson, Parse
 from pyqrllib.pyqrllib import bin2hstr, QRLHelper, XmssFast
 
 from qrl.core import config
-from qrl.core.AddressState import AddressState
+from qrl.core.State import State
+from qrl.core.OptimizedAddressState import OptimizedAddressState
+from qrl.core.StateContainer import StateContainer
 from qrl.core.misc import logger
-from qrl.core.txs import build_tx
+from qrl.core.txs import build_tx as main_build_tx
 from qrl.crypto.misc import sha256
 from qrl.generated import qrl_pb2
 
@@ -22,7 +24,10 @@ CODEMAP = {
     'message': 4,
     'token': 5,
     'transfer_token': 6,
-    'slave': 7
+    'slave': 7,
+    'multi_sig_create': 8,
+    'multi_sig_spend': 9,
+    'multi_sig_vote': 10,
 }
 
 
@@ -113,7 +118,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def from_pbdata(pbdata: qrl_pb2.Transaction):
-        return build_tx(pbdata.WhichOneof('transactionType'), pbdata)
+        return main_build_tx(pbdata.WhichOneof('transactionType'), pbdata)
 
     @staticmethod
     def from_json(json_data):
@@ -160,38 +165,6 @@ class Transaction(object, metaclass=ABCMeta):
         self._data.signature = object_with_sign_method.sign(self.get_data_hash())
         self.update_txhash()
 
-    @abstractmethod
-    def apply_state_changes(self, addresses_state):
-        """
-        This method, applies the changes on the state caused by txn.
-        :return:
-        """
-        raise NotImplementedError
-
-    def _apply_state_changes_for_PK(self, addresses_state: dict):
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
-        if addr_from_pk in addresses_state:
-            if self.addr_from != addr_from_pk:
-                addresses_state[addr_from_pk].transaction_hashes.append(self.txhash)
-            addresses_state[addr_from_pk].increase_nonce()
-            addresses_state[addr_from_pk].set_ots_key(self.ots_key)
-
-    @abstractmethod
-    def revert_state_changes(self, addresses_state, chain_manager):
-        """
-        This method reverts the changes on the state caused by txn.
-        :return:
-        """
-        raise NotImplementedError
-
-    def _revert_state_changes_for_PK(self, addresses_state, chain_manager):
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
-        if addr_from_pk in addresses_state:
-            if self.addr_from != addr_from_pk:
-                addresses_state[addr_from_pk].transaction_hashes.remove(self.txhash)
-            addresses_state[addr_from_pk].decrease_nonce()
-            addresses_state[addr_from_pk].unset_ots_key(self.ots_key, chain_manager)
-
     def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
         addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
@@ -202,6 +175,22 @@ class Transaction(object, metaclass=ABCMeta):
         This is an extension point for derived classes validation
         If derived classes need additional field validation they should override this member
         """
+        raise NotImplementedError
+
+    @abstractmethod
+    def _validate_extended(self, state_container: StateContainer) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def apply(self,
+              state: State,
+              state_container: StateContainer) -> bool:
+        raise NotImplementedError
+
+    @abstractmethod
+    def revert(self,
+               state: State,
+               state_container: StateContainer) -> bool:
         raise NotImplementedError
 
     def validate_transaction_pool(self, transaction_pool):
@@ -216,7 +205,7 @@ class Transaction(object, metaclass=ABCMeta):
             if txn.ots_key == self.ots_key:
                 logger.info('State validation failed for %s because: OTS Public key re-use detected',
                             bin2hstr(self.txhash))
-                logger.info('Subtype %s', type(self))
+                logger.info('Subtype %s', self.type)
                 return False
 
         return True
@@ -239,6 +228,42 @@ class Transaction(object, metaclass=ABCMeta):
             return False
         return True
 
+    def validate_all(self, state_container: StateContainer, check_nonce=True) -> bool:
+        if self.pbdata.WhichOneof('transactionType') == 'coinbase':
+            if not self._validate_extended(state_container):
+                return False
+            return True
+
+        if not self.validate(True):  # It also calls _validate_custom
+            return False
+        if not self.validate_slave(state_container):
+            return False
+        if not self._validate_extended(state_container):
+            return False
+
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk_state = state_container.addresses_state[addr_from_pk]
+
+        expected_nonce = addr_from_pk_state.nonce + 1
+
+        if check_nonce and self.nonce != expected_nonce:
+            logger.warning('nonce incorrect, invalid tx')
+            logger.warning('subtype: %s', self.type)
+            logger.warning('%s actual: %s expected: %s',
+                           OptimizedAddressState.bin_to_qaddress(addr_from_pk),
+                           self.nonce,
+                           expected_nonce)
+            return False
+
+        if state_container.paginated_bitfield.load_bitfield_and_ots_key_reuse(addr_from_pk_state.address,
+                                                                              self.ots_key):
+            logger.warning('pubkey reuse detected: invalid tx %s', bin2hstr(self.txhash))
+            logger.warning('subtype: %s', self.type)
+            return False
+
+        return True
+
+    # TODO: will need state_container
     def _coinbase_filter(self):
         if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
             raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
@@ -249,6 +274,7 @@ class Transaction(object, metaclass=ABCMeta):
     def _get_master_address(self):
         return self.addr_from
 
+    # TODO: will need state_container
     def validate_or_raise(self, verify_signature=True) -> bool:
         """
         This method will validate a transaction and raise exception if problems are found
@@ -280,7 +306,7 @@ class Transaction(object, metaclass=ABCMeta):
 
         return True
 
-    def validate_slave(self, addr_from_state: AddressState, addr_from_pk_state: AddressState):
+    def validate_slave(self, state_container: StateContainer) -> bool:
         addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
 
         master_address = self._get_master_address()
@@ -291,13 +317,13 @@ class Transaction(object, metaclass=ABCMeta):
             return False
 
         if addr_from_pk != master_address:
-            if str(self.PK) not in addr_from_state.slave_pks_access_type:
-                logger.warning("Public key and address don't match")
+            if (self.addr_from, self.PK) not in state_container.slaves.data:
+                logger.warning("Public key and address doesn't match")
                 return False
 
-            access_type = addr_from_pk_state.slave_pks_access_type[str(self.PK)]
-            if access_type not in allowed_access_types:
-                logger.warning('Access Type %s', access_type)
+            slave_access_type = state_container.slaves.data[(self.addr_from, self.PK)].access_type
+            if slave_access_type not in allowed_access_types:
+                logger.warning('Access Type %s', slave_access_type)
                 logger.warning('Slave Address doesnt have sufficient permission')
                 return False
 
@@ -320,3 +346,25 @@ class Transaction(object, metaclass=ABCMeta):
         pbdata.ParseFromString(bytes(data))
         tx = Transaction(pbdata)
         return tx
+
+    def _apply_state_changes_for_PK(self,
+                                    state_container: StateContainer) -> bool:
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        address_state = state_container.addresses_state[addr_from_pk]
+        if self.addr_from != addr_from_pk:
+            state_container.paginated_tx_hash.insert(address_state, self.txhash)
+        address_state.increase_nonce()
+        state_container.paginated_bitfield.set_ots_key(state_container.addresses_state, addr_from_pk, self.ots_key)
+
+        return True
+
+    def _revert_state_changes_for_PK(self,
+                                     state_container: StateContainer) -> bool:
+        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        address_state = state_container.addresses_state[addr_from_pk]
+        if self.addr_from != addr_from_pk:
+            state_container.paginated_tx_hash.remove(address_state, self.txhash)
+        address_state.decrease_nonce()
+        state_container.paginated_bitfield.unset_ots_key(state_container.addresses_state, addr_from_pk, self.ots_key)
+
+        return True

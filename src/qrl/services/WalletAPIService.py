@@ -323,13 +323,17 @@ class WalletAPIService(WalletAPIServicer):
 
         return resp
 
-    @GrpcExceptionWrapper(qrlwallet_pb2.TransactionsByAddressResp)
-    def GetTransactionsByAddress(self,
-                                 request: qrlwallet_pb2.TransactionsByAddressReq,
-                                 context) -> qrlwallet_pb2.TransactionsByAddressResp:
-        resp = qrlwallet_pb2.TransactionsByAddressResp()
+    @GrpcExceptionWrapper(qrlwallet_pb2.MiniTransactionsByAddressResp)
+    def GetMiniTransactionsByAddress(self,
+                                     request: qrlwallet_pb2.MiniTransactionsByAddressReq,
+                                     context) -> qrlwallet_pb2.MiniTransactionsByAddressResp:
+        resp = qrlwallet_pb2.MiniTransactionsByAddressResp()
         try:
-            mini_transactions, balance = self._walletd.get_transactions_by_address(request.address)
+            mini_transactions, balance = self._walletd.get_mini_transactions_by_address(
+                request.address,
+                request.item_per_page,
+                request.page_number
+            )
             resp.mini_transactions.extend(mini_transactions)
             resp.balance = balance
         except Exception as e:
@@ -378,11 +382,11 @@ class WalletAPIService(WalletAPIServicer):
 
     @GrpcExceptionWrapper(qrlwallet_pb2.OTSResp)
     def GetOTS(self, request: qrlwallet_pb2.OTSReq, context) -> qrlwallet_pb2.OTSResp:
-        resp = qrlwallet_pb2.OTSResp()
         try:
-            ots_bitfield, next_unused_ots_index = self._walletd.get_ots(request.address)
-            resp.ots_bitfield.extend(ots_bitfield)
-            resp.next_unused_ots_index = next_unused_ots_index
+            ots_bitfield_by_page, next_unused_ots_index, unused_ots_index_found = self._walletd.get_ots(request.address)
+            resp = qrlwallet_pb2.OTSResp(ots_bitfield_by_page=ots_bitfield_by_page,
+                                         next_unused_ots_index=next_unused_ots_index,
+                                         unused_ots_index_found=unused_ots_index_found)
         except Exception as e:
             resp.code = 1
             resp.error = str(e)

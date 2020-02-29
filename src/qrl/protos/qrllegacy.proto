@@ -21,7 +21,7 @@ message LegacyMessage {
         PB = 7;             // Push Block
         BH = 8;             // Block Height
 
-        TX = 9;            // Transfer Transaction
+        TX = 9;             // Transfer Transaction
         LT = 10;            // Lattice Transaction
         EPH = 11;           // Ephemeral
         MT = 12;            // Message Transaction
@@ -32,6 +32,9 @@ message LegacyMessage {
         CHAINSTATE = 17;    // Chain State
         HEADERHASHES = 18;  //
         P2P_ACK = 19;       // P2P Acknowledgement
+        MC = 20;            // Multi Sig Create Transaction
+        MS = 21;            // Multi Sig Spend Transaction
+        MV = 22;            // Multi Sig Vote Transaction
     }
 
     FuncName func_name = 1;
@@ -57,6 +60,9 @@ message LegacyMessage {
         NodeChainState chainStateData = 19;
         NodeHeaderHash nodeHeaderHash = 20;
         P2PAcknowledgement p2pAckData = 21;
+        Transaction mcData = 22;
+        Transaction msData = 23;
+        Transaction mvData = 24;
     }
 }
 

@@ -20,9 +20,13 @@ from qrl.core.p2p.IPMetadata import IPMetadata
 from qrl.core.processors.TxnProcessor import TxnProcessor
 from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.LatticeTransaction import LatticeTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
+from qrl.core.txs.multisig.MultiSigCreate import MultiSigCreate
+from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
+from qrl.core.txs.multisig.MultiSigVote import MultiSigVote
 from qrl.generated import qrllegacy_pb2, qrl_pb2
 
 p2p_msg_priority = {
@@ -53,6 +57,10 @@ p2p_msg_priority = {
             qrllegacy_pb2.LegacyMessage.CHAINSTATE: 0,
             qrllegacy_pb2.LegacyMessage.HEADERHASHES: 1,
             qrllegacy_pb2.LegacyMessage.P2P_ACK: 0,
+
+            qrllegacy_pb2.LegacyMessage.MC: 1,
+            qrllegacy_pb2.LegacyMessage.MS: 1,
+            qrllegacy_pb2.LegacyMessage.MV: 1,
         }
 
 
@@ -84,9 +92,31 @@ class P2PFactory(ServerFactory):
 
         self.peer_blockheight = dict()
 
-        reactor.callLater(config.user.monitor_connections_interval, self.monitor_connections)
+        reactor.callLater(config.user.monitor_connections_interval,
+                          self.monitor_connections)
 
         self.p2p_msg_priority = p2p_msg_priority
+
+        # Maintains the list of ips in the queue that can be tried to form a new p2p connection
+        self._peer_q = []
+
+    def add_new_peers_to_peer_q(self, peer_list):
+        """
+        Checks ip must not already be in the _peer_q and
+        connection has not already been established from that ip and port
+        before adding the new set of peer into _peer_q
+        """
+        peer_set = set(peer_list)
+        for peer_conn in self._peer_connections:
+            ip_port = peer_conn.peer.full_address
+            if ip_port in peer_set:
+                peer_set.remove(ip_port)
+
+        for ip_port in self._peer_q:
+            if ip_port in peer_set:
+                peer_set.remove(ip_port)
+
+        self._peer_q.extend(peer_set)
 
     ###################################################
     ###################################################
@@ -402,6 +432,14 @@ class P2PFactory(ServerFactory):
             legacy_type = qrllegacy_pb2.LegacyMessage.TT
         elif isinstance(tx, SlaveTransaction):
             legacy_type = qrllegacy_pb2.LegacyMessage.SL
+        elif isinstance(tx, LatticeTransaction):
+            legacy_type = qrllegacy_pb2.LegacyMessage.LT
+        elif isinstance(tx, MultiSigCreate):
+            legacy_type = qrllegacy_pb2.LegacyMessage.MC
+        elif isinstance(tx, MultiSigSpend):
+            legacy_type = qrllegacy_pb2.LegacyMessage.MS
+        elif isinstance(tx, MultiSigVote):
+            legacy_type = qrllegacy_pb2.LegacyMessage.MV
         else:
             raise ValueError('Invalid Transaction Type')
         self.register_and_broadcast(legacy_type, tx.get_message_hash(), tx.pbdata)
@@ -484,6 +522,7 @@ class P2PFactory(ServerFactory):
             logger.info('Peer limit hit. Disconnecting client %s', conn_protocol.peer)
             return False
 
+        # Remove your own ip address from the connection
         if conn_protocol.peer.ip == conn_protocol.host.ip and conn_protocol.peer.port == config.user.p2p_public_port:
             peer_list = [p for p in self._qrl_node.peer_manager.known_peer_addresses if p != conn_protocol.peer.full_address]
             self._qrl_node.peer_manager.extend_known_peers(peer_list)
@@ -506,8 +545,8 @@ class P2PFactory(ServerFactory):
 
         if len(self._peer_connections) == 0:
             logger.warning('No Connected Peer Found')
-            reactor.callLater(10, self._qrl_node.peer_manager.connect_peers)
-            return
+            known_peers = self._qrl_node.peer_manager.load_known_peers()
+            self._peer_q.extend(known_peers)
 
         connected_peers_set = set()
         for conn_protocol in self._peer_connections:
@@ -515,18 +554,34 @@ class P2PFactory(ServerFactory):
 
         for peer_item in config.user.peer_list:
             peer_metadata = IPMetadata.from_full_address(peer_item)
+            if peer_metadata.full_address in self._peer_q:
+                self._peer_q.remove(peer_metadata.full_address)
             if peer_metadata.full_address not in connected_peers_set:
-                self.connect_peer(peer_metadata.full_address)
+                self.connect_peer([peer_metadata.full_address])
 
-    def connect_peer(self, full_address):
-        try:
-            addr = IPMetadata.from_full_address(full_address)
+        if len(self._peer_connections) >= config.user.max_peers_limit:
+            return
 
-            connected_peers = self.get_connected_peer_addrs()
-            should_connect = addr.full_address not in connected_peers
+        if len(self._peer_q) == 0:
+            return
 
-            if should_connect:
-                reactor.connectTCP(addr.ip, addr.port, self)
+        peer_address_list = []
+        max_length = min(10, config.user.max_peers_limit)
+        while len(self._peer_q) > 0 and len(peer_address_list) != max_length:
+            peer_address_list.append(self._peer_q.pop(0))
 
-        except Exception as e:
-            logger.warning("Could not connect to %s - %s", full_address, str(e))
+        self.connect_peer(peer_address_list)
+
+    def connect_peer(self, full_address_list):
+        for full_address in full_address_list:
+            try:
+                addr = IPMetadata.from_full_address(full_address)
+
+                connected_peers = self.get_connected_peer_addrs()
+                should_connect = addr.full_address not in connected_peers
+
+                if should_connect:
+                    reactor.connectTCP(addr.ip, addr.port, self)
+
+            except Exception as e:
+                logger.warning("Could not connect to %s - %s", full_address, str(e))

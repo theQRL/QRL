@@ -5,10 +5,12 @@ from random import shuffle
 from unittest import TestCase
 from mock import Mock, PropertyMock, patch
 
-from tests.misc.helper import get_alice_xmss, get_slave_xmss, get_random_xmss
+from tests.misc.helper import get_alice_xmss, get_slave_xmss, get_random_xmss, set_qrl_dir
 from qrl.core.misc import logger
 from qrl.core import config
+from qrl.core.State import State
 from qrl.core.AddressState import AddressState
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 
 logger.initialize_default()
 
@@ -89,30 +91,6 @@ class TestAddressState(TestCase):
         # Remove slave permissions for slave.pk
         self.addr_state.remove_slave_pks_access_type(slave.pk)
         self.assertEqual(self.addr_state.get_slave_permission(slave.pk), -1)
-
-    def test_lattice_txn(self):
-        # Add a mock LatticeTransaction to the AddressState. It should show up in addr_state.latticePK_list
-        m_lattice_txn = Mock(name='mock LatticeTransaction', txhash=b'txhash', dilithium_pk=b'dilithiumPK',
-                             kyber_pk=b'kyberPK')
-
-        self.assertEqual(len(self.addr_state.latticePK_list), 0)
-        self.addr_state.add_lattice_pk(m_lattice_txn)
-        self.assertEqual(len(self.addr_state.latticePK_list), 1)
-
-        # Add another different LatticeTransaction. addr_state.latticePK_list should now be longer.
-        m_lattice_txn_2 = Mock(name='mock LatticeTransaction 2', txhash=b'deadbeef', dilithium_pk=b'dilithiumPK',
-                               kyber_pk=b'kyberPK')
-        self.addr_state.add_lattice_pk(m_lattice_txn_2)
-        self.assertEqual(len(self.addr_state.latticePK_list), 2)
-
-        # Remove the second LatticeTransaction.
-        self.addr_state.remove_lattice_pk(m_lattice_txn_2)
-        self.assertEqual(len(self.addr_state.latticePK_list), 1)
-
-        # Try to remove the second LatticeTransaction again
-        # The list should remain the same.
-        self.addr_state.remove_lattice_pk(m_lattice_txn_2)
-        self.assertEqual(len(self.addr_state.latticePK_list), 1)
 
     def test_get_default_coinbase(self):
         # Make sure that Coinbase AddressState gets all the coins supply by default
@@ -269,3 +247,23 @@ class TestAddressState(TestCase):
             self.assertIsNone(addr_state.get_unused_ots_index())
         finally:
             config.dev.max_ots_tracking_index = old_value
+
+    def test_return_all_addresses(self):
+        with set_qrl_dir('no_data'):
+            with State() as state:
+                self.assertEqual(AddressState.return_all_addresses(state), [])
+
+    def test_put_addresses_state(self):
+        with set_qrl_dir('no_data'):
+            with State() as state:
+                alice_xmss = get_alice_xmss()
+                alice_state = OptimizedAddressState.get_default(alice_xmss.address)
+                addresses_state = {
+                    alice_state.address: alice_state,
+                    b'test1': OptimizedAddressState.get_default(b'test1')
+                }
+                AddressState.put_addresses_state(state, addresses_state, None)
+                alice_state2 = OptimizedAddressState.get_optimized_address_state(state, alice_xmss.address)
+                self.assertEqual(alice_state.serialize(), alice_state2.serialize())
+                test_state = OptimizedAddressState.get_optimized_address_state(state, b'test1')
+                self.assertEqual(test_state.serialize(), OptimizedAddressState.get_default(b'test1').serialize())

@@ -29,10 +29,11 @@ class TestMiningAPI(TestCase):
         p2p_factory.sync_state = SyncState()
         p2p_factory.num_connections = 23
         p2p_factory.pow = Mock()
-
+        b = Block()
         self.chain_manager = Mock(spec=ChainManager)
         self.chain_manager.height = 0
-        self.chain_manager.get_last_block = MagicMock(return_value=Block())
+        self.chain_manager.get_last_block = MagicMock(return_value=b)
+        self.chain_manager.get_block_header_hash_by_number = MagicMock(return_value=b.headerhash)
 
         self.qrlnode = QRLNode(mining_address=b'')
         self.qrlnode.set_chain_manager(self.chain_manager)
@@ -40,11 +41,14 @@ class TestMiningAPI(TestCase):
         self.qrlnode._pow = p2p_factory.pow
 
         self.block_header_params = {
+            "dev_config": config.dev,
             "blocknumber": 10,
             "prev_headerhash": sha256(b'prevblock'),
             "prev_timestamp": 1234567890,
             "hashedtransactions": sha256(b'tx1'),
-            "fee_reward": 1
+            "fee_reward": 1,
+            "seed_height": 0,
+            "seed_hash": None,
         }
 
         self.service = MiningAPIService(self.qrlnode)

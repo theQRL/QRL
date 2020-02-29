@@ -10,11 +10,8 @@ import os
 from colorlog import ColoredFormatter
 from logging.handlers import RotatingFileHandler
 
-from qrl.core import config
-
 LOG_NAME = 'qrl'
 
-LOG_FILENAME_DEFAULT = config.user.log_path
 LOG_MAXBYTES = 100 * 1024 * 1024
 LOG_FORMAT_FULL = '%(asctime)s - %(levelname)s -  %(message)s'
 LOG_FORMAT_SMALL = '%(asctime)s - %(message)s'
@@ -33,10 +30,11 @@ def initialize_default(force_console_output=False, log_level=logging.DEBUG):
     handler = logging.StreamHandler(logging_target)
     handler.setFormatter(logging.Formatter(LOG_FORMAT_FULL, None))
     logger.addHandler(handler)
+    set_unhandled_exception_handler()
     return handler
 
 
-def log_to_file(filename=LOG_FILENAME_DEFAULT):
+def log_to_file(filename):
     dir_path = os.path.dirname(os.path.realpath(filename))
     os.makedirs(dir_path, exist_ok=True)
     handler = RotatingFileHandler(filename,

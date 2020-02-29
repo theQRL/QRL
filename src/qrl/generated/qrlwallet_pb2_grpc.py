@@ -127,10 +127,10 @@ class WalletAPIStub(object):
         request_serializer=qrlwallet__pb2.ChangePassphraseReq.SerializeToString,
         response_deserializer=qrlwallet__pb2.ChangePassphraseResp.FromString,
         )
-    self.GetTransactionsByAddress = channel.unary_unary(
-        '/qrl.WalletAPI/GetTransactionsByAddress',
-        request_serializer=qrlwallet__pb2.TransactionsByAddressReq.SerializeToString,
-        response_deserializer=qrlwallet__pb2.TransactionsByAddressResp.FromString,
+    self.GetMiniTransactionsByAddress = channel.unary_unary(
+        '/qrl.WalletAPI/GetMiniTransactionsByAddress',
+        request_serializer=qrlwallet__pb2.MiniTransactionsByAddressReq.SerializeToString,
+        response_deserializer=qrlwallet__pb2.MiniTransactionsByAddressResp.FromString,
         )
     self.GetTransaction = channel.unary_unary(
         '/qrl.WalletAPI/GetTransaction',
@@ -319,7 +319,7 @@ class WalletAPIServicer(object):
     context.set_details('Method not implemented!')
     raise NotImplementedError('Method not implemented!')
 
-  def GetTransactionsByAddress(self, request, context):
+  def GetMiniTransactionsByAddress(self, request, context):
     # missing associated documentation comment in .proto file
     context.set_code(grpc.StatusCode.UNIMPLEMENTED)
     context.set_details('Method not implemented!')
@@ -487,10 +487,10 @@ def add_WalletAPIServicer_to_server(servicer, server):
           request_deserializer=qrlwallet__pb2.ChangePassphraseReq.FromString,
           response_serializer=qrlwallet__pb2.ChangePassphraseResp.SerializeToString,
       ),
-      'GetTransactionsByAddress': grpc.unary_unary_rpc_method_handler(
-          servicer.GetTransactionsByAddress,
-          request_deserializer=qrlwallet__pb2.TransactionsByAddressReq.FromString,
-          response_serializer=qrlwallet__pb2.TransactionsByAddressResp.SerializeToString,
+      'GetMiniTransactionsByAddress': grpc.unary_unary_rpc_method_handler(
+          servicer.GetMiniTransactionsByAddress,
+          request_deserializer=qrlwallet__pb2.MiniTransactionsByAddressReq.FromString,
+          response_serializer=qrlwallet__pb2.MiniTransactionsByAddressResp.SerializeToString,
       ),
       'GetTransaction': grpc.unary_unary_rpc_method_handler(
           servicer.GetTransaction,

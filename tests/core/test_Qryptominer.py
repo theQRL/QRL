@@ -28,7 +28,7 @@ class TestQryptominer(TestCase):
                 self.nonce = None
                 self.solution_blob = None
 
-            def start(self, input, nonceOffset, target, thread_count):
+            def start(self, input, nonceOffset, target, thread_count=1):
                 self.cancel()
                 try:
                     self._solution_lock.release()
@@ -60,7 +60,8 @@ class TestQryptominer(TestCase):
 
         new_diff, new_target = DifficultyTracker.get(
             measurement,
-            parent_difficulty=parent_difficulty)
+            parent_difficulty=parent_difficulty,
+            dev_config=config.dev)
 
         self.assertEqual(new_diff, (0, 0, 0, 0, 0, 0, 0, 0,
                                     0, 0, 0, 0, 0, 0, 0, 0,
@@ -81,11 +82,11 @@ class TestQryptominer(TestCase):
                          207, 109, 238, 83, 220, 167, 148, 247, 200, 197, 41, 37, 36, 150, 12, 116, 85, 254, 0, 0, 0, 0,
                          0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 181, 198, 40, 62, 106, 139, 108, 83, 216, 206, 161, 148,
                          50, 65, 212, 137, 94, 102, 124, 45)
-        self.assertEqual(expected_blob, tuple(block.mining_blob))
+        self.assertEqual(expected_blob, tuple(block.mining_blob(dev_config=config.dev)))
 
         custom_qminer = CustomQMiner()
-        custom_qminer.start(input=block.mining_blob,
-                            nonceOffset=block.mining_nonce_offset,
+        custom_qminer.start(input=block.mining_blob(dev_config=config.dev),
+                            nonceOffset=block.mining_nonce_offset(dev_config=config.dev),
                             target=new_target,
                             thread_count=2)
         custom_qminer.wait_for_solution()

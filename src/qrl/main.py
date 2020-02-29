@@ -3,9 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import argparse
 import faulthandler
-import logging
-import threading
-from os.path import expanduser
+import os
 
 from mock import MagicMock
 from twisted.internet import reactor
@@ -15,26 +13,11 @@ from qrl.core.AddressState import AddressState
 from qrl.core.Block import Block
 from qrl.core.ChainManager import ChainManager
 from qrl.core.GenesisBlock import GenesisBlock
-from qrl.core.misc import ntp, logger, logger_twisted
+from qrl.core.misc import ntp, logger, set_logger
 from qrl.core.qrlnode import QRLNode
 from qrl.services.services import start_services
 from qrl.core import config
 from qrl.core.State import State
-
-LOG_FORMAT_CUSTOM = '%(asctime)s|%(version)s|%(node_state)s|%(thread_id)s| %(levelname)s : %(message)s'
-
-
-class ContextFilter(logging.Filter):
-    def __init__(self, node_state, version):
-        super(ContextFilter, self).__init__()
-        self.node_state = node_state
-        self.version = version
-
-    def filter(self, record):
-        record.node_state = "{:<8}".format(self.node_state.state.name)
-        record.version = self.version
-        record.thread_id = "{:<11}".format(threading.current_thread().name)
-        return True
 
 
 def parse_arguments():
@@ -49,6 +32,8 @@ def parse_arguments():
                         help="Disables color output")
     parser.add_argument("-l", "--loglevel", dest="logLevel", choices=['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL'],
                         help="Set the logging level")
+    parser.add_argument('--network-type', dest='network_type', choices=['mainnet', 'testnet'],
+                        default='mainnet', required=False, help="Runs QRL Testnet Node")
     parser.add_argument('--miningAddress', dest='mining_address', required=False,
                         help="QRL Wallet address on which mining reward has to be credited.")
     parser.add_argument('--mockGetMeasurement', dest='measurement', required=False, type=int, default=-1,
@@ -58,21 +43,6 @@ def parse_arguments():
     parser.add_argument('--mocknet', dest='mocknet', action='store_true', default=False,
                         help="Enables default mocknet settings")
     return parser.parse_args()
-
-
-def set_logger(args, sync_state):
-    log_level = logging.INFO
-    if args.logLevel:
-        log_level = getattr(logging, args.logLevel)
-    logger.initialize_default(force_console_output=not args.quiet).setLevel(log_level)
-    custom_filter = ContextFilter(sync_state, config.dev.version)
-    logger.logger.addFilter(custom_filter)
-    file_handler = logger.log_to_file()
-    file_handler.addFilter(custom_filter)
-    file_handler.setLevel(logging.DEBUG)
-    logger.set_colors(not args.no_colors, LOG_FORMAT_CUSTOM)
-    logger.set_unhandled_exception_handler()
-    logger_twisted.enable_twisted_log_observer()
 
 
 def get_mining_address(mining_address: str):
@@ -95,10 +65,20 @@ def get_mining_address(mining_address: str):
 def main():
     args = parse_arguments()
 
+    qrl_dir_post_fix = ''
+    copy_files = []
+    if args.network_type == 'testnet':
+        config.dev.hard_fork_heights[0] = config.dev.testnet_hard_fork_heights[0]  # Hard Fork Block Height For Testnet
+        qrl_dir_post_fix = '-testnet'
+        package_directory = os.path.dirname(os.path.abspath(__file__))
+        copy_files.append(os.path.join(package_directory, 'network/testnet/genesis.yml'))
+        copy_files.append(os.path.join(package_directory, 'network/testnet/config.yml'))
+
     logger.debug("=====================================================================================")
     logger.info("QRL Path: %s", args.qrl_dir)
-    config.user.qrl_dir = expanduser(args.qrl_dir)
-    config.create_path(config.user.qrl_dir)
+    config.user.qrl_dir = os.path.expanduser(os.path.normpath(args.qrl_dir) + qrl_dir_post_fix)
+    config.create_path(config.user.qrl_dir, copy_files)
+    config.user.load_yaml(config.user.config_path)
     logger.debug("=====================================================================================")
 
     config.create_path(config.user.wallet_dir)
@@ -113,7 +93,7 @@ def main():
         config.user.mining_enabled = True
         config.user.mining_thread_count = 1
         config.user.mining_pause = 500
-        config.dev.mining_setpoint_blocktime = 1
+        config.dev.pbdata.block.block_timing_in_seconds = 1
         config.user.genesis_difficulty = 2
 
         # Mocknet mining address
@@ -134,23 +114,22 @@ def main():
             logger.warning('%s', args.mining_address)
             return False
 
-    if args.measurement > -1:
-        persistent_state.get_measurement = MagicMock(return_value=args.measurement)
-
     chain_manager = ChainManager(state=persistent_state)
+    if args.measurement > -1:
+        chain_manager.get_measurement = MagicMock(return_value=args.measurement)
+
     chain_manager.load(Block.deserialize(GenesisBlock().serialize()))
 
     qrlnode = QRLNode(mining_address=mining_address)
     qrlnode.set_chain_manager(chain_manager)
 
-    set_logger(args, qrlnode.sync_state)
+    set_logger.set_logger(args, qrlnode.sync_state)
 
     #######
     # NOTE: Keep assigned to a variable or might get collected
     admin_service, grpc_service, mining_service, debug_service = start_services(qrlnode)
 
     qrlnode.start_listening()
-    qrlnode.connect_peers()
 
     qrlnode.start_pow(args.mining_thread_count)
 
@@ -161,5 +140,4 @@ def main():
     elif args.mining_address or args.mining_thread_count:
         logger.warning('Mining is not enabled but you sent some "mining related" param via CLI')
 
-    # FIXME: This will be removed once we move away from Twisted
     reactor.run()

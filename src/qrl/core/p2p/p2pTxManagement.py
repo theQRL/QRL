@@ -23,6 +23,9 @@ class P2PTxManagement(P2PBaseObserver):
         channel.register(qrllegacy_pb2.LegacyMessage.MT, self.handle_message_transaction)
         channel.register(qrllegacy_pb2.LegacyMessage.LT, self.handle_lattice)
         channel.register(qrllegacy_pb2.LegacyMessage.SL, self.handle_slave)
+        channel.register(qrllegacy_pb2.LegacyMessage.MC, self.handle_multi_sig_create)
+        channel.register(qrllegacy_pb2.LegacyMessage.MS, self.handle_multi_sig_spend)
+        channel.register(qrllegacy_pb2.LegacyMessage.MV, self.handle_multi_sig_vote)
 
     @staticmethod
     def handle_message_received(source, message: qrllegacy_pb2.LegacyMessage):
@@ -204,6 +207,66 @@ class P2PTxManagement(P2PBaseObserver):
             tx = Transaction.from_pbdata(message.slData)
         except Exception as e:
             logger.error('slave_txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            source.loseConnection()
+            return
+
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+
+    @staticmethod
+    def handle_multi_sig_create(source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Handles Multi Sig Transaction
+        :param source:
+        :param message:
+        :return:
+        """
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.MC)
+        try:
+            tx = Transaction.from_pbdata(message.mcData)
+        except Exception as e:
+            logger.error('multi_sig_create txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            source.loseConnection()
+            return
+
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+
+    @staticmethod
+    def handle_multi_sig_spend(source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Handles Multi Sig Transaction
+        :param source:
+        :param message:
+        :return:
+        """
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.MS)
+        try:
+            tx = Transaction.from_pbdata(message.msData)
+        except Exception as e:
+            logger.error('multi_sig_spend txn rejected - unable to decode serialised data - closing connection')
+            logger.exception(e)
+            source.loseConnection()
+            return
+
+        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
+            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+
+    @staticmethod
+    def handle_multi_sig_vote(source, message: qrllegacy_pb2.LegacyMessage):
+        """
+        Handles Multi Sig Transaction
+        :param source:
+        :param message:
+        :return:
+        """
+        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.MV)
+        try:
+            tx = Transaction.from_pbdata(message.mvData)
+        except Exception as e:
+            logger.error('multi_sig_vote txn rejected - unable to decode serialised data - closing connection')
             logger.exception(e)
             source.loseConnection()
             return

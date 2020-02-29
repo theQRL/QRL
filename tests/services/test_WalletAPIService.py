@@ -140,6 +140,11 @@ class TestWalletAPI(TestCase):
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -170,11 +175,13 @@ class TestWalletAPI(TestCase):
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
-            slaves = walletd.get_slave_list(qaddress)
-
-            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -193,6 +200,9 @@ class TestWalletAPI(TestCase):
     def test_relayMessageTxn(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            walletd._public_stub.PushTransaction = Mock(
+                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+
             service = WalletAPIService(walletd)
 
             resp = service.AddNewAddress(qrlwallet_pb2.AddNewAddressReq(), context=None)
@@ -200,9 +210,9 @@ class TestWalletAPI(TestCase):
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
-
-            walletd._public_stub.PushTransaction = Mock(
-                return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             resp = service.RelayMessageTxn(qrlwallet_pb2.RelayMessageTxnReq(message=b'Hello QRL!',
                                                                             fee=100000000,
@@ -210,7 +220,7 @@ class TestWalletAPI(TestCase):
                                                                             signer_address=qaddress,
                                                                             ots_index=0), context=None)
 
-            self.assertEqual(resp.code, 0)
+            self.assertEqual(0, resp.code)
             self.assertIsNotNone(resp.tx)
 
     def test_relayMessageTxnBySlave(self):
@@ -224,11 +234,13 @@ class TestWalletAPI(TestCase):
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
-            slaves = walletd.get_slave_list(qaddress)
-
-            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             resp = service.RelayMessageTxnBySlave(
                 qrlwallet_pb2.RelayMessageTxnReq(message=b'Hello QRL!',
@@ -248,6 +260,11 @@ class TestWalletAPI(TestCase):
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -282,11 +299,13 @@ class TestWalletAPI(TestCase):
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
-            slaves = walletd.get_slave_list(qaddress)
-
-            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -316,6 +335,11 @@ class TestWalletAPI(TestCase):
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -347,11 +371,13 @@ class TestWalletAPI(TestCase):
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
-            slaves = walletd.get_slave_list(qaddress)
-
-            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             alice_xmss = get_alice_xmss(4)
             bob_xmss = get_bob_xmss(4)
@@ -378,6 +404,11 @@ class TestWalletAPI(TestCase):
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             alice_xmss = get_alice_xmss(4)
             slave_pks = [alice_xmss.pk]
@@ -407,11 +438,13 @@ class TestWalletAPI(TestCase):
             resp = service.AddNewAddressWithSlaves(qrlwallet_pb2.AddNewAddressWithSlavesReq(), context=None)
             qaddress = resp.address
             addr_state = AddressState.get_default(walletd.qaddress_to_address(qaddress))
-            slaves = walletd.get_slave_list(qaddress)
-
-            addr_state.add_slave_pks_access_type(bytes(hstr2bin(slaves[0][0].pk)), 0)
             walletd._public_stub.GetAddressState = Mock(
                 return_value=qrl_pb2.GetAddressStateResp(state=addr_state.pbdata))
+            walletd._public_stub.IsSlave = Mock(
+                return_value=qrl_pb2.IsSlaveResp(result=True))
+            walletd._public_stub.GetOTS = Mock(
+                return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=0,
+                                                unused_ots_index_found=True))
 
             alice_xmss = get_alice_xmss(4)
             slave_pks = [alice_xmss.pk]
@@ -544,17 +577,19 @@ class TestWalletAPI(TestCase):
             resp = service.UnlockWallet(qrlwallet_pb2.UnlockWalletReq(passphrase=new_passphrase), context=None)
             self.assertEqual(resp.code, 0)
 
-    def test_getTransactionsByAddress(self):
+    def test_getMiniTransactionsByAddress(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
             service = WalletAPIService(walletd)
 
-            walletd._public_stub.GetTransactionsByAddress = Mock(
-                return_value=qrl_pb2.GetTransactionsByAddressResp(mini_transactions=[],
-                                                                  balance=0))
+            walletd._public_stub.GetMiniTransactionsByAddress = Mock(
+                return_value=qrl_pb2.GetMiniTransactionsByAddressResp(mini_transactions=[],
+                                                                      balance=0))
 
-            resp = service.GetTransactionsByAddress(
-                qrlwallet_pb2.TransactionsByAddressReq(address=get_alice_xmss(4).qaddress), context=None)
+            resp = service.GetMiniTransactionsByAddress(
+                qrlwallet_pb2.MiniTransactionsByAddressReq(address=get_alice_xmss(4).qaddress,
+                                                           item_per_page=10,
+                                                           page_number=1), context=None)
 
             self.assertEqual(resp.code, 0)
             self.assertEqual(len(resp.mini_transactions), 0)
@@ -614,13 +649,17 @@ class TestWalletAPI(TestCase):
             walletd = WalletD()
             service = WalletAPIService(walletd)
 
+            ots_bitfield_by_page = qrl_pb2.OTSBitfieldByPage(ots_bitfield=[b'\x00'] * 10,
+                                                             page_number=1)
             walletd._public_stub.GetOTS = Mock(
-                return_value=qrl_pb2.GetOTSResp(ots_bitfield=[b'\x00'] * 10, next_unused_ots_index=1))
+                return_value=qrl_pb2.GetOTSResp(ots_bitfield_by_page=[ots_bitfield_by_page],
+                                                next_unused_ots_index=1,
+                                                unused_ots_index_found=True))
 
             resp = service.GetOTS(qrlwallet_pb2.OTSReq(address=self.qaddress), context=None)
-
             self.assertEqual(resp.code, 0)
-            self.assertEqual(resp.ots_bitfield, [b'\x00'] * 10)
+            self.assertEqual(len(resp.ots_bitfield_by_page), 1)
+            self.assertEqual(resp.ots_bitfield_by_page[0], ots_bitfield_by_page)
             self.assertEqual(resp.next_unused_ots_index, 1)
 
     def test_getHeight(self):

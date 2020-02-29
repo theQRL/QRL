@@ -54,7 +54,10 @@ class MessageReceipt(object):
                      LegacyMessage.MT,
                      LegacyMessage.TK,
                      LegacyMessage.TT,
-                     LegacyMessage.SL]
+                     LegacyMessage.SL,
+                     LegacyMessage.MC,
+                     LegacyMessage.MS,
+                     LegacyMessage.MV]
 
     services_arg = {
         ######################
@@ -81,6 +84,10 @@ class MessageReceipt(object):
         qrllegacy_pb2.LegacyMessage.EPH: 'ephData',
 
         qrllegacy_pb2.LegacyMessage.SYNC: 'syncData',
+
+        qrllegacy_pb2.LegacyMessage.MC: 'mcData',
+        qrllegacy_pb2.LegacyMessage.MS: 'msData',
+        qrllegacy_pb2.LegacyMessage.MV: 'mvData',
     }
 
     def __init__(self):

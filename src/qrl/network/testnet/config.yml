@@ -1,0 +1,4 @@
+peer_list: [ "18.130.83.207", "209.250.246.234", "136.244.104.146", "95.179.154.132" ]
+genesis_prev_headerhash: 'The Random Genesis'
+genesis_timestamp: 1530004179
+genesis_difficulty: 5000

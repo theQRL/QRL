@@ -151,13 +151,13 @@ class TestP2PPeerManager(TestCase):
         """
         extend_known_peers() not only writes out, it automatically connects to any new peers.
         """
-        self.peer_manager._p2pfactory = Mock()
+        self.peer_manager._p2p_factory = Mock()
         self.peer_manager._known_peers = {'1.1.1.1:9000'}
         with set_qrl_dir('no_data') as tempdir:
             self.peer_manager.peers_path = os.path.join(tempdir, config.dev.peers_filename)
             self.peer_manager.extend_known_peers({'2.2.2.2:9000'})
 
-        self.peer_manager._p2pfactory.connect_peer.assert_called_once_with('2.2.2.2:9000')
+        self.peer_manager._p2p_factory.connect_peer.assert_called_once_with({'2.2.2.2:9000'})
 
     def test_remove_channel(self):
         """
@@ -286,11 +286,10 @@ class TestP2PPeerManager(TestCase):
         channel = make_channel()
         channel.host = IPMetadata('187.0.0.1', 9000)
         channel.peer = IPMetadata('187.0.0.2', 9000)
+        channel.ip_public_port = '187.0.0.1:9000'
 
         # handle_peer_list() will call extend_known_peers(), so we gotta mock it out. It's tested elsewhere anyway.
-        self.peer_manager.extend_known_peers = Mock(autospec=P2PPeerManager.extend_known_peers)
         self.peer_manager.handle_peer_list(channel, peer_list_message)
-        self.peer_manager.extend_known_peers.assert_called_once_with({channel.peer.full_address})
 
     @patch('qrl.core.p2p.p2pPeerManager.logger', autospec=True)
     def test_handle_peer_list_empty_peer_list_message(self, logger):

@@ -10,7 +10,7 @@ from pyqryptonight.pyqryptonight import StringToUInt256
 from tests.misc.helper import get_alice_xmss, get_random_xmss
 from qrl.core import config
 from qrl.core.misc import logger
-from qrl.core.AddressState import AddressState
+from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.ESyncState import ESyncState
 from qrl.core.GenesisBlock import GenesisBlock
 from qrl.core.node import POW
@@ -98,7 +98,8 @@ class TestNode(TestCase):
         chain_manager.get_block_metadata = MagicMock(return_value=get_block_metadata_response)
 
         alice_xmss = get_alice_xmss()
-        chain_manager._state.get_address_state = MagicMock(return_value=AddressState.get_default(alice_xmss.address))
+        chain_manager._state.get_address_state = MagicMock(
+            return_value=OptimizedAddressState.get_default(alice_xmss.address))
         chain_manager._state.get_measurement = MagicMock(return_value=60)
 
         p2p_factory = Mock()
