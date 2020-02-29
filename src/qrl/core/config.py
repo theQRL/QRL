@@ -306,6 +306,7 @@ class DevConfig(object):
         # HARD FORK HEIGHTS LIST
         # ======================================
         self.hard_fork_heights = [50000]
+        self.testnet_hard_fork_heights = [10500]
 
         # ======================================
         # PROPOSAL CONFIG
