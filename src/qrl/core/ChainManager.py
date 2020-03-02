@@ -102,6 +102,7 @@ class ChainManager:
     def get_address_state(self, address: bytes) -> AddressState:
         """
         Transform Optimized Address State into Older Address State format
+        This should only be used by API.
         """
         optimized_address_state = self.get_optimized_address_state(address)
         ots_bitfield = [b'\x00'] * max(1024, int(ceil((2 ** optimized_address_state.height) / 8)))
@@ -133,6 +134,11 @@ class ChainManager:
             page_data = self.get_token_transaction_hashes(address, page * config.dev.data_per_page)
             for token_txn_hash in page_data:
                 token_balance = self.get_token(address, token_txn_hash)
+                # token_balance None is only possible when the token transaction
+                # is done by a QRL address as an owner, which has not been
+                # assigned any token balance.
+                if token_balance is None:
+                    continue
                 tokens[token_txn_hash] = token_balance.balance
 
         max_slave_page = ceil(optimized_address_state.slaves_count() / config.dev.data_per_page)

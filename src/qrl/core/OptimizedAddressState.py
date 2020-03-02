@@ -41,6 +41,10 @@ class OptimizedAddressState(object):
     def bin_to_qaddress(binAddress):
         return 'Q' + bin2hstr(binAddress)
 
+    @staticmethod
+    def get_height_from_address(bin_address):
+        return bin_address[1] << 1
+
     @property
     def pbdata(self):
         """
