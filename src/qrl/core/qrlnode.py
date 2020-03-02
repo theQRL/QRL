@@ -2,6 +2,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from decimal import Decimal
+from math import ceil
 from typing import Optional, List, Iterator, Tuple
 
 from pyqrllib.pyqrllib import QRLHelper, bin2hstr
@@ -418,8 +419,14 @@ class QRLNode:
         return self._chain_manager.get_all_address_state()
 
     def _load_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        if item_per_page == 0:
+            return []
         address_state = self._chain_manager.get_optimized_address_state(address)
-        start_item_index = max(0, address_state.transaction_hash_count() - item_per_page * page_number)
+        max_page = ceil(address_state.transaction_hash_count() / item_per_page)
+        if max_page < page_number:
+            start_item_index = 0
+        else:
+            start_item_index = max(0, address_state.transaction_hash_count() - item_per_page * page_number)
         end_item_index = min(address_state.transaction_hash_count(), start_item_index + item_per_page)
 
         transaction_hashes = self._chain_manager.get_transaction_hashes(address,
@@ -437,6 +444,8 @@ class QRLNode:
                                          item_per_page: int,
                                          page_number: int,
                                          mode: int) -> list:
+        if item_per_page == 0:
+            return []
         if OptimizedAddressState.address_is_valid(address):
             address_state = self._chain_manager.get_optimized_address_state(address)
         elif MultiSigAddressState.address_is_valid(address):
@@ -444,7 +453,11 @@ class QRLNode:
         else:
             return []
 
-        start_item_index = max(0, address_state.multi_sig_spend_count() - item_per_page * page_number)
+        max_page = ceil(address_state.multi_sig_spend_count() / item_per_page)
+        if max_page < page_number:
+            start_item_index = 0
+        else:
+            start_item_index = max(0, address_state.multi_sig_spend_count() - item_per_page * page_number)
         end_item_index = min(address_state.multi_sig_spend_count(), start_item_index + item_per_page)
 
         if mode > 0:
@@ -462,8 +475,14 @@ class QRLNode:
         return multi_sig_spend_txn_hashes[:item_per_page][-1::-1]
 
     def _load_token_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        if item_per_page == 0:
+            return []
         address_state = self._chain_manager.get_optimized_address_state(address)
-        start_item_index = max(0, address_state.tokens_count() - item_per_page * page_number)
+        max_page = ceil(address_state.tokens_count() / item_per_page)
+        if max_page < page_number:
+            start_item_index = 0
+        else:
+            start_item_index = max(0, address_state.tokens_count() - item_per_page * page_number)
         end_item_index = min(address_state.tokens_count(), start_item_index + item_per_page)
 
         transaction_hashes = self._chain_manager.get_token_transaction_hashes(address,
@@ -477,8 +496,14 @@ class QRLNode:
         return token_transaction_hashes[:item_per_page][-1::-1]
 
     def _load_slave_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        if item_per_page == 0:
+            return []
         address_state = self._chain_manager.get_optimized_address_state(address)
-        start_item_index = max(0, address_state.slaves_count() - item_per_page * page_number)
+        max_page = ceil(address_state.slaves_count() / item_per_page)
+        if max_page < page_number:
+            start_item_index = 0
+        else:
+            start_item_index = max(0, address_state.slaves_count() - item_per_page * page_number)
         end_item_index = min(address_state.slaves_count(), start_item_index + item_per_page)
 
         if start_item_index < 0:
@@ -495,8 +520,14 @@ class QRLNode:
         return token_transaction_hashes[:item_per_page][-1::-1]
 
     def _load_lattice_pks_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        if item_per_page == 0:
+            return []
         address_state = self._chain_manager.get_optimized_address_state(address)
-        start_item_index = max(0, address_state.lattice_pk_count() - item_per_page * page_number)
+        max_page = ceil(address_state.lattice_pk_count() / item_per_page)
+        if max_page < page_number:
+            start_item_index = 0
+        else:
+            start_item_index = max(0, address_state.lattice_pk_count() - item_per_page * page_number)
         end_item_index = min(address_state.lattice_pk_count(), start_item_index + item_per_page)
 
         transaction_hashes = self._chain_manager.get_lattice_pks_transaction_hashes(address,
@@ -510,8 +541,14 @@ class QRLNode:
         return lattice_pks_transaction_hashes[:item_per_page][-1::-1]
 
     def _load_multi_sig_addresses(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        if item_per_page == 0:
+            return []
         address_state = self._chain_manager.get_optimized_address_state(address)
-        start_item_index = max(0, address_state.multi_sig_address_count() - item_per_page * page_number)
+        max_page = ceil(address_state.multi_sig_address_count() / item_per_page)
+        if max_page < page_number:
+            start_item_index = 0
+        else:
+            start_item_index = max(0, address_state.multi_sig_address_count() - item_per_page * page_number)
         end_item_index = min(address_state.multi_sig_address_count(), start_item_index + item_per_page)
 
         multi_sig_addresses = self._chain_manager.get_multi_sig_addresses(address,
@@ -525,8 +562,14 @@ class QRLNode:
         return multi_sig_addresses[:item_per_page][-1::-1]
 
     def _load_inbox_message_transaction_hashes(self, address: bytes, item_per_page: int, page_number: int) -> list:
+        if item_per_page == 0:
+            return []
         address_state = self._chain_manager.get_optimized_address_state(address)
-        start_item_index = max(0, address_state.inbox_message_count() - item_per_page * page_number)
+        max_page = ceil(address_state.inbox_message_count() / item_per_page)
+        if max_page < page_number:
+            start_item_index = 0
+        else:
+            start_item_index = max(0, address_state.inbox_message_count() - item_per_page * page_number)
         end_item_index = min(address_state.inbox_message_count(), start_item_index + item_per_page)
 
         transaction_hashes = self._chain_manager.get_inbox_message_transaction_hashes(address,
