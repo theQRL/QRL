@@ -67,7 +67,11 @@ class P2PPeerManager(P2PBaseObserver):
 
     @property
     def trusted_addresses(self):
-        return set([peer.peer.full_address for peer in self._p2p_factory.connections if self.trusted_peer(peer)])
+        ip_public_port_set = set()
+        for peer in self._p2p_factory.connections:
+            if self.trusted_peer(peer) and peer.public_port != 0:
+                ip_public_port_set.add(peer.ip_public_port)
+        return ip_public_port_set
 
     @property
     def peer_node_status(self):
