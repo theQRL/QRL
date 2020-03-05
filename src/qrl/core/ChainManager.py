@@ -112,15 +112,14 @@ class ChainManager:
 
         max_bitfield_page = ceil((2 ** optimized_address_state.height) / config.dev.ots_tracking_per_page)
 
-        offset = 0
         for page in range(1, max_bitfield_page + 1):
+            offset = (page - 1) * config.dev.ots_tracking_per_page
             page_data = self.get_bitfield(address, page)
             for data in page_data:
                 if offset >= len(ots_bitfield):
                     break
                 ots_bitfield[offset] = data
                 offset += 1
-            offset = (page - 1) * config.dev.ots_tracking_per_page
 
         max_transaction_hash_page = ceil(optimized_address_state.transaction_hash_count() / config.dev.data_per_page)
 
