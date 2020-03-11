@@ -23,7 +23,7 @@ from qrl.core.State import State
 def parse_arguments():
     parser = argparse.ArgumentParser(description='QRL node')
     parser.add_argument('--mining_thread_count', '-m', dest='mining_thread_count', type=int, required=False,
-                        default=config.user.mining_thread_count, help="Number of threads for mining")
+                        default=None, help="Number of threads for mining")
     parser.add_argument('--quiet', '-q', dest='quiet', action='store_true', required=False, default=False,
                         help="Avoid writing data to the console")
     parser.add_argument('--qrldir', '-d', dest='qrl_dir', default=config.user.qrl_dir,
@@ -79,6 +79,9 @@ def main():
     config.user.qrl_dir = os.path.expanduser(os.path.normpath(args.qrl_dir) + qrl_dir_post_fix)
     config.create_path(config.user.qrl_dir, copy_files)
     config.user.load_yaml(config.user.config_path)
+
+    if args.mining_thread_count is None:
+        args.mining_thread_count = config.user.mining_thread_count
     logger.debug("=====================================================================================")
 
     config.create_path(config.user.wallet_dir)
