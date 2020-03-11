@@ -572,6 +572,13 @@ class QRLNode:
             elif isinstance(tx, CoinBase):
                 if tx.addr_to == address:
                     amount += tx.amount
+            elif isinstance(tx, MultiSigSpend):
+                try:
+                    for i in range(len(tx.addrs_to)):
+                        if tx.addrs_to[i] == address:
+                            amount += tx.amounts[i]
+                except ValueError:
+                    pass
 
             if amount < 0:
                 mini_transaction.out = True
