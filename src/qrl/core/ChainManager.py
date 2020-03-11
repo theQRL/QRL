@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import sys
 import threading
+from collections import OrderedDict
 from typing import Optional, Tuple
 from math import ceil
 
@@ -107,8 +108,8 @@ class ChainManager:
         optimized_address_state = self.get_optimized_address_state(address)
         ots_bitfield = [b'\x00'] * max(1024, int(ceil((2 ** optimized_address_state.height) / 8)))
         transaction_hashes = list()
-        tokens = dict()
-        slave_pks_access_type = dict()
+        tokens = OrderedDict()
+        slave_pks_access_type = OrderedDict()
 
         max_bitfield_page = ceil((2 ** optimized_address_state.height) / config.dev.ots_tracking_per_page)
 
