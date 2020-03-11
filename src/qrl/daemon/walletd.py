@@ -418,9 +418,7 @@ class WalletD:
                     return index, group_index, len(item.slaves[group_index]) - 1, xmss
             group_index = len(item.slaves) - 1
             last_slaves = item.slaves[-1]
-            for slave_index in range(len(last_slaves)):
-                slave = last_slaves[slave_index]
-
+            for slave_index, slave in enumerate(last_slaves):
                 # Check if all ots index has been marked as used
                 if slave.index > 2 ** slave.height - 1:
                     continue
