@@ -113,7 +113,7 @@ class LatticeTransaction(Transaction):
         address_state = state_container.addresses_state[self.addr_from]
         address_state.update_balance(state_container, self.fee)
         state_container.paginated_lattice_pk.remove(address_state, self.txhash)
-        state_container.paginated_tx_hash.remmove(address_state, self.txhash)
+        state_container.paginated_tx_hash.remove(address_state, self.txhash)
 
         state_container.lattice_pk.data[(self.addr_from,
                                          self.pk1, self.pk2, self.pk3)] = LatticePKMetadata(enabled=False)
