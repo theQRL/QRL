@@ -193,6 +193,8 @@ class TransferTokenTransaction(Transaction):
             address_state = state_container.addresses_state[addr_to]
 
             state_container.tokens.data[(addr_to, self.token_txhash)].balance -= amount
+            if state_container.tokens.data[(addr_to, self.token_txhash)].balance == 0:
+                state_container.paginated_tokens_hash.remove(address_state, self.token_txhash)
 
             if self.addr_from != addr_to:
                 state_container.paginated_tx_hash.remove(address_state, self.txhash)
