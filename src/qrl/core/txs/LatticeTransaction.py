@@ -116,6 +116,7 @@ class LatticeTransaction(Transaction):
         state_container.paginated_tx_hash.remove(address_state, self.txhash)
 
         state_container.lattice_pk.data[(self.addr_from,
-                                         self.pk1, self.pk2, self.pk3)] = LatticePKMetadata(enabled=False)
+                                         self.pk1, self.pk2, self.pk3)] = LatticePKMetadata(enabled=False,
+                                                                                            delete=True)
 
         return self._revert_state_changes_for_PK(state_container)
