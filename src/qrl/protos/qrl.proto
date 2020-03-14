@@ -946,7 +946,8 @@ message TokenList {
 message TokenBalance {
     uint64 balance = 1;
     uint64 decimals = 2;
-    bool delete = 3;  // For internal use only
+    bytes tx_hash = 3; // Tx hash responsible for the creation of this data
+    bool delete = 4;  // For internal use only
 }
 
 message SlaveMetadata {

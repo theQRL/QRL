@@ -169,6 +169,7 @@ class TransferTokenTransaction(Transaction):
                 state_container.tokens.data[(addr_to,
                                              self.token_txhash)] = TokenBalance(balance=0,
                                                                                 decimals=decimals,
+                                                                                tx_hash=self.txhash,
                                                                                 delete=False)
                 state_container.paginated_tokens_hash.insert(address_state, self.token_txhash)
 
@@ -189,7 +190,7 @@ class TransferTokenTransaction(Transaction):
             key = (addr_to, self.token_txhash)
 
             state_container.tokens.data[key].balance -= amount
-            if state_container.tokens.data[key].balance == 0:
+            if state_container.tokens.data[key].tx_hash == self.txhash:
                 state_container.tokens.data[key].delete = True
                 state_container.paginated_tokens_hash.remove(address_state, self.token_txhash)
 
