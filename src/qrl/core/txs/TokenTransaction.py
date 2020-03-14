@@ -186,6 +186,7 @@ class TokenTransaction(Transaction):
                 state_container.tokens.data[(initial_balance.address,
                                              self.txhash)] = TokenBalance(balance=initial_balance.amount,
                                                                           decimals=self.decimals,
+                                                                          tx_hash=self.txhash,
                                                                           delete=False)
             address_state = state_container.addresses_state[initial_balance.address]
             state_container.paginated_tx_hash.insert(address_state, self.txhash)

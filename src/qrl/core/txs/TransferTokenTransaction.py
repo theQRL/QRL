@@ -169,6 +169,7 @@ class TransferTokenTransaction(Transaction):
                 state_container.tokens.data[(addr_to,
                                              self.token_txhash)] = TokenBalance(balance=0,
                                                                                 decimals=decimals,
+                                                                                tx_hash=self.txhash,
                                                                                 delete=False)
                 state_container.paginated_tokens_hash.insert(address_state, self.token_txhash)
 
@@ -182,11 +183,6 @@ class TransferTokenTransaction(Transaction):
     def revert(self,
                state: State,
                state_container: StateContainer) -> bool:
-        state_container.tokens.data[(self.addr_from, self.token_txhash)].balance += self.total_amount
-        address_state = state_container.addresses_state[self.addr_from]
-        address_state.update_balance(state_container, self.fee)
-        state_container.paginated_tx_hash.remove(address_state, self.txhash)
-
         for index in range(0, len(self.addrs_to)):
             addr_to = self.addrs_to[index]
             amount = self.amounts[index]
@@ -194,11 +190,17 @@ class TransferTokenTransaction(Transaction):
             key = (addr_to, self.token_txhash)
 
             state_container.tokens.data[key].balance -= amount
-            if state_container.tokens.data[key].balance == 0:
+            if state_container.tokens.data[key].tx_hash == self.txhash:
                 state_container.tokens.data[key].delete = True
                 state_container.paginated_tokens_hash.remove(address_state, self.token_txhash)
 
             if self.addr_from != addr_to:
                 state_container.paginated_tx_hash.remove(address_state, self.txhash)
+
+        state_container.tokens.data[(self.addr_from, self.token_txhash)].balance += self.total_amount
+        state_container.tokens.data[(self.addr_from, self.token_txhash)].delete = False
+        address_state = state_container.addresses_state[self.addr_from]
+        address_state.update_balance(state_container, self.fee)
+        state_container.paginated_tx_hash.remove(address_state, self.txhash)
 
         return self._revert_state_changes_for_PK(state_container)
