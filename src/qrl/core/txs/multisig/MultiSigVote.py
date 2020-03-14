@@ -74,6 +74,9 @@ class MultiSigVote(Transaction):
 
         addr_from_state = state_container.addresses_state[self.addr_from]
         vote_stats = state_container.votes_stats[self.shared_key]
+        if vote_stats is None:
+            logger.warning("[MultiSigVote] Invalid Shared key %s", bin2hstr(self.shared_key))
+            return False
         multi_sig_spend_tx = state_container.multi_sig_spend_txs[self.shared_key]
         block_number = state_container.block_number
         if vote_stats.executed:
