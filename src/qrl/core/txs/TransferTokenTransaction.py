@@ -190,7 +190,11 @@ class TransferTokenTransaction(Transaction):
             key = (addr_to, self.token_txhash)
 
             state_container.tokens.data[key].balance -= amount
-            if state_container.tokens.data[key].tx_hash == self.txhash:
+            # There is a chance that same address is transmitted with token multiple times,
+            # in such a case, to avoid removal of token_txhash from paginated_tokens_hash
+            # delete must be checked for false
+            if state_container.tokens.data[key].tx_hash == self.txhash and \
+                    state_container.tokens.data[key].delete is False:
                 state_container.tokens.data[key].delete = True
                 state_container.paginated_tokens_hash.remove(address_state, self.token_txhash)
 
