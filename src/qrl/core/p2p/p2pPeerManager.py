@@ -232,6 +232,7 @@ class P2PPeerManager(P2PBaseObserver):
                            source.peer.ip,
                            message.veData.version)
             source.loseConnection()
+            self.ban_channel(source)
             return
 
         source.rate_limit = min(config.user.peer_rate_limit, message.veData.rate_limit)
@@ -241,6 +242,7 @@ class P2PPeerManager(P2PBaseObserver):
             logger.warning('Expected: %s', config.user.genesis_prev_headerhash)
             logger.warning('Found: %s', message.veData.genesis_prev_hash)
             source.loseConnection()
+            self.ban_channel(source)
 
     def handle_peer_list(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
