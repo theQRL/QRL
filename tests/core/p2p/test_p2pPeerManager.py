@@ -25,6 +25,7 @@ logger.initialize_default()
 def make_channel(name=''):
     channel = Mock(autospec=P2PProtocol, name=name)
     channel.factory = Mock(autospec=P2PFactory)
+    channel.peer = IPMetadata(ip_str="127.0.0.1", port=19009)
     return channel
 
 
@@ -225,14 +226,15 @@ class TestP2PPeerManager(TestCase):
         """
         If the genesis_prev_headerhash is different, the nodes should disconnect from each other.
         """
-        channel = make_channel()
+        with set_qrl_dir('no_data'):
+            channel = make_channel()
 
-        message = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE,
-                                              veData=qrllegacy_pb2.VEData(version=config.dev.version,
-                                                                          genesis_prev_hash=b'TEST123',
-                                                                          rate_limit=config.user.peer_rate_limit))
-        self.peer_manager.handle_version(channel, message)
-        channel.loseConnection.assert_any_call()
+            message = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.VE,
+                                                  veData=qrllegacy_pb2.VEData(version=config.dev.version,
+                                                                              genesis_prev_hash=b'TEST123',
+                                                                              rate_limit=config.user.peer_rate_limit))
+            self.peer_manager.handle_version(channel, message)
+            channel.loseConnection.assert_any_call()
 
     def test_get_better_difficulty(self):
         """

@@ -230,6 +230,7 @@ class P2PFactory(ServerFactory):
 
         if block.block_number != self._last_requested_block_number:
             logger.warning('Did not match %s', self._last_requested_block_number)
+            self._qrl_node.peer_manager.ban_channel(source)
             return
 
         target_start_blocknumber = self._target_node_header_hash.block_number
@@ -238,10 +239,12 @@ class P2PFactory(ServerFactory):
             logger.warning('Did not match headerhash')
             logger.warning('Expected headerhash %s', expected_headerhash)
             logger.warning('Found headerhash %s', block.headerhash)
+            self._qrl_node.peer_manager.ban_channel(source)
             return
 
         if not block.validate(self._chain_manager, self.pow.future_blocks):
             logger.warning('Syncing Failed: Block Validation Failed')
+            self._qrl_node.peer_manager.ban_channel(source)
             return
 
         if self._chain_manager.add_block(block, check_stale=False):
@@ -249,6 +252,7 @@ class P2PFactory(ServerFactory):
                 self.pow.suspend_mining_timestamp = ntp.getTime() + config.dev.sync_delay_mining
         else:
             logger.warning('Failed to Add Block')
+            self._qrl_node.peer_manager.ban_channel(source)
             return
 
         try:
