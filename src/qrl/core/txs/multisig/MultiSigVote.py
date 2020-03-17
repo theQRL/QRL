@@ -146,9 +146,6 @@ class MultiSigVote(Transaction):
     def revert(self,
                state: State,
                state_container: StateContainer) -> bool:
-        address_state = state_container.addresses_state[self.addr_from]
-        address_state.update_balance(state_container, self.fee)
-        state_container.paginated_tx_hash.remove(address_state, self.txhash)
         vote_stats = state_container.votes_stats[self.shared_key]
         multi_sig_address = vote_stats.multi_sig_address
 
@@ -160,5 +157,9 @@ class MultiSigVote(Transaction):
         if not vote_stats.revert_vote_stats(self, weight, state_container):
             logger.info("[MultiSigVote] Failed to revert vote_stats")
             return False
+
+        address_state = state_container.addresses_state[self.addr_from]
+        address_state.update_balance(state_container, self.fee)
+        state_container.paginated_tx_hash.remove(address_state, self.txhash)
 
         return self._revert_state_changes_for_PK(state_container)

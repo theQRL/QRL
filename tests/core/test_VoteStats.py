@@ -80,7 +80,7 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx.apply(self.state, state_container)
+        self.assertTrue(tx.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
@@ -140,7 +140,7 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx.apply(self.state, state_container)
+        self.assertTrue(tx.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
@@ -149,7 +149,7 @@ class TestVoteStats(TestCase):
         self.assertFalse(vote_stats[spend_tx.txhash].executed)
 
         VoteStats.revert_all(self.state, state_container)
-        tx.revert(self.state, state_container)
+        self.assertTrue(tx.revert(self.state, state_container))
 
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
         self.assertEqual(state_container.addresses_state[self.alice.address].balance, 5)
@@ -216,8 +216,8 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx1.apply(self.state, state_container)
-        tx2.apply(self.state, state_container)
+        self.assertTrue(tx1.apply(self.state, state_container))
+        self.assertTrue(tx2.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 0)
@@ -289,8 +289,8 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx1.apply(self.state, state_container)
-        tx2.apply(self.state, state_container)
+        self.assertTrue(tx1.apply(self.state, state_container))
+        self.assertTrue(tx2.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 0)
@@ -302,8 +302,8 @@ class TestVoteStats(TestCase):
         self.assertTrue(vote_stats[spend_tx.txhash].executed)
 
         VoteStats.revert_all(self.state, state_container)
-        tx1.revert(self.state, state_container)
-        tx2.revert(self.state, state_container)
+        self.assertTrue(tx1.revert(self.state, state_container))
+        self.assertTrue(tx2.revert(self.state, state_container))
 
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
         self.assertEqual(state_container.addresses_state[self.alice.address].balance, 5)
@@ -362,7 +362,7 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx.apply(self.state, state_container)
+        self.assertTrue(tx.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 0)
@@ -423,7 +423,7 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx.apply(self.state, state_container)
+        self.assertTrue(tx.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 0)
@@ -433,7 +433,7 @@ class TestVoteStats(TestCase):
         self.assertTrue(vote_stats[spend_tx.txhash].executed)
 
         VoteStats.revert_all(self.state, state_container)
-        tx.revert(self.state, state_container)
+        self.assertTrue(tx.revert(self.state, state_container))
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
         self.assertEqual(state_container.addresses_state[self.alice.address].balance, 5)
         self.assertFalse(vote_stats[spend_tx.txhash].executed)
@@ -491,7 +491,7 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx.apply(self.state, state_container)
+        self.assertTrue(tx.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         # Expected balance is 90, as multi_sig_spend txn is not executed due to insufficient balance
@@ -553,7 +553,7 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx.apply(self.state, state_container)
+        self.assertTrue(tx.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         # Expected balance is 90, as multi_sig_spend txn is not executed due to insufficient balance
@@ -563,7 +563,7 @@ class TestVoteStats(TestCase):
         self.assertFalse(vote_stats[spend_tx.txhash].executed)
 
         VoteStats.revert_all(self.state, state_container)
-        tx.revert(self.state, state_container)
+        self.assertTrue(tx.revert(self.state, state_container))
 
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 90)
         self.assertEqual(state_container.addresses_state[self.alice.address].balance, 5)
@@ -622,7 +622,7 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx1.apply(self.state, state_container)
+        self.assertTrue(tx1.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         # Expected balance is 90, as multi_sig_spend txn is not executed due to insufficient balance
@@ -638,7 +638,7 @@ class TestVoteStats(TestCase):
                                   xmss_pk=self.alice.pk)
         tx2.sign(self.alice)
 
-        tx2.apply(self.state, state_container)
+        self.assertTrue(tx2.apply(self.state, state_container))
         VoteStats.put_all(self.state, state_container)
         # Expected balance is 100
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
@@ -650,7 +650,7 @@ class TestVoteStats(TestCase):
                                   fee=0,
                                   xmss_pk=self.alice.pk)
         tx3.sign(self.alice)
-        tx3.apply(self.state, state_container)
+        self.assertTrue(tx3.apply(self.state, state_container))
         VoteStats.put_all(self.state, state_container)
         # Expected balance is 0, as multi_sig_spend txn has been executed
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 0)
@@ -713,7 +713,7 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx1.apply(self.state, state_container)
+        self.assertTrue(tx1.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         # Expected balance is 90, as multi_sig_spend txn is not executed due to insufficient balance
@@ -729,7 +729,7 @@ class TestVoteStats(TestCase):
                                   xmss_pk=self.alice.pk)
         tx2.sign(self.alice)
 
-        tx2.apply(self.state, state_container)
+        self.assertTrue(tx2.apply(self.state, state_container))
         VoteStats.put_all(self.state, state_container)
         # Expected balance is 100
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
@@ -741,7 +741,7 @@ class TestVoteStats(TestCase):
                                   fee=0,
                                   xmss_pk=self.alice.pk)
         tx3.sign(self.alice)
-        tx3.apply(self.state, state_container)
+        self.assertTrue(tx3.apply(self.state, state_container))
         VoteStats.put_all(self.state, state_container)
         # Expected balance is 0, as multi_sig_spend txn has been executed
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 0)
@@ -751,7 +751,7 @@ class TestVoteStats(TestCase):
         self.assertTrue(vote_stats[spend_tx.txhash].executed)
 
         VoteStats.revert_all(self.state, state_container)
-        tx3.revert(self.state, state_container)
+        self.assertTrue(tx3.revert(self.state, state_container))
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
         self.assertEqual(state_container.addresses_state[self.alice.address].balance, 0)
         self.assertFalse(vote_stats[spend_tx.txhash].executed)
@@ -759,12 +759,12 @@ class TestVoteStats(TestCase):
         multi_sig_address_state.pbdata.balance = 90
 
         VoteStats.revert_all(self.state, state_container)
-        tx2.revert(self.state, state_container)
+        self.assertTrue(tx2.revert(self.state, state_container))
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 90)
         self.assertEqual(state_container.addresses_state[self.alice.address].balance, 0)
 
         VoteStats.revert_all(self.state, state_container)
-        tx1.revert(self.state, state_container)
+        self.assertTrue(tx1.revert(self.state, state_container))
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 90)
         self.assertEqual(state_container.addresses_state[self.alice.address].balance, 5)
 
@@ -829,14 +829,11 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx1.apply(self.state, state_container)
-        tx2.apply(self.state, state_container)
+        self.assertFalse(tx1.apply(self.state, state_container))
+        self.assertFalse(tx2.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
-        self.assertEqual(state_container.addresses_state[self.alice.address].balance, 0)
-        # Expected balance is 1, as 4 quanta paid in MultiSigVote txn as a fee
-        self.assertEqual(state_container.addresses_state[self.bob.address].balance, 1)
         self.assertFalse(vote_stats[spend_tx.txhash].executed)
 
     def test_revert_and_put6(self):
@@ -900,8 +897,8 @@ class TestVoteStats(TestCase):
                                          write_access=True,
                                          my_db=self.state._db,
                                          batch=None)
-        tx1.apply(self.state, state_container)
-        tx2.apply(self.state, state_container)
+        self.assertFalse(tx1.apply(self.state, state_container))
+        self.assertFalse(tx2.apply(self.state, state_container))
 
         VoteStats.put_all(self.state, state_container)
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
@@ -911,10 +908,7 @@ class TestVoteStats(TestCase):
         self.assertFalse(vote_stats[spend_tx.txhash].executed)
 
         VoteStats.revert_all(self.state, state_container)
-        tx2.revert(self.state, state_container)
-        tx1.revert(self.state, state_container)
+        self.assertFalse(tx2.revert(self.state, state_container))
+        self.assertFalse(tx1.revert(self.state, state_container))
 
         self.assertEqual(state_container.addresses_state[multi_sig_address].balance, 100)
-        self.assertEqual(state_container.addresses_state[self.alice.address].balance, 5)
-        self.assertEqual(state_container.addresses_state[self.bob.address].balance, 5)
-        self.assertFalse(vote_stats[spend_tx.txhash].executed)
