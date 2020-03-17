@@ -323,17 +323,15 @@ class WalletAPIService(WalletAPIServicer):
 
         return resp
 
-    @GrpcExceptionWrapper(qrlwallet_pb2.MiniTransactionsByAddressResp)
-    def GetMiniTransactionsByAddress(self,
-                                     request: qrlwallet_pb2.MiniTransactionsByAddressReq,
-                                     context) -> qrlwallet_pb2.MiniTransactionsByAddressResp:
-        resp = qrlwallet_pb2.MiniTransactionsByAddressResp()
+    @GrpcExceptionWrapper(qrlwallet_pb2.TransactionsByAddressResp)
+    def GetTransactionsByAddress(self,
+                                 request: qrlwallet_pb2.TransactionsByAddressReq,
+                                 context) -> qrlwallet_pb2.TransactionsByAddressResp:
+        resp = qrlwallet_pb2.TransactionsByAddressResp()
         try:
-            mini_transactions, balance = self._walletd.get_mini_transactions_by_address(
-                request.address,
-                request.item_per_page,
-                request.page_number
-            )
+            mini_transactions, balance = self._walletd.get_mini_transactions_by_address(qaddress=request.address,
+                                                                                        item_per_page=1000000,
+                                                                                        page_number=1)
             resp.mini_transactions.extend(mini_transactions)
             resp.balance = balance
         except Exception as e:

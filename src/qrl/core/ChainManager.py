@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import sys
 import threading
+from collections import OrderedDict
 from typing import Optional, Tuple
 from math import ceil
 
@@ -102,24 +103,24 @@ class ChainManager:
     def get_address_state(self, address: bytes) -> AddressState:
         """
         Transform Optimized Address State into Older Address State format
+        This should only be used by API.
         """
         optimized_address_state = self.get_optimized_address_state(address)
         ots_bitfield = [b'\x00'] * max(1024, int(ceil((2 ** optimized_address_state.height) / 8)))
         transaction_hashes = list()
-        tokens = dict()
-        slave_pks_access_type = dict()
+        tokens = OrderedDict()
+        slave_pks_access_type = OrderedDict()
 
         max_bitfield_page = ceil((2 ** optimized_address_state.height) / config.dev.ots_tracking_per_page)
 
-        offset = 0
         for page in range(1, max_bitfield_page + 1):
+            offset = (page - 1) * config.dev.ots_tracking_per_page
             page_data = self.get_bitfield(address, page)
             for data in page_data:
                 if offset >= len(ots_bitfield):
                     break
                 ots_bitfield[offset] = data
                 offset += 1
-            offset = (page - 1) * config.dev.ots_tracking_per_page
 
         max_transaction_hash_page = ceil(optimized_address_state.transaction_hash_count() / config.dev.data_per_page)
 
@@ -133,6 +134,11 @@ class ChainManager:
             page_data = self.get_token_transaction_hashes(address, page * config.dev.data_per_page)
             for token_txn_hash in page_data:
                 token_balance = self.get_token(address, token_txn_hash)
+                # token_balance None is only possible when the token transaction
+                # is done by a QRL address as an owner, which has not been
+                # assigned any token balance.
+                if token_balance is None:
+                    continue
                 tokens[token_txn_hash] = token_balance.balance
 
         max_slave_page = ceil(optimized_address_state.slaves_count() / config.dev.data_per_page)

@@ -67,7 +67,11 @@ class P2PPeerManager(P2PBaseObserver):
 
     @property
     def trusted_addresses(self):
-        return set([peer.peer.full_address for peer in self._p2p_factory.connections if self.trusted_peer(peer)])
+        ip_public_port_set = set()
+        for peer in self._p2p_factory.connections:
+            if self.trusted_peer(peer) and peer.public_port != 0:
+                ip_public_port_set.add(peer.ip_public_port)
+        return ip_public_port_set
 
     @property
     def peer_node_status(self):
@@ -195,7 +199,8 @@ class P2PPeerManager(P2PBaseObserver):
                 if int(major_version) < 2:
                     return False
             except Exception:
-                return False
+                logger.warning("Exception while checking version for compatibility")
+                return True
 
         return True
 
@@ -228,6 +233,7 @@ class P2PPeerManager(P2PBaseObserver):
                            source.peer.ip,
                            message.veData.version)
             source.loseConnection()
+            self.ban_channel(source)
             return
 
         source.rate_limit = min(config.user.peer_rate_limit, message.veData.rate_limit)
@@ -237,6 +243,7 @@ class P2PPeerManager(P2PBaseObserver):
             logger.warning('Expected: %s', config.user.genesis_prev_headerhash)
             logger.warning('Found: %s', message.veData.genesis_prev_hash)
             source.loseConnection()
+            self.ban_channel(source)
 
     def handle_peer_list(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)

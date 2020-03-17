@@ -157,7 +157,6 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         addresses_state[self.bob.address].pbdata.balance = 0
         tokens = Indexer(b'token', None)
         tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=1000)
-        tokens.data[(self.bob.address, tx.token_txhash)] = TokenBalance(balance=0)
         state_container = StateContainer(addresses_state=addresses_state,
                                          tokens=tokens,
                                          slaves=Indexer(b'slave', None),
@@ -200,8 +199,6 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         addresses_state[slave.address] = OptimizedAddressState.get_default(slave.address)
         tokens = Indexer(b'token', None)
         tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=1100)
-        tokens.data[(self.bob.address, tx.token_txhash)] = TokenBalance(balance=0)
-        tokens.data[(slave.address, tx.token_txhash)] = TokenBalance(balance=0)
 
         state_container = StateContainer(addresses_state=addresses_state,
                                          tokens=tokens,
@@ -239,7 +236,6 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         addresses_state = dict(self.addresses_state)
         tokens = Indexer(b'token', None)
         tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=100)
-        tokens.data[(self.bob.address, tx.token_txhash)] = TokenBalance(balance=0)
         state_container = StateContainer(addresses_state=addresses_state,
                                          tokens=tokens,
                                          slaves=Indexer(b'slave', None),

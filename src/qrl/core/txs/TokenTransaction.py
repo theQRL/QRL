@@ -97,20 +97,13 @@ class TokenTransaction(Transaction):
             logger.warning('Token decimals cannot be more than 19')
             return False
 
-        addresses = set()
         sum_of_initial_balances = 0
         for initial_balance in self.initial_balances:
             sum_of_initial_balances += initial_balance.amount
-            addresses.add(initial_balance.address)  # TODO: Hard fork code, check if compatible with older blocks
             if initial_balance.amount <= 0:
                 logger.warning('Invalid Initial Amount in Token Transaction')
                 logger.warning('Address %s | Amount %s', initial_balance.address, initial_balance.amount)
                 return False
-
-        # TODO: Hard fork code, check if compatible with older blocks
-        if len(addresses) != len(self.initial_balances):
-            logger.warning('Invalid Token Initialization. Duplicate address found initial_balance')
-            return False
 
         allowed_decimals = self.calc_allowed_decimals(sum_of_initial_balances // 10 ** self.decimals)
 
@@ -183,10 +176,18 @@ class TokenTransaction(Transaction):
             if initial_balance.address == addr_from_pk:
                 addr_from_pk_processed = True
 
-            state_container.tokens.data[(initial_balance.address,
-                                         self.txhash)] = TokenBalance(balance=initial_balance.amount,
-                                                                      decimals=self.decimals,
-                                                                      delete=False)
+            # If a QRL address has been mentioned multiple times in initial balance
+            # then check if that address has already been initialized with some token
+            # balance, if found, then add the new balance the already initialized balance
+            if (initial_balance.address, self.txhash) in state_container.tokens.data:
+                state_container.tokens.data[(initial_balance.address,
+                                             self.txhash)].balance += initial_balance.amount
+            else:
+                state_container.tokens.data[(initial_balance.address,
+                                             self.txhash)] = TokenBalance(balance=initial_balance.amount,
+                                                                          decimals=self.decimals,
+                                                                          tx_hash=self.txhash,
+                                                                          delete=False)
             address_state = state_container.addresses_state[initial_balance.address]
             state_container.paginated_tx_hash.insert(address_state, self.txhash)
             state_container.paginated_tokens_hash.insert(address_state, self.txhash)

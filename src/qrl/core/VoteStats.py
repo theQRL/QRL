@@ -233,7 +233,7 @@ class VoteStats:
             addr_to = multi_sig_spend.addrs_to[index]
             address_state = addresses_state[addr_to]
             if addr_to not in (multi_sig_spend.addr_from, addr_from_pk):
-                paginated_tx_hash.insert(address_state, multi_sig_spend.txhash)
+                paginated_tx_hash.remove(address_state, multi_sig_spend.txhash)
             address_state.update_balance(state_container, multi_sig_spend.amounts[index], subtract=True)
 
         self._data.executed = False

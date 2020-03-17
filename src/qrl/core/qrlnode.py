@@ -401,8 +401,16 @@ class QRLNode:
                 page_from: int,
                 page_count: int,
                 unused_ots_index_from: int) -> (list, Optional[int], bool):
+        if not OptimizedAddressState.address_is_valid(address):
+            return None, None, None
+
+        max_bitfield = 2 ** OptimizedAddressState.get_height_from_address(address)
+        max_pages = (max_bitfield // config.dev.ots_tracking_per_page) + 1
+        page_from = min(page_from, max_pages)
+        max_pages = min(page_from + page_count, max_pages)
+
         bitfields = list()
-        for page in range(page_from, page_from + page_count):
+        for page in range(page_from, max_pages):
             bitfield = self._chain_manager.get_bitfield(address, page)
             bitfields.append(qrl_pb2.OTSBitfieldByPage(ots_bitfield=bitfield, page_number=page))
 
@@ -564,6 +572,13 @@ class QRLNode:
             elif isinstance(tx, CoinBase):
                 if tx.addr_to == address:
                     amount += tx.amount
+            elif isinstance(tx, MultiSigSpend):
+                try:
+                    for i in range(len(tx.addrs_to)):
+                        if tx.addrs_to[i] == address:
+                            amount += tx.amounts[i]
+                except ValueError:
+                    pass
 
             if amount < 0:
                 mini_transaction.out = True
