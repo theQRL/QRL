@@ -199,7 +199,8 @@ class P2PPeerManager(P2PBaseObserver):
                 if int(major_version) < 2:
                     return False
             except Exception:
-                return False
+                logger.warning("Exception while checking version for compatibility")
+                return True
 
         return True
 
