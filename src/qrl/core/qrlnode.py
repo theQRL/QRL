@@ -666,7 +666,7 @@ class QRLNode:
 
     def get_vote_stats(self, multi_sig_spend_tx_hash: bytes):
         vote_stats = self._chain_manager.get_vote_stats(multi_sig_spend_tx_hash)
-        return qrl_pb2.GetVoteStatsResp(vote_stats=vote_stats)
+        return qrl_pb2.GetVoteStatsResp(vote_stats=vote_stats.pbdata)
 
     def get_inbox_messages_by_address(self, address: bytes, item_per_page: int, page_number: int):
         if item_per_page == 0:
