@@ -221,7 +221,7 @@ class ChainManager:
         with self.lock:
             return p.get_paginated_data(address, item_index)
 
-    def get_vote_stats(self, multi_sig_spend_txn_hash: bytes):
+    def get_vote_stats(self, multi_sig_spend_txn_hash: bytes) -> VoteStats:
         with self.lock:
             return VoteStats.get_state(state=self._state, shared_key=multi_sig_spend_txn_hash)
 

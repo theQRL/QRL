@@ -14,6 +14,7 @@ class VoteStats:
         if protobuf_block is None:
             self._data = qrl_pb2.VoteStats()
 
+    @property
     def pbdata(self):
         return self._data
 
