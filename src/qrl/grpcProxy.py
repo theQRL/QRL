@@ -171,13 +171,29 @@ def getblocktemplate(reserve_size, wallet_address):
 
 
 @api.dispatcher.add_method
+def getbalance():
+    stub = get_public_stub()
+    grpc_response = stub.GetOptimizedAddressState(request=qrl_pb2.GetAddressStateReq(address=payment_slaves[0]))
+    return grpc_response.state.balance
+
+
+@api.dispatcher.add_method
+def getheight():
+    stub = get_public_stub()
+    grpc_response = stub.GetHeight(request=qrl_pb2.GetHeightReq())
+
+    resp = {'height': grpc_response.height}
+    return resp
+
+
+@api.dispatcher.add_method
 def submitblock(blob):
     stub = get_mining_stub()
     request = qrlmining_pb2.SubmitMinedBlockReq(blob=bytes(hstr2bin(blob)))
     response = stub.SubmitMinedBlock(request=request, timeout=10)
     if response.error:
         raise Exception  # Mining pool expected exception when block submission fails
-    return MessageToJson(response, sort_keys=True)
+    return {'status': 'OK', 'error': 0}
 
 
 @api.dispatcher.add_method
