@@ -79,7 +79,7 @@ class TestMiningAPI(TestCase):
         answer = self.service.GetLastBlockHeader(request=req, context=None)
 
         self.assertEqual(180, answer.depth)
-        self.assertEqual(200, answer.height)
+        self.assertEqual(20, answer.height)
 
     def test_GetBlockToMine(self):
         blocktemplate_blob = b'blob'
