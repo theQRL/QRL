@@ -44,7 +44,7 @@ class MiningAPIService(MiningAPIServicer):
         blockheader, block_metadata = self.qrlnode.get_blockheader_and_metadata(request.height)
 
         response.difficulty = int(bin2hstr(block_metadata.block_difficulty), 16)
-        response.height = self.qrlnode.block_height
+        response.height = blockheader.block_number
         response.timestamp = blockheader.timestamp
         response.reward = blockheader.block_reward + blockheader.fee_reward
         response.hash = bin2hstr(blockheader.headerhash)
