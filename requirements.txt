@@ -1,7 +1,7 @@
 # Fixing sphinx version due to https://github.com/sphinx-doc/sphinx/issues/3976
 setuptools==39.0.1
 plyvel==1.2.0
-ntplib>=0.3.3
+ntplib==0.3.4
 Twisted>=19.10.0
 colorlog==3.1.0
 simplejson==3.11.1
