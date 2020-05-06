@@ -555,7 +555,7 @@ def tx_multi_sig_create(ctx, src, master, threshold, fee, ots_key_index):
         src_xmss.set_ots_index(ots_key_index)
 
         master_addr = None
-        if master_addr:
+        if master:
             master_addr = parse_qaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _quanta_to_shor(fee)
@@ -819,7 +819,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
 
         address_owner = parse_qaddress(owner)
         master_addr = None
-        if master_addr:
+        if master:
             master_addr = parse_qaddress(master)
         # FIXME: This could be problematic. Check
         fee_shor = _quanta_to_shor(fee)
@@ -945,7 +945,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
             address_src_pk = pk.encode()
 
         master_addr = None
-        if master_addr:
+        if master:
             master_addr = parse_qaddress(master)
         fee_shor = _quanta_to_shor(fee)
     except Exception as e:

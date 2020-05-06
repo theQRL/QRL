@@ -174,7 +174,7 @@ class MultiSigSpend(Transaction):
         # Multi Sig Spend considered to be expired after block having block number equals to
         # self.expiry_block_number gets added into the main chain
         if self.expiry_block_number <= block_number:
-            logger.info('[MultiSigSpend] State validation failed due to invalid expiry_block_number',
+            logger.info('[MultiSigSpend] State validation failed for %s due to invalid expiry_block_number',
                         bin2hstr(self.txhash))
             logger.info('Chain Height: %s, Expiry Block Number: %s',
                         block_number,
@@ -182,7 +182,7 @@ class MultiSigSpend(Transaction):
             return False
 
         if self.addr_from not in multi_sig_address_state.signatories:
-            logger.info('[MultiSigSpend] Address is not in the signatories list',
+            logger.info('[MultiSigSpend] Address is not in the signatories list: %s',
                         bin2hstr(self.addr_from))
             return False
 

@@ -96,7 +96,7 @@ class MultiSigVote(Transaction):
 
         if self.addr_from not in vote_stats.signatories:
             logger.warning("Address not found in signatory list")
-            logger.warning("Address %s Shared Key %s",
+            logger.warning("Address %s, Shared Key %s, Multi Sig Address %s",
                            bin2hstr(self.addr_from),
                            bin2hstr(self.shared_key),
                            bin2hstr(vote_stats.multi_sig_address))
