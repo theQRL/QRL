@@ -102,10 +102,9 @@ jobs:
     steps:
       - checkout
       - run: git submodule update --init --recursive --remote
-      - run: python3 -m pip install -U -r requirements.txt
-      - run: python3 -m pip install -U -r test-requirements.txt
-      - run: python3 -m pip install -U -r tests_integration/requirements.txt
-      - run: python3 -m pip install git+https://github.com/CurataEng/hypothesis-protobuf.git
+      - run: apt install -y python3-venv
+      - run: pip install -U -r tests_integration/requirements.txt
+      - run: pip install git+https://github.com/CurataEng/hypothesis-protobuf.git
       - run: pytest tests_integration/tests/python/fuzzing
 
   deploy-pypi:
