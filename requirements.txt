@@ -1,5 +1,5 @@
 # Fixing sphinx version due to https://github.com/sphinx-doc/sphinx/issues/3976
-setuptools==39.0.1
+setuptools==46.4.0
 plyvel==1.2.0
 ntplib==0.3.4
 Twisted>=19.10.0
