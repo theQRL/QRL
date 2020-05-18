@@ -2,6 +2,7 @@
 // file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 syntax = "proto3";
+import "google/api/annotations.proto";
 
 package qrl;
 
@@ -16,83 +17,239 @@ package qrl;
 // This service describes the Public API used by clients (wallet/cli/etc)
 service PublicAPI
 {
-    rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp);
+    rpc GetNodeState (GetNodeStateReq) returns (GetNodeStateResp) {
+      option (google.api.http) = {
+        get: "/node-state"
+      };
+    };
 
-    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp);
+    rpc GetKnownPeers (GetKnownPeersReq) returns (GetKnownPeersResp) {
+      option (google.api.http) = {
+        get: "/known-peers"
+      };
+    };
 
-    rpc GetPeersStat (GetPeersStatReq) returns (GetPeersStatResp);
+    rpc GetPeersStat (GetPeersStatReq) returns (GetPeersStatResp) {
+      option (google.api.http) = {
+        get: "/peers-stat"
+      };
+    };
 
-    rpc GetStats (GetStatsReq) returns (GetStatsResp);
+    rpc GetStats (GetStatsReq) returns (GetStatsResp) {
+      option (google.api.http) = {
+        get: "/stats"
+      };
+    };
 
-    rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp);
+    rpc GetAddressState (GetAddressStateReq) returns (GetAddressStateResp) {
+      option (google.api.http) = {
+        get: "/address-state"
+      };
+    };
 
-    rpc GetOptimizedAddressState (GetAddressStateReq) returns (GetOptimizedAddressStateResp);
+    rpc GetOptimizedAddressState (GetAddressStateReq) returns (GetOptimizedAddressStateResp) {
+      option (google.api.http) = {
+        get: "/optimized-address-state"
+      };
+    };
 
-    rpc GetMultiSigAddressState (GetMultiSigAddressStateReq) returns (GetMultiSigAddressStateResp);
+    rpc GetMultiSigAddressState (GetMultiSigAddressStateReq) returns (GetMultiSigAddressStateResp) {
+      option (google.api.http) = {
+        get: "/multi-sig-address-state"
+      };
+    };
 
-    rpc IsSlave (IsSlaveReq) returns (IsSlaveResp);
+    rpc IsSlave (IsSlaveReq) returns (IsSlaveResp) {
+      option (google.api.http) = {
+        get: "/is-slave"
+      };
+    };
 
-    rpc GetObject(GetObjectReq) returns (GetObjectResp);
+    rpc GetObject(GetObjectReq) returns (GetObjectResp) {
+      option (google.api.http) = {
+        get: "/object"
+      };
+    };
 
-    rpc GetLatestData(GetLatestDataReq) returns (GetLatestDataResp);
+    rpc GetLatestData(GetLatestDataReq) returns (GetLatestDataResp) {
+      option (google.api.http) = {
+        get: "/latest-data"
+      };
+    };
 
-    rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp);
+    rpc PushTransaction (PushTransactionReq) returns (PushTransactionResp) {
+      option (google.api.http) = {
+        post: "/push-transaction"
+      };
+    };
 
-    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp);
+    rpc TransferCoins (TransferCoinsReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/transfer-coins"
+      };
+    };
 
-    rpc ParseAddress (ParseAddressReq) returns (ParseAddressResp);
+    rpc ParseAddress (ParseAddressReq) returns (ParseAddressResp) {
+      option (google.api.http) = {
+        get: "/parse-address"
+      };
+    };
 
-    rpc GetChainStats (GetChainStatsReq) returns (GetChainStatsResp);
+    rpc GetChainStats (GetChainStatsReq) returns (GetChainStatsResp) {
+      option (google.api.http) = {
+        get: "/chain-stats"
+      };
+    };
 
-    rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp);
+    rpc GetAddressFromPK (GetAddressFromPKReq) returns (GetAddressFromPKResp) {
+      option (google.api.http) = {
+        get: "/address-from-pk"
+      };
+    };
 
-    rpc GetMultiSigCreateTxn (MultiSigCreateTxnReq) returns (TransferCoinsResp);
+    rpc GetMultiSigCreateTxn (MultiSigCreateTxnReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/multi-sig-create-txn"
+      };
+    };
 
-    rpc GetMultiSigSpendTxn (MultiSigSpendTxnReq) returns (TransferCoinsResp);
+    rpc GetMultiSigSpendTxn (MultiSigSpendTxnReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/multi-sig-spend-txn"
+      };
+    };
 
-    rpc GetMultiSigVoteTxn (MultiSigVoteTxnReq) returns (TransferCoinsResp);
+    rpc GetMultiSigVoteTxn (MultiSigVoteTxnReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/multi-sig-vote-txn"
+      };
+    };
 
-    rpc GetMessageTxn (MessageTxnReq) returns (TransferCoinsResp);
+    rpc GetMessageTxn (MessageTxnReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/message-txn"
+      };
+    };
 
-    rpc GetTokenTxn (TokenTxnReq) returns (TransferCoinsResp);
+    rpc GetTokenTxn (TokenTxnReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/token-txn"
+      };
+    };
 
-    rpc GetTransferTokenTxn (TransferTokenTxnReq) returns (TransferCoinsResp);
+    rpc GetTransferTokenTxn (TransferTokenTxnReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/transfer-token-txn"
+      };
+    };
 
-    rpc GetSlaveTxn (SlaveTxnReq) returns (TransferCoinsResp);
+    rpc GetSlaveTxn (SlaveTxnReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/slave-txn"
+      };
+    };
 
-    rpc GetLatticeTxn (LatticeTxnReq) returns (TransferCoinsResp);
+    rpc GetLatticeTxn (LatticeTxnReq) returns (TransferCoinsResp) {
+      option (google.api.http) = {
+        post: "/lattice-txn"
+      };
+    };
 
-    rpc GetTransaction(GetTransactionReq) returns (GetTransactionResp);
+    rpc GetTransaction(GetTransactionReq) returns (GetTransactionResp) {
+      option (google.api.http) = {
+        get: "/transaction"
+      };
+    };
 
-    rpc GetMiniTransactionsByAddress(GetMiniTransactionsByAddressReq) returns (GetMiniTransactionsByAddressResp);
+    rpc GetMiniTransactionsByAddress(GetMiniTransactionsByAddressReq) returns (GetMiniTransactionsByAddressResp) {
+      option (google.api.http) = {
+        get: "/mini-transaction-by-address"
+      };
+    };
 
-    rpc GetTransactionsByAddress(GetTransactionsByAddressReq) returns (GetTransactionsByAddressResp);
+    rpc GetTransactionsByAddress(GetTransactionsByAddressReq) returns (GetTransactionsByAddressResp) {
+      option (google.api.http) = {
+        get: "/transactions-by-address"
+      };
+    };
 
-    rpc GetTokensByAddress(GetTransactionsByAddressReq) returns (GetTokensByAddressResp);
+    rpc GetTokensByAddress(GetTransactionsByAddressReq) returns (GetTokensByAddressResp) {
+      option (google.api.http) = {
+        get: "/tokens-by-address"
+      };
+    };
 
-    rpc GetSlavesByAddress(GetTransactionsByAddressReq) returns (GetSlavesByAddressResp);
+    rpc GetSlavesByAddress(GetTransactionsByAddressReq) returns (GetSlavesByAddressResp) {
+      option (google.api.http) = {
+        get: "/slaves-by-address"
+      };
+    };
 
-    rpc GetLatticePKsByAddress(GetTransactionsByAddressReq) returns (GetLatticePKsByAddressResp);
+    rpc GetLatticePKsByAddress(GetTransactionsByAddressReq) returns (GetLatticePKsByAddressResp) {
+      option (google.api.http) = {
+        get: "/lattice-pks-by-address"
+      };
+    };
 
-    rpc GetMultiSigAddressesByAddress(GetTransactionsByAddressReq) returns (GetMultiSigAddressesByAddressResp);
+    rpc GetMultiSigAddressesByAddress(GetTransactionsByAddressReq) returns (GetMultiSigAddressesByAddressResp) {
+      option (google.api.http) = {
+        get: "/multi-sig-addresses-by-address"
+      };
+    };
 
-    rpc GetMultiSigSpendTxsByAddress(GetMultiSigSpendTxsByAddressReq) returns (GetMultiSigSpendTxsByAddressResp);
+    rpc GetMultiSigSpendTxsByAddress(GetMultiSigSpendTxsByAddressReq) returns (GetMultiSigSpendTxsByAddressResp) {
+      option (google.api.http) = {
+        get: "/multi-sig-spend-txs-by-address"
+      };
+    };
 
-    rpc GetVoteStats(GetVoteStatsReq) returns (GetVoteStatsResp);
+    rpc GetVoteStats(GetVoteStatsReq) returns (GetVoteStatsResp) {
+      option (google.api.http) = {
+        get: "/vote-stats"
+      };
+    };
 
-    rpc GetInboxMessagesByAddress(GetTransactionsByAddressReq) returns (GetInboxMessagesByAddressResp);
+    rpc GetInboxMessagesByAddress(GetTransactionsByAddressReq) returns (GetInboxMessagesByAddressResp) {
+      option (google.api.http) = {
+        get: "/inbox-messages-by-address"
+      };
+    };
 
-    rpc GetBalance(GetBalanceReq) returns (GetBalanceResp);
+    rpc GetBalance(GetBalanceReq) returns (GetBalanceResp) {
+      option (google.api.http) = {
+        get: "/balance"
+      };
+    };
 
-    rpc GetTotalBalance(GetTotalBalanceReq) returns (GetTotalBalanceResp);
+    rpc GetTotalBalance(GetTotalBalanceReq) returns (GetTotalBalanceResp) {
+      option (google.api.http) = {
+        get: "/total-balance"
+      };
+    };
 
-    rpc GetOTS(GetOTSReq) returns (GetOTSResp);
+    rpc GetOTS(GetOTSReq) returns (GetOTSResp) {
+      option (google.api.http) = {
+        get: "/ots"
+      };
+    };
 
-    rpc GetHeight(GetHeightReq) returns (GetHeightResp);
+    rpc GetHeight(GetHeightReq) returns (GetHeightResp) {
+      option (google.api.http) = {
+        get: "/height"
+      };
+    };
 
-    rpc GetBlock(GetBlockReq) returns (GetBlockResp);
+    rpc GetBlock(GetBlockReq) returns (GetBlockResp) {
+      option (google.api.http) = {
+        get: "/block"
+      };
+    };
 
-    rpc GetBlockByNumber(GetBlockByNumberReq) returns (GetBlockByNumberResp);
+    rpc GetBlockByNumber(GetBlockByNumberReq) returns (GetBlockByNumberResp) {
+      option (google.api.http) = {
+        get: "/block-by-number"
+      };
+    };
 }
 
 // This is a place holder for testing/instrumentation APIs
