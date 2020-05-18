@@ -8,10 +8,11 @@ simplejson==3.11.1
 PyYAML==5.3.1
 grpcio-tools>=1.9.0,<=1.27.2
 grpcio>=1.9.0,<=1.27.2
+google-api-python-client==1.8.3
 service_identity==17.0.0
-protobuf==3.5.2
+protobuf==3.6.0
 pyopenssl==17.5.0
-six==1.11
+six>=1.11,<=1.12
 click==6.7
 pyqrllib>=0.99.3,<1.1.0
 pyqryptonight>=0.99.3,<1.1.0
