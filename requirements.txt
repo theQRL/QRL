@@ -12,7 +12,7 @@ google-api-python-client==1.8.3
 service_identity==17.0.0
 protobuf==3.6.0
 pyopenssl==17.5.0
-six>=1.11,<=1.12
+six==1.11
 click==6.7
 pyqrllib>=0.99.3,<1.1.0
 pyqryptonight>=0.99.3,<1.1.0
