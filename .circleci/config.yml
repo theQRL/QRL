@@ -87,6 +87,7 @@ jobs:
       - checkout
       - run: git submodule update --init --recursive --remote
       - run: apt install -y python3-venv
+      - run: pip install -U -r requirements.txt
       - run: pip install -U -r tests_integration/requirements.txt
       - run: ls tests_integration/tmp
       - run: pytest tests_integration/tests/python/basic
