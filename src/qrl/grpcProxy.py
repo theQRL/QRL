@@ -276,7 +276,7 @@ def main():
                                                                                     config.user.public_api_port)))
     payment_xmss = None
     payment_slaves = read_slaves(config.user.mining_pool_payment_wallet_path)
-    app.run(host=config.user.grpc_proxy_host, port=config.user.grpc_proxy_port)
+    app.run(host=config.user.grpc_proxy_host, port=config.user.grpc_proxy_port, threaded=False)
 
 
 if __name__ == '__main__':
