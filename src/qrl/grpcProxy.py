@@ -98,7 +98,8 @@ def api_proxy(api_method_name):
     :return:
     """
     stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel('{}:{}'.format(config.user.public_api_host,
-                                                                           config.user.public_api_port)))
+                                                                           config.user.public_api_port),
+                                                            options=[('grpc.max_receive_message_length', 10485760)]))
     public_api = qrl_pb2.DESCRIPTOR.services_by_name['PublicAPI']
     api_method = public_api.FindMethodByName(api_method_name)
     api_request = getattr(qrl_pb2, api_method.input_type.name)()
@@ -273,10 +274,12 @@ def main():
     mining_stub = qrlmining_pb2_grpc.MiningAPIStub(grpc.insecure_channel('{0}:{1}'.format(config.user.mining_api_host,
                                                                                           config.user.mining_api_port)))
     public_stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel('{0}:{1}'.format(config.user.public_api_host,
-                                                                                    config.user.public_api_port)))
+                                                                                    config.user.public_api_port),
+                                                                   options=[('grpc.max_receive_message_length',
+                                                                             10485760)]))
     payment_xmss = None
     payment_slaves = read_slaves(config.user.mining_pool_payment_wallet_path)
-    app.run(host=config.user.grpc_proxy_host, port=config.user.grpc_proxy_port)
+    app.run(host=config.user.grpc_proxy_host, port=config.user.grpc_proxy_port, threaded=False)
 
 
 if __name__ == '__main__':
