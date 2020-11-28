@@ -372,11 +372,16 @@ class QRLNode:
 
         return self._chain_manager.get_address_is_used(address)
 
-    def get_address_state(self, address: bytes) -> AddressState:
+    def get_address_state(self,
+                          address: bytes,
+                          exclude_ots_bitfield: bool = False,
+                          exclude_transaction_hashes: bool = False) -> AddressState:
         if address != config.dev.coinbase_address and not AddressState.address_is_valid(address):
             raise ValueError("Invalid Address")
 
-        address_state = self._chain_manager.get_address_state(address)
+        address_state = self._chain_manager.get_address_state(address,
+                                                              exclude_ots_bitfield,
+                                                              exclude_transaction_hashes)
 
         return address_state
 

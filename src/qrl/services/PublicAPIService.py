@@ -106,7 +106,9 @@ class PublicAPIService(PublicAPIServicer):
 
     @GrpcExceptionWrapper(qrl_pb2.GetAddressStateResp)
     def GetAddressState(self, request: qrl_pb2.GetAddressStateReq, context) -> qrl_pb2.GetAddressStateResp:
-        address_state = self.qrlnode.get_address_state(request.address)
+        address_state = self.qrlnode.get_address_state(request.address,
+                                                       request.exclude_ots_bitfield,
+                                                       request.exclude_transaction_hashes)
         return qrl_pb2.GetAddressStateResp(state=address_state.pbdata)
 
     @GrpcExceptionWrapper(qrl_pb2.GetOptimizedAddressStateResp)
