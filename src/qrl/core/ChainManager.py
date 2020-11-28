@@ -100,56 +100,61 @@ class ChainManager:
         with self.lock:
             return self._state.get_address_is_used(address)
 
-    def get_address_state(self, address: bytes) -> AddressState:
+    def get_address_state(self,
+                          address: bytes,
+                          exclude_ots_bitfield: bool = False,
+                          exclude_transaction_hashes: bool = False) -> AddressState:
         """
         Transform Optimized Address State into Older Address State format
         This should only be used by API.
         """
         optimized_address_state = self.get_optimized_address_state(address)
-        ots_bitfield = [b'\x00'] * max(1024, int(ceil((2 ** optimized_address_state.height) / 8)))
+        ots_bitfield = []
         transaction_hashes = list()
         tokens = OrderedDict()
         slave_pks_access_type = OrderedDict()
 
         max_bitfield_page = ceil((2 ** optimized_address_state.height) / config.dev.ots_tracking_per_page)
+        if not exclude_ots_bitfield:
+            ots_bitfield = [b'\x00'] * max(1024, int(ceil((2 ** optimized_address_state.height) / 8)))
+            for page in range(1, max_bitfield_page + 1):
+                offset = (page - 1) * config.dev.ots_tracking_per_page
+                page_data = self.get_bitfield(address, page)
+                for data in page_data:
+                    if offset >= len(ots_bitfield):
+                        break
+                    ots_bitfield[offset] = data
+                    offset += 1
 
-        for page in range(1, max_bitfield_page + 1):
-            offset = (page - 1) * config.dev.ots_tracking_per_page
-            page_data = self.get_bitfield(address, page)
-            for data in page_data:
-                if offset >= len(ots_bitfield):
-                    break
-                ots_bitfield[offset] = data
-                offset += 1
+        if not exclude_transaction_hashes:
+            max_transaction_hash_page = ceil(optimized_address_state.transaction_hash_count() / config.dev.data_per_page)
 
-        max_transaction_hash_page = ceil(optimized_address_state.transaction_hash_count() / config.dev.data_per_page)
+            for page in range(0, max_transaction_hash_page + 1):
+                page_data = self.get_transaction_hashes(address, page * config.dev.data_per_page)
+                transaction_hashes.extend(page_data)
 
-        for page in range(0, max_transaction_hash_page + 1):
-            page_data = self.get_transaction_hashes(address, page * config.dev.data_per_page)
-            transaction_hashes.extend(page_data)
+            max_token_page = ceil(optimized_address_state.tokens_count() / config.dev.data_per_page)
 
-        max_token_page = ceil(optimized_address_state.tokens_count() / config.dev.data_per_page)
+            for page in range(0, max_token_page + 1):
+                page_data = self.get_token_transaction_hashes(address, page * config.dev.data_per_page)
+                for token_txn_hash in page_data:
+                    token_balance = self.get_token(address, token_txn_hash)
+                    # token_balance None is only possible when the token transaction
+                    # is done by a QRL address as an owner, which has not been
+                    # assigned any token balance.
+                    if token_balance is None:
+                        continue
+                    tokens[token_txn_hash] = token_balance.balance
 
-        for page in range(0, max_token_page + 1):
-            page_data = self.get_token_transaction_hashes(address, page * config.dev.data_per_page)
-            for token_txn_hash in page_data:
-                token_balance = self.get_token(address, token_txn_hash)
-                # token_balance None is only possible when the token transaction
-                # is done by a QRL address as an owner, which has not been
-                # assigned any token balance.
-                if token_balance is None:
-                    continue
-                tokens[token_txn_hash] = token_balance.balance
+            max_slave_page = ceil(optimized_address_state.slaves_count() / config.dev.data_per_page)
 
-        max_slave_page = ceil(optimized_address_state.slaves_count() / config.dev.data_per_page)
-
-        for page in range(0, max_slave_page + 1):
-            page_data = self.get_slave_transaction_hashes(address, page * config.dev.data_per_page)
-            for slave_txn_hash in page_data:
-                tx, _ = self.get_tx_metadata(slave_txn_hash)
-                for slave_pk in tx.slave_pks:
-                    slave_meta_data = self.get_slave_pk_access_type(address, slave_pk)
-                    slave_pks_access_type[str(slave_pk)] = slave_meta_data.access_type
+            for page in range(0, max_slave_page + 1):
+                page_data = self.get_slave_transaction_hashes(address, page * config.dev.data_per_page)
+                for slave_txn_hash in page_data:
+                    tx, _ = self.get_tx_metadata(slave_txn_hash)
+                    for slave_pk in tx.slave_pks:
+                        slave_meta_data = self.get_slave_pk_access_type(address, slave_pk)
+                        slave_pks_access_type[str(slave_pk)] = slave_meta_data.access_type
 
         addr_state = AddressState.create(address=optimized_address_state.address,
                                          nonce=optimized_address_state.nonce,
