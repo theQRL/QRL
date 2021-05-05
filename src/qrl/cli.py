@@ -230,7 +230,7 @@ def qrl(ctx, verbose, host, port_pub, wallet_dir, json):
                          output_json=json)
 
 
-@qrl.command()
+@qrl.command(name='wallet_ls')
 @click.pass_context
 def wallet_ls(ctx):
     """
@@ -240,7 +240,7 @@ def wallet_ls(ctx):
     _print_addresses(ctx, wallet.address_items, ctx.obj.wallet_dir)
 
 
-@qrl.command()
+@qrl.command(name='wallet_gen')
 @click.pass_context
 @click.option('--height', default=config.dev.xmss_tree_height,
               help='XMSS tree height. The resulting tree will be good for 2^height signatures')
@@ -267,7 +267,7 @@ def wallet_gen(ctx, height, hash_function, encrypt):
     wallet.save()
 
 
-@qrl.command()
+@qrl.command(name='wallet_add')
 @click.option('--height', type=int, default=config.dev.xmss_tree_height, prompt=False)
 @click.option('--hash_function', type=click.Choice(list(hash_functions.keys())), default='shake128',
               help='Hash function used to build the XMSS tree [default=shake128]')
@@ -293,7 +293,7 @@ def wallet_add(ctx, height, hash_function):
     wallet.save()
 
 
-@qrl.command()
+@qrl.command(name='wallet_recover')
 @click.option('--seed-type', type=click.Choice(['hexseed', 'mnemonic']), default='hexseed')
 @click.pass_context
 def wallet_recover(ctx, seed_type):
@@ -334,7 +334,7 @@ def wallet_recover(ctx, seed_type):
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 
-@qrl.command()
+@qrl.command(name='wallet_secret')
 @click.option('--wallet-idx', default=1, prompt=True)
 @click.pass_context
 def wallet_secret(ctx, wallet_idx):
@@ -353,7 +353,7 @@ def wallet_secret(ctx, wallet_idx):
         click.echo('Hexseed         : {}'.format(address_item.hexseed))
 
 
-@qrl.command()
+@qrl.command(name='wallet_rm')
 @click.option('--wallet-idx', type=int, prompt=True, help='index of address in wallet')
 @click.option('--skip-confirmation', default=False, is_flag=True, prompt=False, help='skip the confirmation prompt')
 @click.pass_context
@@ -384,7 +384,7 @@ def wallet_rm(ctx, wallet_idx, skip_confirmation):
         _print_addresses(ctx, wallet.address_items, config.user.wallet_dir)
 
 
-@qrl.command()
+@qrl.command(name='wallet_encrypt')
 @click.pass_context
 def wallet_encrypt(ctx):
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
@@ -395,7 +395,7 @@ def wallet_encrypt(ctx):
     wallet.save()
 
 
-@qrl.command()
+@qrl.command(name='wallet_decrypt')
 @click.pass_context
 def wallet_decrypt(ctx):
     wallet = Wallet(wallet_path=ctx.obj.wallet_path)
@@ -419,7 +419,7 @@ def wallet_decrypt(ctx):
         quit(1)
 
 
-@qrl.command()
+@qrl.command(name='tx_inspect')
 @click.option('--txblob', type=str, default='', prompt=True, help='transaction blob')
 @click.pass_context
 def tx_inspect(ctx, txblob):
@@ -441,7 +441,7 @@ def tx_inspect(ctx, txblob):
     print(tmp_json)
 
 
-@qrl.command()
+@qrl.command(name='tx_push')
 @click.option('--txblob', type=str, default='', help='transaction blob (unsigned)')
 @click.pass_context
 def tx_push(ctx, txblob):
@@ -471,7 +471,7 @@ def tx_push(ctx, txblob):
     print(pushTransactionResp.error_code)
 
 
-@qrl.command()
+@qrl.command(name='tx_message')
 @click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--addr_to', type=str, default='', prompt=True, help='QRL Address receiving this message (optional)')
@@ -522,7 +522,7 @@ def tx_message(ctx, src, master, addr_to, message, fee, ots_key_index):
         print("Error {}".format(str(e)))
 
 
-@qrl.command()
+@qrl.command(name='tx_multi_sig_create')
 @click.option('--src', type=str, default='', prompt=True, help='source QRL address')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--threshold', default=0, prompt=True, help='Threshold')
@@ -587,7 +587,7 @@ def tx_multi_sig_create(ctx, src, master, threshold, fee, ots_key_index):
         print("Error {}".format(str(e)))
 
 
-@qrl.command()
+@qrl.command(name='tx_multi_sig_spend')
 @click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
 @click.option('--master', type=str, default='', help='master QRL address')
 @click.option('--multi_sig_address', type=str, default='', prompt=True, help='signer Multi Sig Address')
@@ -688,7 +688,7 @@ def tx_unbase64(tx_json_str):
     return json.dumps(tx_json, indent=True, sort_keys=True)
 
 
-@qrl.command()
+@qrl.command(name='tx_transfer')
 @click.option('--src', type=str, default='', prompt=True, help='signer QRL address')
 @click.option('--master', type=str, default='', help='master QRL address')
 @click.option('--dsts', type=str, prompt=True, help='List of destination addresses')
@@ -777,7 +777,7 @@ def tx_transfer(ctx, src, master, dsts, amounts, message_data, fee, ots_key_inde
         print("Error {}".format(str(e)))
 
 
-@qrl.command()
+@qrl.command(name='tx_token')
 @click.option('--src', type=str, default='', prompt=True, help='source QRL address')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--symbol', default='', prompt=True, help='Symbol Name')
@@ -857,7 +857,7 @@ def tx_token(ctx, src, master, symbol, name, owner, decimals, fee, ots_key_index
         print("Error {}".format(str(e)))
 
 
-@qrl.command()
+@qrl.command(name='tx_transfertoken')
 @click.option('--src', type=str, default='', prompt=True, help='source QRL address')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--token_txhash', default='', prompt=True, help='Token Txhash')
@@ -920,7 +920,7 @@ def tx_transfertoken(ctx, src, master, token_txhash, dsts, amounts, decimals, fe
         print("Error {}".format(str(e)))
 
 
-@qrl.command()
+@qrl.command(name='slave_tx_generate')
 @click.option('--src', type=str, default='', prompt=True, help='source address or index')
 @click.option('--master', type=str, default='', prompt=True, help='master QRL address')
 @click.option('--number_of_slaves', default=0, type=int, prompt=True, help='Number of slaves addresses')
@@ -985,7 +985,7 @@ def slave_tx_generate(ctx, src, master, number_of_slaves, access_type, fee, pk, 
         quit(1)
 
 
-@qrl.command()
+@qrl.command(name='token_list')
 @click.option('--owner', default='', prompt=True, help='source QRL address')
 @click.pass_context
 def token_list(ctx, owner):
@@ -1016,7 +1016,7 @@ def token_list(ctx, owner):
         print("Error {}".format(str(e)))
 
 
-@qrl.command()
+@qrl.command(name='state')
 @click.pass_context
 def state(ctx):
     """
