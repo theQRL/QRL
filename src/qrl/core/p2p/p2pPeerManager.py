@@ -199,7 +199,9 @@ class P2PPeerManager(P2PBaseObserver):
                 if int(major_version) < 2:
                     return False
             except Exception:
-                logger.warning("Exception while checking version for compatibility")
+                # Disabled warning as it is not required and could be annoying
+                # if a peer with dirty version is trying to connect with the node
+                # logger.warning("Exception while checking version for compatibility")
                 return True
 
         return True
