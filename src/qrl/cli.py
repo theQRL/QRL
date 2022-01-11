@@ -8,7 +8,7 @@ from typing import List
 import click
 import grpc
 import simplejson as json
-from google.protobuf.json_format import MessageToJson
+from google.protobuf.json_format import MessageToJson, MessageToDict
 from pyqrllib.pyqrllib import mnemonic2bin, hstr2bin, bin2hstr
 
 from qrl.core import config
@@ -495,7 +495,10 @@ def tx_message(ctx, src, master, addr_to, message, fee, ots_key_index):
         src_xmss.set_ots_index(ots_key_index)
 
         message = message.encode()
-        addr_to = parse_qaddress(addr_to, False)
+        if addr_to:
+            addr_to = parse_qaddress(addr_to, False)
+        else:
+            addr_to = None
 
         master_addr = None
         if master:
@@ -1025,9 +1028,13 @@ def state(ctx):
     stub = ctx.obj.get_stub_public_api()
     nodeStateResp = stub.GetNodeState(qrl_pb2.GetNodeStateReq())
 
+    hstr_block_last_hash = bin2hstr(nodeStateResp.info.block_last_hash).encode()
     if ctx.obj.output_json:
-        click.echo(MessageToJson(nodeStateResp, sort_keys=True))
+        jsonMessage = MessageToDict(nodeStateResp)
+        jsonMessage['info']['blockLastHash'] = hstr_block_last_hash
+        click.echo(json.dumps(jsonMessage, indent=2, sort_keys=True))
     else:
+        nodeStateResp.info.block_last_hash = hstr_block_last_hash
         click.echo(nodeStateResp)
 
 

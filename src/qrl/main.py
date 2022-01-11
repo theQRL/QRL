@@ -68,7 +68,7 @@ def main():
     qrl_dir_post_fix = ''
     copy_files = []
     if args.network_type == 'testnet':
-        config.dev.hard_fork_heights[0] = config.dev.testnet_hard_fork_heights[0]  # Hard Fork Block Height For Testnet
+        config.dev.hard_fork_heights = list(config.dev.testnet_hard_fork_heights)  # Hard Fork Block Height For Testnet
         qrl_dir_post_fix = '-testnet'
         package_directory = os.path.dirname(os.path.abspath(__file__))
         copy_files.append(os.path.join(package_directory, 'network/testnet/genesis.yml'))

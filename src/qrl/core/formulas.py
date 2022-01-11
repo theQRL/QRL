@@ -47,6 +47,7 @@ def remaining_emission(block_n, dev_config: DevConfig) -> Decimal:
     >>> remaining_emission(100, config.dev)
     Decimal('39999334370536850')
     """
+
     coeff = calc_coeff(dev_config)
     return (dev_config.coin_remaining_at_genesis * dev_config.shor_per_quanta * Decimal(-coeff * block_n).exp()) \
         .quantize(Decimal('1.'), rounding=decimal.ROUND_DOWN)
@@ -69,4 +70,9 @@ def block_reward(block_number: int, dev_config: DevConfig) -> Decimal:
     >>> tmp_est - tmp_sum
     Decimal('0')
     """
-    return remaining_emission(block_number - 1, dev_config) - remaining_emission(block_number, dev_config)
+    factor = Decimal('0.4')
+    if block_number < dev_config.hard_fork_heights[1]:
+        factor = Decimal('1')
+
+    reward = factor * (remaining_emission(block_number - 1, dev_config) - remaining_emission(block_number, dev_config))
+    return reward.quantize(Decimal('1.'), rounding=decimal.ROUND_DOWN)

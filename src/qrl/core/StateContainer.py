@@ -1,4 +1,5 @@
 from qrl.core.config import DevConfig
+from qrl.core.formulas import block_reward
 from qrl.core.Indexer import Indexer
 from qrl.core.PaginatedData import PaginatedData
 from qrl.core.PaginatedBitfield import PaginatedBitfield
@@ -37,6 +38,7 @@ class StateContainer:
         self.multi_sig_spend_txs = multi_sig_spend_txs
         self.votes_stats = votes_stats
         self.block_number = block_number  # Block number that is being processed
+        self.block_reward = int(block_reward(block_number, current_dev_config))
         self.batch = batch
         self.db = my_db
         self.current_dev_config = current_dev_config

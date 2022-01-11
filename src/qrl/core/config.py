@@ -44,7 +44,7 @@ class UserConfig(object):
         self.peer_list = ['35.178.79.137',
                           '35.177.182.85',
                           '18.130.119.29',
-                          '18.130.25.64']
+                          '209.250.251.100']
 
         self.p2p_local_port = 19000  # Locally binded port at which node will listen for connection
         self.p2p_public_port = 19000  # Public port forwarding connections to server
@@ -270,6 +270,12 @@ class DevConfig(object):
         self.supplied_coins = 65000000 * (10 ** 9)
 
         # ======================================
+        #      STATE VERSION
+        # ======================================
+        # Max number of data to be stored per key
+        self._state_version = 2
+
+        # ======================================
         #      STATE PAGINATION CONTROLLER
         # ======================================
         # Max number of data to be stored per key
@@ -305,8 +311,8 @@ class DevConfig(object):
         # ======================================
         # HARD FORK HEIGHTS LIST
         # ======================================
-        self.hard_fork_heights = [942375]
-        self.testnet_hard_fork_heights = [10500]
+        self.hard_fork_heights = [942375, 1938000]
+        self.testnet_hard_fork_heights = [1, 10500]
 
         # ======================================
         # PROPOSAL CONFIG
@@ -316,6 +322,10 @@ class DevConfig(object):
     @property
     def pbdata(self):
         return self._data
+
+    @property
+    def state_version(self):
+        return self._state_version
 
     @property
     def prev_state_key(self):
