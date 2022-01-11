@@ -102,7 +102,7 @@ class CoinBase(Transaction):
         state_container.paginated_tx_hash.insert(address_state, self.txhash)
 
         address_state = state_container.addresses_state[self.master_addr]
-        address_state.update_balance(state_container, self.amount, subtract=True)
+        address_state.update_balance(state_container, state_container.block_reward, subtract=True)
         address_state.increase_nonce()
         state_container.paginated_tx_hash.insert(address_state, self.txhash)
 
@@ -116,7 +116,7 @@ class CoinBase(Transaction):
         state_container.paginated_tx_hash.remove(address_state, self.txhash)
 
         address_state = state_container.addresses_state[self.master_addr]
-        address_state.update_balance(state_container, self.amount)
+        address_state.update_balance(state_container, state_container.block_reward)
         address_state.decrease_nonce()
         state_container.paginated_tx_hash.remove(address_state, self.txhash)
 

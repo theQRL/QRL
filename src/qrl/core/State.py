@@ -14,7 +14,8 @@ class State:
         if not my_db:
             self._db = db.DB()  # generate db object here
         self._tmp_state = None  # Temporary State file which needs to be fetched during migration to new db
-        self._state_version = 1  # Change State Version, each time any change made to leveldb structure
+        # Change State Version, each time any change made to leveldb structure
+        self._state_version = config.dev.state_version
 
     def __enter__(self):
         return self
@@ -60,6 +61,7 @@ class State:
         current_state_version = self.get_state_version()
         if current_state_version < self._state_version:
             return True
+        return False
 
     def is_state_compatible(self) -> bool:
         current_state_version = self.get_state_version()
