@@ -433,6 +433,13 @@ class ChainManager:
         dev_config_pbdata = self._state.get_dev_config_state(current_state_key)
         config.dev.update_from_pbdata(dev_config_pbdata)
 
+        state_migration = StateMigration()
+        is_state_migration_needed = self._state.is_older_state_version()
+        state_version = self._state.get_state_version()
+        if is_state_migration_needed:
+            if state_version == 0:
+                state_migration.state_migration_step_1(self._state)
+
         height = self._state.get_mainchain_height()
 
         if height == -1:
@@ -499,8 +506,25 @@ class ChainManager:
                 block = Block.get_block(self._state, fork_state.initiator_headerhash)
                 self._fork_recovery(block, fork_state)
 
-        is_state_migration_needed = self._state.is_older_state_version()
         if is_state_migration_needed:
+            if state_version == 0:
+                logger.warning("Please Wait... Starting State Migration From Version 0 to %s",
+                               self._state.state_version)
+                height = state_migration.height_from_state_version_0()
+                start_block_number = self._state.get_mainchain_height() + 1
+                logger.warning("Start blockheight %s", start_block_number)
+                for block_number in range(start_block_number, height + 1):
+                    block = state_migration.block_from_state_version_0(block_number)
+                    if not self.add_block(block, check_stale=False):
+                        print("System Exitting, due to migration failure")
+                        sys.exit(1)
+                    if block_number % 1000 == 0:
+                        logger.warning("Migrated Block %s/%s", block_number, height)
+
+                if self.height % 1000 != 0:
+                    logger.warning("Migrated Block %s/%s", self.height, height)
+                state_migration.state_migration_step_2(self._state)
+
             logger.warning("Please Wait... Starting State Migration From Version 1 to %s", self._state.state_version)
             height = self._state.get_mainchain_height()
             start_block_number = 1
