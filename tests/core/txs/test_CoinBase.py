@@ -7,6 +7,7 @@ from pyqrllib.pyqrllib import bin2hstr
 from qrl.core import config
 from qrl.core.Indexer import Indexer
 from qrl.core.misc import logger
+from qrl.core.formulas import block_reward
 from qrl.core.State import State
 from qrl.core.StateContainer import StateContainer
 from qrl.core.OptimizedAddressState import OptimizedAddressState
@@ -125,7 +126,7 @@ class TestCoinBase(TestCase):
             config.dev.coinbase_address: OptimizedAddressState.get_default(config.dev.coinbase_address),
             self.alice.address: OptimizedAddressState.get_default(self.alice.address),
         }
-        addresses_state[config.dev.coinbase_address].pbdata.balance = 1000000
+        addresses_state[config.dev.coinbase_address].pbdata.balance = 1000000000000000
         tx = CoinBase.create(config.dev, self.amount, self.alice.address, self.mock_blockheader.block_number)
         state_container = StateContainer(addresses_state=addresses_state,
                                          tokens=Indexer(b'token', None),
@@ -141,8 +142,8 @@ class TestCoinBase(TestCase):
                                          batch=None)
         # self.state.apply(tx, addresses_state)
         tx.apply(self.state, state_container)
-
-        self.assertEqual(1000000 - tx.amount, addresses_state[config.dev.coinbase_address].balance)
+        reward = int(block_reward(self.mock_blockheader.block_number, config.dev))
+        self.assertEqual(1000000000000000 - reward, addresses_state[config.dev.coinbase_address].balance)
 
         storage_key = state_container.paginated_tx_hash.generate_key(config.dev.coinbase_address, 1)
         self.assertEqual([tx.txhash], state_container.paginated_tx_hash.key_value[storage_key])
@@ -160,7 +161,7 @@ class TestCoinBase(TestCase):
             config.dev.coinbase_address: OptimizedAddressState.get_default(config.dev.coinbase_address),
             self.alice.address: OptimizedAddressState.get_default(self.alice.address),
         }
-        addresses_state[config.dev.coinbase_address].pbdata.balance = 1000000
+        addresses_state[config.dev.coinbase_address].pbdata.balance = 1000000000000000
 
         state_container = StateContainer(addresses_state=addresses_state,
                                          tokens=Indexer(b'token', None),
@@ -177,7 +178,7 @@ class TestCoinBase(TestCase):
         tx.apply(self.state, state_container)
         tx.revert(self.state, state_container)
 
-        self.assertEqual(1000000, addresses_state[config.dev.coinbase_address].balance)
+        self.assertEqual(1000000000000000, addresses_state[config.dev.coinbase_address].balance)
 
         storage_key = state_container.paginated_tx_hash.generate_key(config.dev.coinbase_address, 1)
         self.assertEqual([], state_container.paginated_tx_hash.key_value[storage_key])

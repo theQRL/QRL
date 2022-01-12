@@ -29,7 +29,7 @@ class DB:
                                 lru_cache_size=5 * 1024,
                                 create_if_missing=True,
                                 compression='snappy')
-            self.db.put(b'state_version', str(1).encode())
+            self.db.put(b'state_version', str(config.dev.state_version).encode())
 
     def close(self):
         del self.db
