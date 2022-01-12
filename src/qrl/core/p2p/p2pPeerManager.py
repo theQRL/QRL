@@ -204,6 +204,17 @@ class P2PPeerManager(P2PBaseObserver):
                 # logger.warning("Exception while checking version for compatibility")
                 return True
 
+        if self._p2p_factory.chain_height >= config.dev.hard_fork_heights[1]:
+            try:
+                major_version = version.split(".")[0]
+                if int(major_version) < 3:
+                    return False
+            except Exception:
+                # Disabled warning as it is not required and could be annoying
+                # if a peer with dirty version is trying to connect with the node
+                # logger.warning("Exception while checking version for compatibility")
+                return True
+
         return True
 
     def handle_version(self, source, message: qrllegacy_pb2.LegacyMessage):
