@@ -2,3 +2,5 @@ peer_list: [ "18.130.83.207", "209.250.246.234", "136.244.104.146", "95.179.154.
 genesis_prev_headerhash: 'Testnet 2022'
 genesis_timestamp: 1641963062
 genesis_difficulty: 5000
+public_api_port: 19019
+p2p_local_port: 19001
