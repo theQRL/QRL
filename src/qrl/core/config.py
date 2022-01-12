@@ -312,7 +312,7 @@ class DevConfig(object):
         # HARD FORK HEIGHTS LIST
         # ======================================
         self.hard_fork_heights = [942375, 1938000]
-        self.testnet_hard_fork_heights = [1, 500]
+        self.testnet_hard_fork_heights = [1, 3000]
 
         # ======================================
         # PROPOSAL CONFIG
