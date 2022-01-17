@@ -3,8 +3,7 @@
 [![PyPI version](https://badge.fury.io/py/qrl.svg)](https://badge.fury.io/py/qrl)
 [![CircleCI](https://circleci.com/gh/theQRL/QRL.svg?style=shield)](https://circleci.com/gh/theQRL/QRL)
 [![CircleCI](https://img.shields.io/circleci/project/github/theQRL/integration_tests/master.svg?label=integration)](https://circleci.com/gh/theQRL/integration_tests)
-[![Codacy Badge](https://api.codacy.com/project/badge/Coverage/e3070763b579456380822b2909259070)](https://www.codacy.com/app/qrl/QRL?utm_source=github.com&utm_medium=referral&utm_content=theQRL/QRL&utm_campaign=Badge_Coverage) 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e3070763b579456380822b2909259070)](https://www.codacy.com/app/qrl/QRL?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=theQRL/QRL&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/d1d2abd66d7546c0aac551b7abb8d87e)](https://www.codacy.com/gh/theQRL/QRL/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=theQRL/QRL&amp;utm_campaign=Badge_Grade)
 [![codebeat badge](https://codebeat.co/badges/5748b416-7398-4d08-8b49-e4285ef9a82d)](https://codebeat.co/projects/github-com-theqrl-qrl-master)
 [![Snyk Vulnerability Analysis](https://snyk.io/test/github/theQRL/QRL/badge.svg)](https://snyk.io/test/github/theQRL/QRL)
 
