@@ -2,7 +2,7 @@
 # setuptools==50.3.2 # It needs to be installed manually in some cases
 plyvel==1.2.0
 ntplib==0.3.4
-Twisted==20.3.0
+Twisted==22.4.0rc1
 colorlog==3.1.0
 simplejson==3.11.1
 PyYAML==5.3.1
