@@ -112,33 +112,34 @@ class TestChainManagerReal(TestCase):
         self.chain_manager._fork_recovery.assert_called_with(self.genesis_block, m_fork_state)
 
     @patch('qrl.core.misc.ntp.getTime')
-    def test_simple_add_block(self, time_mock):
+    def test_simple_add_block_multiple_coinbase(self, time_mock):
         # Simply test that adding a block on top of the genesis block works.
         with patch.object(DifficultyTracker, 'get', return_value=ask_difficulty_tracker('2', config.dev)):
             self.chain_manager.load(self.genesis_block)
 
             time_mock.return_value = 1615270948  # Very high to get an easy difficulty
-
+            from qrl.core.txs.CoinBase import CoinBase
+            exploit_tx = CoinBase.create(config.dev, 250000000, alice.address, 1)
+            exploit_tx.pbdata.signature = b'00000000'
             block_1 = Block.create(dev_config=config.dev,
                                    block_number=1,
                                    prev_headerhash=self.genesis_block.headerhash,
                                    prev_timestamp=self.genesis_block.timestamp,
-                                   transactions=[],
+                                   transactions=[exploit_tx],
                                    miner_address=alice.address,
                                    seed_hash=None,
                                    seed_height=None)
-            block_1.set_nonces(config.dev, 201, 0)
+            block_1.set_nonces(config.dev, 204, 0)
 
             # Uncomment only to determine the correct mining_nonce of above blocks
             # from qrl.core.PoWValidator import PoWValidator
-            # while not PoWValidator().validate_mining_nonce(self.state, block_1.blockheader, False):
-            #     block_1.set_nonces(block_1.mining_nonce + 1)
+            # while not self.chain_manager.validate_mining_nonce(block_1.blockheader, config.dev, False):
+            #     block_1.set_nonces(config.dev, block_1.mining_nonce + 1, 0)
             #     print(block_1.mining_nonce)
-            self.assertTrue(block_1.validate(self.chain_manager, {}))
+            self.assertFalse(block_1.validate(self.chain_manager, {}))
             result = self.chain_manager.add_block(block_1)
 
-            self.assertTrue(result)
-            self.assertEqual(self.chain_manager.last_block, block_1)
+            self.assertFalse(result)
 
     @set_default_balance_size()
     @patch('qrl.core.misc.ntp.getTime')

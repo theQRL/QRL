@@ -229,6 +229,30 @@ class Transaction(object, metaclass=ABCMeta):
         return True
 
     def validate_all(self, state_container: StateContainer, check_nonce=True) -> bool:
+        if state_container.block_number >= state_container.current_dev_config.hard_fork_heights[2]:
+            for banned_address in state_container.current_dev_config.banned_address:
+                tx_type = self.pbdata.WhichOneof('transactionType')
+                addr_from_pk = None
+                if tx_type != 'coinbase':
+                    addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+
+                if addr_from_pk == banned_address or self.master_addr == banned_address:
+                    logger.warning("Banned QRL Address found in master_addr or pk")
+                    return False
+                if tx_type == 'coinbase':
+                    if self.pbdata.coinbase.addr_to == banned_address:
+                        logger.warning("Banned QRL Address found in coinbase.addr_to")
+                        return False
+                elif tx_type == 'message':
+                    if self.pbdata.message.addr_to == banned_address:
+                        logger.warning("Banned QRL Address found in message.addr_to")
+                        return False
+                elif tx_type == 'transfer':
+                    for addr_to in self.pbdata.transfer.addrs_to:
+                        if banned_address == addr_to:
+                            logger.warning("Banned QRL Address found in transfer.addr_to")
+                            return False
+
         if self.pbdata.WhichOneof('transactionType') == 'coinbase':
             if not self._validate_extended(state_container):
                 return False
