@@ -524,57 +524,66 @@ class ChainManager:
                     logger.warning("Migrated Block %s/%s", self.height, height)
                 state_migration.state_migration_step_2(self._state)
 
-            logger.warning("Please Wait... Starting State Migration From Version 1 to %s", self._state.state_version)
-            height = self._state.get_mainchain_height()
-            start_block_number = 1
-            logger.warning("Start blockheight %s", start_block_number)
-            total_block_reward = 0
-            for block_number in range(start_block_number, height + 1):
-                total_block_reward += int(block_reward(block_number, config.dev))
-                if block_number % 1000 == 0:
-                    logger.warning("Migrated Block %s/%s", block_number, height)
+            if state_version < 2:
+                logger.warning("Please Wait... Starting State Migration From Version 1 to %s", self._state.state_version)
+                height = self._state.get_mainchain_height()
+                start_block_number = 1
+                logger.warning("Start blockheight %s", start_block_number)
+                total_block_reward = 0
+                for block_number in range(start_block_number, height + 1):
+                    total_block_reward += int(block_reward(block_number, config.dev))
+                    if block_number % 1000 == 0:
+                        logger.warning("Migrated Block %s/%s", block_number, height)
 
-            if self.height % 1000 != 0:
-                logger.warning("Migrated Block %s/%s", self.height, height)
+                if self.height % 1000 != 0:
+                    logger.warning("Migrated Block %s/%s", self.height, height)
 
-            logger.warning('Please Wait... While verifying State')
-            total_balance = 0
-            count = 0
-            for address, _ in self._state._db.db:
-                address_state = None
-                if AddressState.address_is_valid(address):
-                    address_state = OptimizedAddressState.get_optimized_address_state(self._state, address)
-                elif MultiSigAddressState.address_is_valid(address):
-                    address_state = self.get_multi_sig_address_state(address)
+                logger.warning('Please Wait... While verifying State')
+                total_balance = 0
+                count = 0
+                for address, _ in self._state._db.db:
+                    address_state = None
+                    if AddressState.address_is_valid(address):
+                        address_state = OptimizedAddressState.get_optimized_address_state(self._state, address)
+                    elif MultiSigAddressState.address_is_valid(address):
+                        address_state = self.get_multi_sig_address_state(address)
 
-                if not address_state:
-                    continue
+                    if not address_state:
+                        continue
 
-                count += 1
-                total_balance += address_state.balance
+                    count += 1
+                    total_balance += address_state.balance
 
-                if count % 1000 == 0:
+                    if count % 1000 == 0:
+                        logger.warning("Processed Address %s", count)
+
+                if count % 1000 != 0:
                     logger.warning("Processed Address %s", count)
 
-            if count % 1000 != 0:
-                logger.warning("Processed Address %s", count)
+                coinbase_balance = int(config.dev.coin_remaining_at_genesis * config.dev.shor_per_quanta - total_block_reward)
+                total_supply = total_balance + coinbase_balance
+                if total_supply != config.dev.max_coin_supply * config.dev.shor_per_quanta:
+                    logger.warning('Total Supply: %s', total_supply)
+                    logger.warning('Total Max Coin Supply: %s', config.dev.max_coin_supply * config.dev.shor_per_quanta)
+                    raise Exception('Total supply mismatch, State Verification failed')
 
-            coinbase_balance = int(config.dev.coin_remaining_at_genesis * config.dev.shor_per_quanta - total_block_reward)
-            total_supply = total_balance + coinbase_balance
-            if total_supply != config.dev.max_coin_supply * config.dev.shor_per_quanta:
-                logger.warning('Total Supply: %s', total_supply)
-                logger.warning('Total Max Coin Supply: %s', config.dev.max_coin_supply * config.dev.shor_per_quanta)
-                raise Exception('Total supply mismatch, State Verification failed')
+                a = OptimizedAddressState.get_optimized_address_state(self._state, config.dev.coinbase_address)
+                a.pbdata.balance = coinbase_balance
+                addresses_state = {config.dev.coinbase_address: a}
+                a.put_optimized_addresses_state(self._state, addresses_state)
 
-            a = OptimizedAddressState.get_optimized_address_state(self._state, config.dev.coinbase_address)
-            a.pbdata.balance = coinbase_balance
-            addresses_state = {config.dev.coinbase_address: a}
-            a.put_optimized_addresses_state(self._state, addresses_state)
+                a = OptimizedAddressState.get_optimized_address_state(self._state, config.dev.coinbase_address)
+                if a.balance != coinbase_balance:
+                    raise Exception('Unexpected Coinbase balance')
+                self._state.put_state_version()
+            if state_version < 3:
+                # Adding extra block reward lost in block #2078158
+                coinbase_addr = OptimizedAddressState.get_optimized_address_state(self._state, config.dev.coinbase_address)
+                coinbase_addr.pbdata.balance += int(block_reward(2078158, config.dev))
+                addresses_state = {config.dev.coinbase_address: coinbase_addr}
+                coinbase_addr.put_optimized_addresses_state(self._state, addresses_state)
 
-            a = OptimizedAddressState.get_optimized_address_state(self._state, config.dev.coinbase_address)
-            if a.balance != coinbase_balance:
-                raise Exception('Unexpected Coinbase balance')
-            self._state.put_state_version()
+                self._state.put_state_version()
 
     def _update_chainstate(self, block: Block, batch):
         self._last_block = block
@@ -583,6 +592,12 @@ class ChainManager:
         self._state.update_mainchain_height(block.block_number, batch)
         self._state.update_re_org_limit(block.block_number, batch)
         TransactionMetadata.update_tx_metadata(self._state, block, batch)
+        if block.block_number >= config.dev.hard_fork_heights[2]:
+            banned_addr = OptimizedAddressState.get_optimized_address_state(self._state, config.dev.banned_address[0])
+            if banned_addr.pbdata.balance > 0:
+                banned_addr.pbdata.balance = 0
+                addresses_state = {banned_addr.address: banned_addr}
+                banned_addr.put_optimized_addresses_state(self._state, addresses_state)
 
     def _try_branch_add_block(self, block, dev_config: DevConfig, check_stale=True) -> bool:
         """
@@ -973,7 +988,12 @@ class ChainManager:
             return False
 
         # Processing Rest of the Transaction
-        for proto_tx in block.transactions:
+        for index, proto_tx in enumerate(block.transactions):
+            if index > 0 and block.block_number != 2078158:
+                if proto_tx.WhichOneof('transactionType') == 'coinbase':
+                    logger.warning("Multiple coinbase transaction found")
+                    return False
+
             tx = Transaction.from_pbdata(proto_tx)
             if not self.update_state_container(tx, state_container):
                 return False

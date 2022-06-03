@@ -273,7 +273,7 @@ class DevConfig(object):
         #      STATE VERSION
         # ======================================
         # Max number of data to be stored per key
-        self._state_version = 2
+        self._state_version = 3
 
         # ======================================
         #      STATE PAGINATION CONTROLLER
@@ -311,13 +311,15 @@ class DevConfig(object):
         # ======================================
         # HARD FORK HEIGHTS LIST
         # ======================================
-        self.hard_fork_heights = [942375, 1938000]
+        self.hard_fork_heights = [942375, 1938000, 2078800]
+        self.hard_fork_node_disconnect_delay = [0, 0, 2880]
         self.testnet_hard_fork_heights = [1, 3000]
 
         # ======================================
         # PROPOSAL CONFIG
         # ======================================
         self.proposal_unit_percentage = 100
+        self.banned_address = [bytes(hstr2bin('010600fcd0db869d2e1b17b452bdf9848f6fe8c74ee5b8f935408cc558c601fb69eb553fa916a1'))]
 
     @property
     def pbdata(self):

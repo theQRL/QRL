@@ -215,6 +215,12 @@ class Block(object):
             if not coinbase_txn.validate_all(state_container):
                 return False
 
+            if self.block_number != 2078158:
+                for proto_tx in self.transactions[1:]:
+                    if proto_tx.WhichOneof('transactionType') == 'coinbase':
+                        logger.warning("Multiple coinbase transaction found")
+                        return False
+
         except Exception as e:
             logger.warning('Exception %s', e)
             return False
