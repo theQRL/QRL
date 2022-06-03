@@ -161,10 +161,10 @@ workflows:
             tags:
               only: /.*/
 
-      - integration_fuzzing:
-          filters:
-            tags:
-              only: /.*/
+#      - integration_fuzzing:
+#          filters:
+#            tags:
+#              only: /.*/
 
       - deploy-pypi:
           requires:
@@ -174,7 +174,7 @@ workflows:
             #- test_leaks_CLI
             - test_leaks_other
             - integration_smoke
-            - integration_fuzzing
+#            - integration_fuzzing
           filters:
             branches:
               ignore: /.*/
