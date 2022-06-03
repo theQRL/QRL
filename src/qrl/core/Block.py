@@ -6,7 +6,7 @@ from statistics import median
 from typing import Optional
 
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import bin2hstr, hstr2bin
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.config import DevConfig
 from qrl.core.misc import logger, ntp

@@ -599,7 +599,6 @@ class ChainManager:
                 addresses_state = {banned_addr.address: banned_addr}
                 banned_addr.put_optimized_addresses_state(self._state, addresses_state)
 
-
     def _try_branch_add_block(self, block, dev_config: DevConfig, check_stale=True) -> bool:
         """
         This function returns list of bool types. The first bool represent
