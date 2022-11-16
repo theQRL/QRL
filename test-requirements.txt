@@ -1,7 +1,7 @@
 # Add requirements only needed for your unittests and during development here.
 # They will be installed automatically when running `python setup.py test`.
 # ATTENTION: Don't remove pytest-cov and pytest as they are needed.
-pytest==7.1.3
+pytest>=7.0.0,<=7.1.3
 pytest-cov==4.0.0
 pytest-xdist==2.5.0
 flake8==3.5.0
