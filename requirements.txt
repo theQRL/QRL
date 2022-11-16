@@ -23,5 +23,5 @@ Flask>=2.0.0,<=2.2.2
 json-rpc==1.13.0
 idna==2.6
 cryptography==2.3
-mock==2.0.0
+mock>=2.0.0
 daemonize==2.4.7
