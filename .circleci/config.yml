@@ -74,6 +74,7 @@ jobs:
       TESTINPLACE: 1
     steps:
       - checkout
+      - run: apt-get update
       - run: apt-get install -y rsync
       - run: git submodule update --init --recursive --remote
       - run: apt install -y python3-venv
