@@ -2,11 +2,11 @@ genesisBalance:
 - address: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
   balance: '105000000000000000'
 header:
-  hashHeader: LGyQSHq8RYrEHmG7VVtmc9YIqHNxFIH9IMrUTo34lJ0=
-  hashHeaderPrev: VGVzdG5ldCAyMDIy
+  hashHeader: 1nZdbgr36LJbrFhyeZmeFruwvTA4RFk04tnzskqJBB4=
+  hashHeaderPrev: RmluYWwgVGVzdG5ldA==
   merkleRoot: wquld1GTaqfKWRhAdWpOeREWVdCmlTYIAUrY9eWGwTQ=
   rewardBlock: '65000000000000000'
-  timestampSeconds: '1641963062'
+  timestampSeconds: '1668696491'
 transactions:
 - coinbase:
     addrTo: AQYA3oDYKOMv8cfAHpT2zewSkuiz/0gYQy5+atQfOsdD57loCQog
