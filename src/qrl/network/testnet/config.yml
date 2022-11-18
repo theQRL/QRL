@@ -1,4 +1,13 @@
 peer_list: [ "18.130.83.207", "209.250.246.234", "136.244.104.146", "95.179.154.132" ]
-genesis_prev_headerhash: 'Testnet 2022'
-genesis_timestamp: 1641963062
+genesis_prev_headerhash: 'Final Testnet'
+genesis_timestamp: 1668696491
 genesis_difficulty: 5000
+p2p_local_port: 29000
+p2p_public_port: 29000
+admin_api_port: 29008
+public_api_port: 29009
+mining_api_port: 29007
+grpc_proxy_port: 28090
+wallet_daemon_port: 28091
+public_api_server: "127.0.0.1:29009"
+wallet_api_port: 29010

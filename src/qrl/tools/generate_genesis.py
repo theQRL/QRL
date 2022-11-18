@@ -57,14 +57,12 @@ def get_migration_transactions(signing_xmss, filename):
 
 
 def main():
+    exclude_migration_tx = False
     if len(sys.argv) > 2:
         print("Unexpected arguments")
         sys.exit(0)
     elif len(sys.argv) == 1:
-        print("Missing Filename")
-        sys.exit(0)
-
-    filename = sys.argv[1]
+        exclude_migration_tx = True
 
     if sys.version_info.major > 2:
         seed = bytes(hstr2bin(input('Enter extended hexseed: ')))
@@ -73,7 +71,10 @@ def main():
 
     dist_xmss = XMSS.from_extended_seed(seed)
 
-    transactions = get_migration_transactions(signing_xmss=dist_xmss, filename=filename)
+    transactions = []
+    if not exclude_migration_tx:
+        filename = sys.argv[1]
+        transactions = get_migration_transactions(signing_xmss=dist_xmss, filename=filename)
 
     block = Block.create(dev_config=config.dev,
                          block_number=0,
