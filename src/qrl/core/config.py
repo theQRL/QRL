@@ -313,7 +313,8 @@ class DevConfig(object):
         # ======================================
         self.hard_fork_heights = [942375, 1938000, 2078800]
         self.hard_fork_node_disconnect_delay = [0, 0, 2880]
-        self.testnet_hard_fork_heights = [1, 3000]
+        self.testnet_hard_fork_heights = [0, 0, 0]
+        self.testnet_hard_fork_node_disconnect_delay = [0, 0, 0]
 
         # ======================================
         # PROPOSAL CONFIG

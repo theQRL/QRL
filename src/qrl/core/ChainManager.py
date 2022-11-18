@@ -327,6 +327,24 @@ class ChainManager:
                 dev_config = config.DevConfig(dev_config_pb_data, True, True)
             return dev_config
 
+    def get_seed_block(self, blockheader: BlockHeader):
+        qn = Qryptonight()
+        seed_height = qn.get_seed_height(blockheader.block_number)
+
+        # If parent block belongs to main chain, then seed block will also be in the main chain
+        prev_mainchain_block = self.get_block_by_number(blockheader.block_number - 1)
+        if prev_mainchain_block.headerhash == blockheader.prev_headerhash:
+            return self.get_block_by_number(seed_height)
+
+        prev_block = self.get_block(blockheader.prev_headerhash)
+        while prev_block.block_number > seed_height:
+            prev_mainchain_block = self.get_block_by_number(prev_block.block_number)
+            if prev_mainchain_block.headerhash == prev_block.headerhash:
+                return self.get_block_by_number(seed_height)
+            prev_block = self.get_block(prev_block.prev_headerhash)
+
+        return prev_block
+
     def validate_mining_nonce(self, blockheader: BlockHeader, dev_config: config.DevConfig, enable_logging=True):
         with self.lock:
             parent_metadata = BlockMetadata.get_block_metadata(self._state, blockheader.prev_headerhash)
@@ -342,6 +360,8 @@ class ChainManager:
                 dev_config=dev_config)
 
             mining_blob = blockheader.mining_blob(dev_config)
+            qn = Qryptonight()
+            seed_block = self.get_seed_block(blockheader)
 
             if enable_logging:
                 logger.debug('-----------------START--------------------')
@@ -352,10 +372,10 @@ class ChainManager:
                 logger.debug('diff                    %s', UInt256ToString(diff))
                 logger.debug('target                  %s', bin2hstr(target))
                 logger.debug('mining blob             %s', bin2hstr(mining_blob))
+                logger.debug('seed_block              #%s', seed_block.block_number)
+                logger.debug('seed_block hash         %s', bin2hstr(seed_block.headerhash))
                 logger.debug('-------------------END--------------------')
 
-            qn = Qryptonight()
-            seed_block = self.get_block_by_number(qn.get_seed_height(blockheader.block_number))
             if not PoWValidator().verify_input(blockheader.block_number,
                                                seed_block.block_number,
                                                seed_block.headerhash,
