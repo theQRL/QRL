@@ -64,6 +64,8 @@ service WalletAPI
 
     rpc GetTransactionsByAddress(TransactionsByAddressReq) returns (TransactionsByAddressResp);
 
+    rpc GetPaginatedTransactionsByAddress(PaginatedTransactionsByAddressReq) returns (PaginatedTransactionsByAddressResp);
+
     rpc GetTransaction(TransactionReq) returns (TransactionResp);
 
     rpc GetBalance(BalanceReq) returns (BalanceResp);
@@ -299,6 +301,19 @@ message TransactionsByAddressReq {
 }
 
 message TransactionsByAddressResp {
+    uint32 code = 1;
+    string error = 2;
+    repeated MiniTransaction mini_transactions = 3;
+    uint64 balance = 4;
+}
+
+message PaginatedTransactionsByAddressReq {
+    string address = 1;
+    uint64 item_per_page = 2;
+    uint64 page_number = 3;
+}
+
+message PaginatedTransactionsByAddressResp {
     uint32 code = 1;
     string error = 2;
     repeated MiniTransaction mini_transactions = 3;

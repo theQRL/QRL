@@ -584,6 +584,24 @@ class TestWalletAPI(TestCase):
             self.assertEqual(len(resp.mini_transactions), 0)
             self.assertEqual(resp.balance, 0)
 
+    def test_getPaginatedTransactionsByAddress(self):
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            service = WalletAPIService(walletd)
+
+            walletd._public_stub.GetMiniTransactionsByAddress = Mock(
+                return_value=qrl_pb2.GetMiniTransactionsByAddressResp(mini_transactions=[],
+                                                                      balance=0))
+
+            resp = service.GetPaginatedTransactionsByAddress(
+                qrlwallet_pb2.PaginatedTransactionsByAddressReq(address=get_alice_xmss(4).qaddress,
+                                                                item_per_page=1,
+                                                                page_number=1), context=None)
+
+            self.assertEqual(resp.code, 0)
+            self.assertEqual(len(resp.mini_transactions), 0)
+            self.assertEqual(resp.balance, 0)
+
     def test_getTransaction(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()

@@ -340,6 +340,23 @@ class WalletAPIService(WalletAPIServicer):
 
         return resp
 
+    @GrpcExceptionWrapper(qrlwallet_pb2.PaginatedTransactionsByAddressResp)
+    def GetPaginatedTransactionsByAddress(self,
+                                          request: qrlwallet_pb2.PaginatedTransactionsByAddressReq,
+                                          context) -> qrlwallet_pb2.PaginatedTransactionsByAddressResp:
+        resp = qrlwallet_pb2.PaginatedTransactionsByAddressResp()
+        try:
+            mini_transactions, balance = self._walletd.get_mini_transactions_by_address(qaddress=request.address,
+                                                                                        item_per_page=request.item_per_page,
+                                                                                        page_number=request.page_number)
+            resp.mini_transactions.extend(mini_transactions)
+            resp.balance = balance
+        except Exception as e:
+            resp.code = 1
+            resp.error = str(e)
+
+        return resp
+
     @GrpcExceptionWrapper(qrlwallet_pb2.TransactionResp)
     def GetTransaction(self, request: qrlwallet_pb2.TransactionReq, context) -> qrlwallet_pb2.TransactionResp:
         resp = qrlwallet_pb2.TransactionResp()
