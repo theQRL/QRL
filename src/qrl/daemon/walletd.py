@@ -106,8 +106,19 @@ class WalletD:
             ptx.message.message_hash = bin2hstr(tx.message.message_hash)
 
         elif tx.WhichOneof('transactionType') == 'token':
-            ptx.token.symbol = tx.token.symbol
-            ptx.token.name = tx.token.name
+            try:
+                ptx.token.symbol = tx.token.symbol.decode()
+            except UnicodeDecodeError:
+                ptx.token.symbol = bin2hstr(tx.token.symbol)
+            except:
+                ptx.token.symbol = str(tx.token.symbol)
+            try:
+                ptx.token.name = tx.token.name.decode()
+            except UnicodeDecodeError:
+                ptx.token.name = bin2hstr(tx.token.name)
+            except:
+                ptx.token.name = str(tx.token.name)
+
             ptx.token.owner = self.address_to_qaddress(tx.token.owner)
             ptx.token.decimals = tx.token.decimals
             for initial_balance in tx.token.initial_balances:
