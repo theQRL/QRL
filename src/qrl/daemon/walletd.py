@@ -110,13 +110,13 @@ class WalletD:
                 ptx.token.symbol = tx.token.symbol.decode()
             except UnicodeDecodeError:
                 ptx.token.symbol = bin2hstr(tx.token.symbol)
-            except:
+            except Exception:
                 ptx.token.symbol = str(tx.token.symbol)
             try:
                 ptx.token.name = tx.token.name.decode()
             except UnicodeDecodeError:
                 ptx.token.name = bin2hstr(tx.token.name)
-            except:
+            except Exception:
                 ptx.token.name = str(tx.token.name)
 
             ptx.token.owner = self.address_to_qaddress(tx.token.owner)
