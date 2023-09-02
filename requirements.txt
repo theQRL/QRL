@@ -25,3 +25,4 @@ idna==2.6
 cryptography==2.3
 mock>=2.0.0
 daemonize==2.4.7
+setuptools>=65.5.1 # not directly required, pinned by Snyk to avoid a vulnerability
