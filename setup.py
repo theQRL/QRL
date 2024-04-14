@@ -26,7 +26,7 @@ entry_points = """
 def setup_package():
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
     sphinx = ['sphinx'] if needs_sphinx else []
-    setup(setup_requires=['pyscaffold>=3.0a0,<3.1a0'] + sphinx,
+    setup(setup_requires=['pyscaffold==3.0.2'] + sphinx,
           entry_points=entry_points,
           version=versioneer.get_version(),
           cmdclass=versioneer.get_cmdclass(),
