@@ -281,9 +281,6 @@ class Wallet:
             return
 
     def save_wallet(self, filename):
-        if not self.verify_wallet():
-            raise WalletException("Could not be saved. Invalid wallet.")
-
         with open(filename, "wb") as outfile:
             address_items_asdict = [a._asdict() for a in self._address_items]
             for a in address_items_asdict:
