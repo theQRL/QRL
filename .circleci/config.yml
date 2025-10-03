@@ -1,8 +1,8 @@
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -14,7 +14,7 @@ jobs:
       
   test_leaks_CLI:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -25,7 +25,7 @@ jobs:
 
   flake8:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -33,7 +33,7 @@ jobs:
 
   test_leaks_other:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -42,9 +42,9 @@ jobs:
       - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
       - run: python3 setup.py test --addopts "--ignore=tests/tools/ --ignore=tests/daemon/ --ignore=tests/services/test_WalletAPIService.py --open-files --threadleak -n0"
 
-  build_bionic:
+  build_noble:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: pip install -U setuptools
@@ -54,7 +54,7 @@ jobs:
 
   integration_fast:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     environment:
       PYTHONPATH: /root/project:/root/project/tests_integration
       TESTINPLACE: 1
@@ -68,7 +68,7 @@ jobs:
 
   integration_smoke:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     environment:
       PYTHONPATH: /root/project:/root/project/tests_integration
       TESTINPLACE: 1
@@ -110,7 +110,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: git submodule update --init --recursive
@@ -127,7 +127,7 @@ workflows:
             tags:
               only: /.*/
 
-      - build_bionic:
+      - build_noble:
           filters:
             tags:
               only: /.*/
@@ -160,7 +160,7 @@ workflows:
       - deploy-pypi:
           requires:
             - build
-            - build_bionic
+            - build_noble
             - flake8
             #- test_leaks_CLI
             - test_leaks_other
