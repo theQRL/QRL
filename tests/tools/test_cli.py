@@ -589,7 +589,7 @@ class TestCLI(TestCase):
 
         wallet = open_wallet()
         owner_address = wallet["addresses"][0]["address"]
-        typed_in_input = '\n'.join([owner_address, '100']) + '\n'
+        typed_in_input = '\n'.join([owner_address, '100', '']) + '\n'
         result = self.runner.invoke(qrl_cli, [
             "tx_token",
             "--src=0",
@@ -617,7 +617,7 @@ class TestCLI(TestCase):
 
         wallet = open_wallet()
         owner_address = wallet["addresses"][0]["address"]
-        typed_in_input = '\n'.join([owner_address, '100']) + '\n'
+        typed_in_input = '\n'.join([owner_address, '100', '']) + '\n'
 
         # Weird token names and symbols shouldn't work
         result = self.runner.invoke(qrl_cli,
