@@ -164,7 +164,7 @@ workflows:
       - deploy-pypi:
           requires:
             - build
-            - build_noble
+            # - build_noble
             - flake8
             #- test_leaks_CLI
             - test_leaks_other
