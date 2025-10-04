@@ -31,27 +31,27 @@ class TestHelper(TestCase):
         self.assertEqual(config.user.p2p_local_port, addr.port)
 
     def test_invalid_1(self):
-        with self.assertRaisesRegexp(AddressValueError, 'Address cannot be empty'):
+        with self.assertRaisesRegex(AddressValueError, 'Address cannot be empty'):
             IPMetadata.from_full_address('')
 
     def test_invalid_2(self):
-        with self.assertRaisesRegexp(AddressValueError, 'Expected 4 octets in \'abc\''):
+        with self.assertRaisesRegex(AddressValueError, 'Expected 4 octets in \'abc\''):
             IPMetadata.from_full_address('abc')
 
     def test_wrong_port_1(self):
-        with self.assertRaisesRegexp(ValueError, 'Invalid Peer Port 192.168.0.1:100000'):
+        with self.assertRaisesRegex(ValueError, 'Invalid Peer Port 192.168.0.1:100000'):
             IPMetadata.from_full_address('192.168.0.1:100000')
 
     def test_wrong_port_2(self):
-        with self.assertRaisesRegexp(ValueError, 'Invalid Peer Port 192.168.0.1:A'):
+        with self.assertRaisesRegex(ValueError, 'Invalid Peer Port 192.168.0.1:A'):
             IPMetadata.from_full_address('192.168.0.1:A')
 
     def test_wrong_port_3(self):
-        with self.assertRaisesRegexp(ValueError, 'Invalid Peer Port 192.168.0.1:-1'):
+        with self.assertRaisesRegex(ValueError, 'Invalid Peer Port 192.168.0.1:-1'):
             IPMetadata.from_full_address('192.168.0.1:-1')
 
     def test_global_1(self):
-        with self.assertRaisesRegexp(ValueError, 'Local Peer IP Found 192.168.0.1:9000'):
+        with self.assertRaisesRegex(ValueError, 'Local Peer IP Found 192.168.0.1:9000'):
             IPMetadata.from_full_address('192.168.0.1:9000', check_global=True)
 
     def test_global_2(self):

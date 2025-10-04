@@ -56,7 +56,7 @@ class TestP2PTxManagement(TestCase):
 
         event = ObservableEvent("event_id")
 
-        with self.assertRaisesRegexp(RuntimeError, "Observer not registered for"):
+        with self.assertRaisesRegex(RuntimeError, "Observer not registered for"):
             channel.notify(event, force_delivery=True)
 
     def test_notification(self):
