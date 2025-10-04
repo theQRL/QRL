@@ -28,8 +28,10 @@ jobs:
       - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
+      - run: sudo apt-get update
+      - run: sudo apt-get install -y flake8
       - run: pip install -U setuptools
-      - run: flake8
+      - run: python3 -m flake8 -v --show-source --statistics ./src ./tests
 
   test_leaks_other:
     docker:
