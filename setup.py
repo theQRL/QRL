@@ -30,6 +30,7 @@ def setup_package():
           entry_points=entry_points,
           version=versioneer.get_version(),
           cmdclass=versioneer.get_cmdclass(),
+          install_requires=['protobuf>=6.31.1,<7.0.0', 'grpcio-tools'],
           use_pyscaffold=True)
 
 
