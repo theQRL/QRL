@@ -26,10 +26,10 @@ class LatticeTransaction(Transaction):
 
     def get_data_bytes(self):
         return self.master_addr + \
-               self.fee.to_bytes(8, byteorder='big', signed=False) + \
-               self.pk1 + \
-               self.pk2 + \
-               self.pk3
+            self.fee.to_bytes(8, byteorder='big', signed=False) + \
+            self.pk1 + \
+            self.pk2 + \
+            self.pk3
 
     @staticmethod
     def create(pk1: bytes, pk2: bytes, pk3: bytes, fee: int, xmss_pk: bytes, master_addr: bytes = None):

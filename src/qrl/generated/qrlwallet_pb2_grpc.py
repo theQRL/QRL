@@ -24,165 +24,165 @@ class WalletAPIStub(object):
             channel: A grpc.Channel.
         """
         self.AddNewAddress = channel.unary_unary(
-                '/qrl.WalletAPI/AddNewAddress',
-                request_serializer=qrlwallet__pb2.AddNewAddressReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.AddNewAddressResp.FromString,
-                )
+            '/qrl.WalletAPI/AddNewAddress',
+            request_serializer=qrlwallet__pb2.AddNewAddressReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.AddNewAddressResp.FromString,
+        )
         self.AddNewAddressWithSlaves = channel.unary_unary(
-                '/qrl.WalletAPI/AddNewAddressWithSlaves',
-                request_serializer=qrlwallet__pb2.AddNewAddressWithSlavesReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.AddNewAddressResp.FromString,
-                )
+            '/qrl.WalletAPI/AddNewAddressWithSlaves',
+            request_serializer=qrlwallet__pb2.AddNewAddressWithSlavesReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.AddNewAddressResp.FromString,
+        )
         self.ListAddresses = channel.unary_unary(
-                '/qrl.WalletAPI/ListAddresses',
-                request_serializer=qrlwallet__pb2.ListAddressesReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.ListAddressesResp.FromString,
-                )
+            '/qrl.WalletAPI/ListAddresses',
+            request_serializer=qrlwallet__pb2.ListAddressesReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.ListAddressesResp.FromString,
+        )
         self.RemoveAddress = channel.unary_unary(
-                '/qrl.WalletAPI/RemoveAddress',
-                request_serializer=qrlwallet__pb2.RemoveAddressReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RemoveAddressResp.FromString,
-                )
+            '/qrl.WalletAPI/RemoveAddress',
+            request_serializer=qrlwallet__pb2.RemoveAddressReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RemoveAddressResp.FromString,
+        )
         self.IsValidAddress = channel.unary_unary(
-                '/qrl.WalletAPI/IsValidAddress',
-                request_serializer=qrlwallet__pb2.ValidAddressReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.ValidAddressResp.FromString,
-                )
+            '/qrl.WalletAPI/IsValidAddress',
+            request_serializer=qrlwallet__pb2.ValidAddressReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.ValidAddressResp.FromString,
+        )
         self.EncryptWallet = channel.unary_unary(
-                '/qrl.WalletAPI/EncryptWallet',
-                request_serializer=qrlwallet__pb2.EncryptWalletReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.EncryptWalletResp.FromString,
-                )
+            '/qrl.WalletAPI/EncryptWallet',
+            request_serializer=qrlwallet__pb2.EncryptWalletReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.EncryptWalletResp.FromString,
+        )
         self.LockWallet = channel.unary_unary(
-                '/qrl.WalletAPI/LockWallet',
-                request_serializer=qrlwallet__pb2.LockWalletReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.LockWalletResp.FromString,
-                )
+            '/qrl.WalletAPI/LockWallet',
+            request_serializer=qrlwallet__pb2.LockWalletReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.LockWalletResp.FromString,
+        )
         self.UnlockWallet = channel.unary_unary(
-                '/qrl.WalletAPI/UnlockWallet',
-                request_serializer=qrlwallet__pb2.UnlockWalletReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.UnlockWalletResp.FromString,
-                )
+            '/qrl.WalletAPI/UnlockWallet',
+            request_serializer=qrlwallet__pb2.UnlockWalletReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.UnlockWalletResp.FromString,
+        )
         self.GetRecoverySeeds = channel.unary_unary(
-                '/qrl.WalletAPI/GetRecoverySeeds',
-                request_serializer=qrlwallet__pb2.GetRecoverySeedsReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.GetRecoverySeedsResp.FromString,
-                )
+            '/qrl.WalletAPI/GetRecoverySeeds',
+            request_serializer=qrlwallet__pb2.GetRecoverySeedsReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.GetRecoverySeedsResp.FromString,
+        )
         self.GetWalletInfo = channel.unary_unary(
-                '/qrl.WalletAPI/GetWalletInfo',
-                request_serializer=qrlwallet__pb2.GetWalletInfoReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.GetWalletInfoResp.FromString,
-                )
+            '/qrl.WalletAPI/GetWalletInfo',
+            request_serializer=qrlwallet__pb2.GetWalletInfoReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.GetWalletInfoResp.FromString,
+        )
         self.RelayTransferTxn = channel.unary_unary(
-                '/qrl.WalletAPI/RelayTransferTxn',
-                request_serializer=qrlwallet__pb2.RelayTransferTxnReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelayTransferTxn',
+            request_serializer=qrlwallet__pb2.RelayTransferTxnReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelayTransferTxnBySlave = channel.unary_unary(
-                '/qrl.WalletAPI/RelayTransferTxnBySlave',
-                request_serializer=qrlwallet__pb2.RelayTransferTxnBySlaveReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelayTransferTxnBySlave',
+            request_serializer=qrlwallet__pb2.RelayTransferTxnBySlaveReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelayMessageTxn = channel.unary_unary(
-                '/qrl.WalletAPI/RelayMessageTxn',
-                request_serializer=qrlwallet__pb2.RelayMessageTxnReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelayMessageTxn',
+            request_serializer=qrlwallet__pb2.RelayMessageTxnReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelayMessageTxnBySlave = channel.unary_unary(
-                '/qrl.WalletAPI/RelayMessageTxnBySlave',
-                request_serializer=qrlwallet__pb2.RelayMessageTxnBySlaveReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelayMessageTxnBySlave',
+            request_serializer=qrlwallet__pb2.RelayMessageTxnBySlaveReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelayTokenTxn = channel.unary_unary(
-                '/qrl.WalletAPI/RelayTokenTxn',
-                request_serializer=qrlwallet__pb2.RelayTokenTxnReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelayTokenTxn',
+            request_serializer=qrlwallet__pb2.RelayTokenTxnReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelayTokenTxnBySlave = channel.unary_unary(
-                '/qrl.WalletAPI/RelayTokenTxnBySlave',
-                request_serializer=qrlwallet__pb2.RelayTokenTxnBySlaveReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelayTokenTxnBySlave',
+            request_serializer=qrlwallet__pb2.RelayTokenTxnBySlaveReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelayTransferTokenTxn = channel.unary_unary(
-                '/qrl.WalletAPI/RelayTransferTokenTxn',
-                request_serializer=qrlwallet__pb2.RelayTransferTokenTxnReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelayTransferTokenTxn',
+            request_serializer=qrlwallet__pb2.RelayTransferTokenTxnReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelayTransferTokenTxnBySlave = channel.unary_unary(
-                '/qrl.WalletAPI/RelayTransferTokenTxnBySlave',
-                request_serializer=qrlwallet__pb2.RelayTransferTokenTxnBySlaveReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelayTransferTokenTxnBySlave',
+            request_serializer=qrlwallet__pb2.RelayTransferTokenTxnBySlaveReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelaySlaveTxn = channel.unary_unary(
-                '/qrl.WalletAPI/RelaySlaveTxn',
-                request_serializer=qrlwallet__pb2.RelaySlaveTxnReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelaySlaveTxn',
+            request_serializer=qrlwallet__pb2.RelaySlaveTxnReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.RelaySlaveTxnBySlave = channel.unary_unary(
-                '/qrl.WalletAPI/RelaySlaveTxnBySlave',
-                request_serializer=qrlwallet__pb2.RelaySlaveTxnBySlaveReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
-                )
+            '/qrl.WalletAPI/RelaySlaveTxnBySlave',
+            request_serializer=qrlwallet__pb2.RelaySlaveTxnBySlaveReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.RelayTxnResp.FromString,
+        )
         self.ChangePassphrase = channel.unary_unary(
-                '/qrl.WalletAPI/ChangePassphrase',
-                request_serializer=qrlwallet__pb2.ChangePassphraseReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.ChangePassphraseResp.FromString,
-                )
+            '/qrl.WalletAPI/ChangePassphrase',
+            request_serializer=qrlwallet__pb2.ChangePassphraseReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.ChangePassphraseResp.FromString,
+        )
         self.GetTransactionsByAddress = channel.unary_unary(
-                '/qrl.WalletAPI/GetTransactionsByAddress',
-                request_serializer=qrlwallet__pb2.TransactionsByAddressReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.TransactionsByAddressResp.FromString,
-                )
+            '/qrl.WalletAPI/GetTransactionsByAddress',
+            request_serializer=qrlwallet__pb2.TransactionsByAddressReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.TransactionsByAddressResp.FromString,
+        )
         self.GetPaginatedTransactionsByAddress = channel.unary_unary(
-                '/qrl.WalletAPI/GetPaginatedTransactionsByAddress',
-                request_serializer=qrlwallet__pb2.PaginatedTransactionsByAddressReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.PaginatedTransactionsByAddressResp.FromString,
-                )
+            '/qrl.WalletAPI/GetPaginatedTransactionsByAddress',
+            request_serializer=qrlwallet__pb2.PaginatedTransactionsByAddressReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.PaginatedTransactionsByAddressResp.FromString,
+        )
         self.GetTransaction = channel.unary_unary(
-                '/qrl.WalletAPI/GetTransaction',
-                request_serializer=qrlwallet__pb2.TransactionReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.TransactionResp.FromString,
-                )
+            '/qrl.WalletAPI/GetTransaction',
+            request_serializer=qrlwallet__pb2.TransactionReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.TransactionResp.FromString,
+        )
         self.GetBalance = channel.unary_unary(
-                '/qrl.WalletAPI/GetBalance',
-                request_serializer=qrlwallet__pb2.BalanceReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.BalanceResp.FromString,
-                )
+            '/qrl.WalletAPI/GetBalance',
+            request_serializer=qrlwallet__pb2.BalanceReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.BalanceResp.FromString,
+        )
         self.GetTotalBalance = channel.unary_unary(
-                '/qrl.WalletAPI/GetTotalBalance',
-                request_serializer=qrlwallet__pb2.TotalBalanceReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.TotalBalanceResp.FromString,
-                )
+            '/qrl.WalletAPI/GetTotalBalance',
+            request_serializer=qrlwallet__pb2.TotalBalanceReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.TotalBalanceResp.FromString,
+        )
         self.GetOTS = channel.unary_unary(
-                '/qrl.WalletAPI/GetOTS',
-                request_serializer=qrlwallet__pb2.OTSReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.OTSResp.FromString,
-                )
+            '/qrl.WalletAPI/GetOTS',
+            request_serializer=qrlwallet__pb2.OTSReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.OTSResp.FromString,
+        )
         self.GetHeight = channel.unary_unary(
-                '/qrl.WalletAPI/GetHeight',
-                request_serializer=qrlwallet__pb2.HeightReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.HeightResp.FromString,
-                )
+            '/qrl.WalletAPI/GetHeight',
+            request_serializer=qrlwallet__pb2.HeightReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.HeightResp.FromString,
+        )
         self.GetBlock = channel.unary_unary(
-                '/qrl.WalletAPI/GetBlock',
-                request_serializer=qrlwallet__pb2.BlockReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.BlockResp.FromString,
-                )
+            '/qrl.WalletAPI/GetBlock',
+            request_serializer=qrlwallet__pb2.BlockReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.BlockResp.FromString,
+        )
         self.GetBlockByNumber = channel.unary_unary(
-                '/qrl.WalletAPI/GetBlockByNumber',
-                request_serializer=qrlwallet__pb2.BlockByNumberReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.BlockResp.FromString,
-                )
+            '/qrl.WalletAPI/GetBlockByNumber',
+            request_serializer=qrlwallet__pb2.BlockByNumberReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.BlockResp.FromString,
+        )
         self.GetAddressFromPK = channel.unary_unary(
-                '/qrl.WalletAPI/GetAddressFromPK',
-                request_serializer=qrlwallet__pb2.AddressFromPKReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.AddressFromPKResp.FromString,
-                )
+            '/qrl.WalletAPI/GetAddressFromPK',
+            request_serializer=qrlwallet__pb2.AddressFromPKReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.AddressFromPKResp.FromString,
+        )
         self.GetNodeInfo = channel.unary_unary(
-                '/qrl.WalletAPI/GetNodeInfo',
-                request_serializer=qrlwallet__pb2.NodeInfoReq.SerializeToString,
-                response_deserializer=qrlwallet__pb2.NodeInfoResp.FromString,
-                )
+            '/qrl.WalletAPI/GetNodeInfo',
+            request_serializer=qrlwallet__pb2.NodeInfoReq.SerializeToString,
+            response_deserializer=qrlwallet__pb2.NodeInfoResp.FromString,
+        )
 
 
 class WalletAPIServicer(object):
@@ -394,173 +394,174 @@ class WalletAPIServicer(object):
 
 def add_WalletAPIServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'AddNewAddress': grpc.unary_unary_rpc_method_handler(
-                    servicer.AddNewAddress,
-                    request_deserializer=qrlwallet__pb2.AddNewAddressReq.FromString,
-                    response_serializer=qrlwallet__pb2.AddNewAddressResp.SerializeToString,
-            ),
-            'AddNewAddressWithSlaves': grpc.unary_unary_rpc_method_handler(
-                    servicer.AddNewAddressWithSlaves,
-                    request_deserializer=qrlwallet__pb2.AddNewAddressWithSlavesReq.FromString,
-                    response_serializer=qrlwallet__pb2.AddNewAddressResp.SerializeToString,
-            ),
-            'ListAddresses': grpc.unary_unary_rpc_method_handler(
-                    servicer.ListAddresses,
-                    request_deserializer=qrlwallet__pb2.ListAddressesReq.FromString,
-                    response_serializer=qrlwallet__pb2.ListAddressesResp.SerializeToString,
-            ),
-            'RemoveAddress': grpc.unary_unary_rpc_method_handler(
-                    servicer.RemoveAddress,
-                    request_deserializer=qrlwallet__pb2.RemoveAddressReq.FromString,
-                    response_serializer=qrlwallet__pb2.RemoveAddressResp.SerializeToString,
-            ),
-            'IsValidAddress': grpc.unary_unary_rpc_method_handler(
-                    servicer.IsValidAddress,
-                    request_deserializer=qrlwallet__pb2.ValidAddressReq.FromString,
-                    response_serializer=qrlwallet__pb2.ValidAddressResp.SerializeToString,
-            ),
-            'EncryptWallet': grpc.unary_unary_rpc_method_handler(
-                    servicer.EncryptWallet,
-                    request_deserializer=qrlwallet__pb2.EncryptWalletReq.FromString,
-                    response_serializer=qrlwallet__pb2.EncryptWalletResp.SerializeToString,
-            ),
-            'LockWallet': grpc.unary_unary_rpc_method_handler(
-                    servicer.LockWallet,
-                    request_deserializer=qrlwallet__pb2.LockWalletReq.FromString,
-                    response_serializer=qrlwallet__pb2.LockWalletResp.SerializeToString,
-            ),
-            'UnlockWallet': grpc.unary_unary_rpc_method_handler(
-                    servicer.UnlockWallet,
-                    request_deserializer=qrlwallet__pb2.UnlockWalletReq.FromString,
-                    response_serializer=qrlwallet__pb2.UnlockWalletResp.SerializeToString,
-            ),
-            'GetRecoverySeeds': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetRecoverySeeds,
-                    request_deserializer=qrlwallet__pb2.GetRecoverySeedsReq.FromString,
-                    response_serializer=qrlwallet__pb2.GetRecoverySeedsResp.SerializeToString,
-            ),
-            'GetWalletInfo': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetWalletInfo,
-                    request_deserializer=qrlwallet__pb2.GetWalletInfoReq.FromString,
-                    response_serializer=qrlwallet__pb2.GetWalletInfoResp.SerializeToString,
-            ),
-            'RelayTransferTxn': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelayTransferTxn,
-                    request_deserializer=qrlwallet__pb2.RelayTransferTxnReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelayTransferTxnBySlave': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelayTransferTxnBySlave,
-                    request_deserializer=qrlwallet__pb2.RelayTransferTxnBySlaveReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelayMessageTxn': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelayMessageTxn,
-                    request_deserializer=qrlwallet__pb2.RelayMessageTxnReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelayMessageTxnBySlave': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelayMessageTxnBySlave,
-                    request_deserializer=qrlwallet__pb2.RelayMessageTxnBySlaveReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelayTokenTxn': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelayTokenTxn,
-                    request_deserializer=qrlwallet__pb2.RelayTokenTxnReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelayTokenTxnBySlave': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelayTokenTxnBySlave,
-                    request_deserializer=qrlwallet__pb2.RelayTokenTxnBySlaveReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelayTransferTokenTxn': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelayTransferTokenTxn,
-                    request_deserializer=qrlwallet__pb2.RelayTransferTokenTxnReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelayTransferTokenTxnBySlave': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelayTransferTokenTxnBySlave,
-                    request_deserializer=qrlwallet__pb2.RelayTransferTokenTxnBySlaveReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelaySlaveTxn': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelaySlaveTxn,
-                    request_deserializer=qrlwallet__pb2.RelaySlaveTxnReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'RelaySlaveTxnBySlave': grpc.unary_unary_rpc_method_handler(
-                    servicer.RelaySlaveTxnBySlave,
-                    request_deserializer=qrlwallet__pb2.RelaySlaveTxnBySlaveReq.FromString,
-                    response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
-            ),
-            'ChangePassphrase': grpc.unary_unary_rpc_method_handler(
-                    servicer.ChangePassphrase,
-                    request_deserializer=qrlwallet__pb2.ChangePassphraseReq.FromString,
-                    response_serializer=qrlwallet__pb2.ChangePassphraseResp.SerializeToString,
-            ),
-            'GetTransactionsByAddress': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetTransactionsByAddress,
-                    request_deserializer=qrlwallet__pb2.TransactionsByAddressReq.FromString,
-                    response_serializer=qrlwallet__pb2.TransactionsByAddressResp.SerializeToString,
-            ),
-            'GetPaginatedTransactionsByAddress': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetPaginatedTransactionsByAddress,
-                    request_deserializer=qrlwallet__pb2.PaginatedTransactionsByAddressReq.FromString,
-                    response_serializer=qrlwallet__pb2.PaginatedTransactionsByAddressResp.SerializeToString,
-            ),
-            'GetTransaction': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetTransaction,
-                    request_deserializer=qrlwallet__pb2.TransactionReq.FromString,
-                    response_serializer=qrlwallet__pb2.TransactionResp.SerializeToString,
-            ),
-            'GetBalance': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetBalance,
-                    request_deserializer=qrlwallet__pb2.BalanceReq.FromString,
-                    response_serializer=qrlwallet__pb2.BalanceResp.SerializeToString,
-            ),
-            'GetTotalBalance': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetTotalBalance,
-                    request_deserializer=qrlwallet__pb2.TotalBalanceReq.FromString,
-                    response_serializer=qrlwallet__pb2.TotalBalanceResp.SerializeToString,
-            ),
-            'GetOTS': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetOTS,
-                    request_deserializer=qrlwallet__pb2.OTSReq.FromString,
-                    response_serializer=qrlwallet__pb2.OTSResp.SerializeToString,
-            ),
-            'GetHeight': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetHeight,
-                    request_deserializer=qrlwallet__pb2.HeightReq.FromString,
-                    response_serializer=qrlwallet__pb2.HeightResp.SerializeToString,
-            ),
-            'GetBlock': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetBlock,
-                    request_deserializer=qrlwallet__pb2.BlockReq.FromString,
-                    response_serializer=qrlwallet__pb2.BlockResp.SerializeToString,
-            ),
-            'GetBlockByNumber': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetBlockByNumber,
-                    request_deserializer=qrlwallet__pb2.BlockByNumberReq.FromString,
-                    response_serializer=qrlwallet__pb2.BlockResp.SerializeToString,
-            ),
-            'GetAddressFromPK': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetAddressFromPK,
-                    request_deserializer=qrlwallet__pb2.AddressFromPKReq.FromString,
-                    response_serializer=qrlwallet__pb2.AddressFromPKResp.SerializeToString,
-            ),
-            'GetNodeInfo': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetNodeInfo,
-                    request_deserializer=qrlwallet__pb2.NodeInfoReq.FromString,
-                    response_serializer=qrlwallet__pb2.NodeInfoResp.SerializeToString,
-            ),
+        'AddNewAddress': grpc.unary_unary_rpc_method_handler(
+            servicer.AddNewAddress,
+            request_deserializer=qrlwallet__pb2.AddNewAddressReq.FromString,
+            response_serializer=qrlwallet__pb2.AddNewAddressResp.SerializeToString,
+        ),
+        'AddNewAddressWithSlaves': grpc.unary_unary_rpc_method_handler(
+            servicer.AddNewAddressWithSlaves,
+            request_deserializer=qrlwallet__pb2.AddNewAddressWithSlavesReq.FromString,
+            response_serializer=qrlwallet__pb2.AddNewAddressResp.SerializeToString,
+        ),
+        'ListAddresses': grpc.unary_unary_rpc_method_handler(
+            servicer.ListAddresses,
+            request_deserializer=qrlwallet__pb2.ListAddressesReq.FromString,
+            response_serializer=qrlwallet__pb2.ListAddressesResp.SerializeToString,
+        ),
+        'RemoveAddress': grpc.unary_unary_rpc_method_handler(
+            servicer.RemoveAddress,
+            request_deserializer=qrlwallet__pb2.RemoveAddressReq.FromString,
+            response_serializer=qrlwallet__pb2.RemoveAddressResp.SerializeToString,
+        ),
+        'IsValidAddress': grpc.unary_unary_rpc_method_handler(
+            servicer.IsValidAddress,
+            request_deserializer=qrlwallet__pb2.ValidAddressReq.FromString,
+            response_serializer=qrlwallet__pb2.ValidAddressResp.SerializeToString,
+        ),
+        'EncryptWallet': grpc.unary_unary_rpc_method_handler(
+            servicer.EncryptWallet,
+            request_deserializer=qrlwallet__pb2.EncryptWalletReq.FromString,
+            response_serializer=qrlwallet__pb2.EncryptWalletResp.SerializeToString,
+        ),
+        'LockWallet': grpc.unary_unary_rpc_method_handler(
+            servicer.LockWallet,
+            request_deserializer=qrlwallet__pb2.LockWalletReq.FromString,
+            response_serializer=qrlwallet__pb2.LockWalletResp.SerializeToString,
+        ),
+        'UnlockWallet': grpc.unary_unary_rpc_method_handler(
+            servicer.UnlockWallet,
+            request_deserializer=qrlwallet__pb2.UnlockWalletReq.FromString,
+            response_serializer=qrlwallet__pb2.UnlockWalletResp.SerializeToString,
+        ),
+        'GetRecoverySeeds': grpc.unary_unary_rpc_method_handler(
+            servicer.GetRecoverySeeds,
+            request_deserializer=qrlwallet__pb2.GetRecoverySeedsReq.FromString,
+            response_serializer=qrlwallet__pb2.GetRecoverySeedsResp.SerializeToString,
+        ),
+        'GetWalletInfo': grpc.unary_unary_rpc_method_handler(
+            servicer.GetWalletInfo,
+            request_deserializer=qrlwallet__pb2.GetWalletInfoReq.FromString,
+            response_serializer=qrlwallet__pb2.GetWalletInfoResp.SerializeToString,
+        ),
+        'RelayTransferTxn': grpc.unary_unary_rpc_method_handler(
+            servicer.RelayTransferTxn,
+            request_deserializer=qrlwallet__pb2.RelayTransferTxnReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelayTransferTxnBySlave': grpc.unary_unary_rpc_method_handler(
+            servicer.RelayTransferTxnBySlave,
+            request_deserializer=qrlwallet__pb2.RelayTransferTxnBySlaveReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelayMessageTxn': grpc.unary_unary_rpc_method_handler(
+            servicer.RelayMessageTxn,
+            request_deserializer=qrlwallet__pb2.RelayMessageTxnReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelayMessageTxnBySlave': grpc.unary_unary_rpc_method_handler(
+            servicer.RelayMessageTxnBySlave,
+            request_deserializer=qrlwallet__pb2.RelayMessageTxnBySlaveReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelayTokenTxn': grpc.unary_unary_rpc_method_handler(
+            servicer.RelayTokenTxn,
+            request_deserializer=qrlwallet__pb2.RelayTokenTxnReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelayTokenTxnBySlave': grpc.unary_unary_rpc_method_handler(
+            servicer.RelayTokenTxnBySlave,
+            request_deserializer=qrlwallet__pb2.RelayTokenTxnBySlaveReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelayTransferTokenTxn': grpc.unary_unary_rpc_method_handler(
+            servicer.RelayTransferTokenTxn,
+            request_deserializer=qrlwallet__pb2.RelayTransferTokenTxnReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelayTransferTokenTxnBySlave': grpc.unary_unary_rpc_method_handler(
+            servicer.RelayTransferTokenTxnBySlave,
+            request_deserializer=qrlwallet__pb2.RelayTransferTokenTxnBySlaveReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelaySlaveTxn': grpc.unary_unary_rpc_method_handler(
+            servicer.RelaySlaveTxn,
+            request_deserializer=qrlwallet__pb2.RelaySlaveTxnReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'RelaySlaveTxnBySlave': grpc.unary_unary_rpc_method_handler(
+            servicer.RelaySlaveTxnBySlave,
+            request_deserializer=qrlwallet__pb2.RelaySlaveTxnBySlaveReq.FromString,
+            response_serializer=qrlwallet__pb2.RelayTxnResp.SerializeToString,
+        ),
+        'ChangePassphrase': grpc.unary_unary_rpc_method_handler(
+            servicer.ChangePassphrase,
+            request_deserializer=qrlwallet__pb2.ChangePassphraseReq.FromString,
+            response_serializer=qrlwallet__pb2.ChangePassphraseResp.SerializeToString,
+        ),
+        'GetTransactionsByAddress': grpc.unary_unary_rpc_method_handler(
+            servicer.GetTransactionsByAddress,
+            request_deserializer=qrlwallet__pb2.TransactionsByAddressReq.FromString,
+            response_serializer=qrlwallet__pb2.TransactionsByAddressResp.SerializeToString,
+        ),
+        'GetPaginatedTransactionsByAddress': grpc.unary_unary_rpc_method_handler(
+            servicer.GetPaginatedTransactionsByAddress,
+            request_deserializer=qrlwallet__pb2.PaginatedTransactionsByAddressReq.FromString,
+            response_serializer=qrlwallet__pb2.PaginatedTransactionsByAddressResp.SerializeToString,
+        ),
+        'GetTransaction': grpc.unary_unary_rpc_method_handler(
+            servicer.GetTransaction,
+            request_deserializer=qrlwallet__pb2.TransactionReq.FromString,
+            response_serializer=qrlwallet__pb2.TransactionResp.SerializeToString,
+        ),
+        'GetBalance': grpc.unary_unary_rpc_method_handler(
+            servicer.GetBalance,
+            request_deserializer=qrlwallet__pb2.BalanceReq.FromString,
+            response_serializer=qrlwallet__pb2.BalanceResp.SerializeToString,
+        ),
+        'GetTotalBalance': grpc.unary_unary_rpc_method_handler(
+            servicer.GetTotalBalance,
+            request_deserializer=qrlwallet__pb2.TotalBalanceReq.FromString,
+            response_serializer=qrlwallet__pb2.TotalBalanceResp.SerializeToString,
+        ),
+        'GetOTS': grpc.unary_unary_rpc_method_handler(
+            servicer.GetOTS,
+            request_deserializer=qrlwallet__pb2.OTSReq.FromString,
+            response_serializer=qrlwallet__pb2.OTSResp.SerializeToString,
+        ),
+        'GetHeight': grpc.unary_unary_rpc_method_handler(
+            servicer.GetHeight,
+            request_deserializer=qrlwallet__pb2.HeightReq.FromString,
+            response_serializer=qrlwallet__pb2.HeightResp.SerializeToString,
+        ),
+        'GetBlock': grpc.unary_unary_rpc_method_handler(
+            servicer.GetBlock,
+            request_deserializer=qrlwallet__pb2.BlockReq.FromString,
+            response_serializer=qrlwallet__pb2.BlockResp.SerializeToString,
+        ),
+        'GetBlockByNumber': grpc.unary_unary_rpc_method_handler(
+            servicer.GetBlockByNumber,
+            request_deserializer=qrlwallet__pb2.BlockByNumberReq.FromString,
+            response_serializer=qrlwallet__pb2.BlockResp.SerializeToString,
+        ),
+        'GetAddressFromPK': grpc.unary_unary_rpc_method_handler(
+            servicer.GetAddressFromPK,
+            request_deserializer=qrlwallet__pb2.AddressFromPKReq.FromString,
+            response_serializer=qrlwallet__pb2.AddressFromPKResp.SerializeToString,
+        ),
+        'GetNodeInfo': grpc.unary_unary_rpc_method_handler(
+            servicer.GetNodeInfo,
+            request_deserializer=qrlwallet__pb2.NodeInfoReq.FromString,
+            response_serializer=qrlwallet__pb2.NodeInfoResp.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'qrl.WalletAPI', rpc_method_handlers)
+        'qrl.WalletAPI', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
-
  # This class is part of an EXPERIMENTAL API.
+
+
 class WalletAPI(object):
     """//////////////////////////
     //////////////////////////
@@ -575,544 +576,544 @@ class WalletAPI(object):
 
     @staticmethod
     def AddNewAddress(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/AddNewAddress',
-            qrlwallet__pb2.AddNewAddressReq.SerializeToString,
-            qrlwallet__pb2.AddNewAddressResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.AddNewAddressReq.SerializeToString,
+                                             qrlwallet__pb2.AddNewAddressResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def AddNewAddressWithSlaves(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                                target,
+                                options=(),
+                                channel_credentials=None,
+                                call_credentials=None,
+                                insecure=False,
+                                compression=None,
+                                wait_for_ready=None,
+                                timeout=None,
+                                metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/AddNewAddressWithSlaves',
-            qrlwallet__pb2.AddNewAddressWithSlavesReq.SerializeToString,
-            qrlwallet__pb2.AddNewAddressResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.AddNewAddressWithSlavesReq.SerializeToString,
+                                             qrlwallet__pb2.AddNewAddressResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ListAddresses(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/ListAddresses',
-            qrlwallet__pb2.ListAddressesReq.SerializeToString,
-            qrlwallet__pb2.ListAddressesResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.ListAddressesReq.SerializeToString,
+                                             qrlwallet__pb2.ListAddressesResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RemoveAddress(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RemoveAddress',
-            qrlwallet__pb2.RemoveAddressReq.SerializeToString,
-            qrlwallet__pb2.RemoveAddressResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RemoveAddressReq.SerializeToString,
+                                             qrlwallet__pb2.RemoveAddressResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def IsValidAddress(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                       target,
+                       options=(),
+                       channel_credentials=None,
+                       call_credentials=None,
+                       insecure=False,
+                       compression=None,
+                       wait_for_ready=None,
+                       timeout=None,
+                       metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/IsValidAddress',
-            qrlwallet__pb2.ValidAddressReq.SerializeToString,
-            qrlwallet__pb2.ValidAddressResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.ValidAddressReq.SerializeToString,
+                                             qrlwallet__pb2.ValidAddressResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def EncryptWallet(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/EncryptWallet',
-            qrlwallet__pb2.EncryptWalletReq.SerializeToString,
-            qrlwallet__pb2.EncryptWalletResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.EncryptWalletReq.SerializeToString,
+                                             qrlwallet__pb2.EncryptWalletResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def LockWallet(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                   target,
+                   options=(),
+                   channel_credentials=None,
+                   call_credentials=None,
+                   insecure=False,
+                   compression=None,
+                   wait_for_ready=None,
+                   timeout=None,
+                   metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/LockWallet',
-            qrlwallet__pb2.LockWalletReq.SerializeToString,
-            qrlwallet__pb2.LockWalletResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.LockWalletReq.SerializeToString,
+                                             qrlwallet__pb2.LockWalletResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def UnlockWallet(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                     target,
+                     options=(),
+                     channel_credentials=None,
+                     call_credentials=None,
+                     insecure=False,
+                     compression=None,
+                     wait_for_ready=None,
+                     timeout=None,
+                     metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/UnlockWallet',
-            qrlwallet__pb2.UnlockWalletReq.SerializeToString,
-            qrlwallet__pb2.UnlockWalletResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.UnlockWalletReq.SerializeToString,
+                                             qrlwallet__pb2.UnlockWalletResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetRecoverySeeds(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                         target,
+                         options=(),
+                         channel_credentials=None,
+                         call_credentials=None,
+                         insecure=False,
+                         compression=None,
+                         wait_for_ready=None,
+                         timeout=None,
+                         metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetRecoverySeeds',
-            qrlwallet__pb2.GetRecoverySeedsReq.SerializeToString,
-            qrlwallet__pb2.GetRecoverySeedsResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.GetRecoverySeedsReq.SerializeToString,
+                                             qrlwallet__pb2.GetRecoverySeedsResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetWalletInfo(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetWalletInfo',
-            qrlwallet__pb2.GetWalletInfoReq.SerializeToString,
-            qrlwallet__pb2.GetWalletInfoResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.GetWalletInfoReq.SerializeToString,
+                                             qrlwallet__pb2.GetWalletInfoResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelayTransferTxn(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                         target,
+                         options=(),
+                         channel_credentials=None,
+                         call_credentials=None,
+                         insecure=False,
+                         compression=None,
+                         wait_for_ready=None,
+                         timeout=None,
+                         metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelayTransferTxn',
-            qrlwallet__pb2.RelayTransferTxnReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelayTransferTxnReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelayTransferTxnBySlave(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                                target,
+                                options=(),
+                                channel_credentials=None,
+                                call_credentials=None,
+                                insecure=False,
+                                compression=None,
+                                wait_for_ready=None,
+                                timeout=None,
+                                metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelayTransferTxnBySlave',
-            qrlwallet__pb2.RelayTransferTxnBySlaveReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelayTransferTxnBySlaveReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelayMessageTxn(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                        target,
+                        options=(),
+                        channel_credentials=None,
+                        call_credentials=None,
+                        insecure=False,
+                        compression=None,
+                        wait_for_ready=None,
+                        timeout=None,
+                        metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelayMessageTxn',
-            qrlwallet__pb2.RelayMessageTxnReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelayMessageTxnReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelayMessageTxnBySlave(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                               target,
+                               options=(),
+                               channel_credentials=None,
+                               call_credentials=None,
+                               insecure=False,
+                               compression=None,
+                               wait_for_ready=None,
+                               timeout=None,
+                               metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelayMessageTxnBySlave',
-            qrlwallet__pb2.RelayMessageTxnBySlaveReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelayMessageTxnBySlaveReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelayTokenTxn(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelayTokenTxn',
-            qrlwallet__pb2.RelayTokenTxnReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelayTokenTxnReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelayTokenTxnBySlave(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                             target,
+                             options=(),
+                             channel_credentials=None,
+                             call_credentials=None,
+                             insecure=False,
+                             compression=None,
+                             wait_for_ready=None,
+                             timeout=None,
+                             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelayTokenTxnBySlave',
-            qrlwallet__pb2.RelayTokenTxnBySlaveReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelayTokenTxnBySlaveReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelayTransferTokenTxn(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                              target,
+                              options=(),
+                              channel_credentials=None,
+                              call_credentials=None,
+                              insecure=False,
+                              compression=None,
+                              wait_for_ready=None,
+                              timeout=None,
+                              metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelayTransferTokenTxn',
-            qrlwallet__pb2.RelayTransferTokenTxnReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelayTransferTokenTxnReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelayTransferTokenTxnBySlave(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                                     target,
+                                     options=(),
+                                     channel_credentials=None,
+                                     call_credentials=None,
+                                     insecure=False,
+                                     compression=None,
+                                     wait_for_ready=None,
+                                     timeout=None,
+                                     metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelayTransferTokenTxnBySlave',
-            qrlwallet__pb2.RelayTransferTokenTxnBySlaveReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelayTransferTokenTxnBySlaveReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelaySlaveTxn(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                      target,
+                      options=(),
+                      channel_credentials=None,
+                      call_credentials=None,
+                      insecure=False,
+                      compression=None,
+                      wait_for_ready=None,
+                      timeout=None,
+                      metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelaySlaveTxn',
-            qrlwallet__pb2.RelaySlaveTxnReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelaySlaveTxnReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def RelaySlaveTxnBySlave(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                             target,
+                             options=(),
+                             channel_credentials=None,
+                             call_credentials=None,
+                             insecure=False,
+                             compression=None,
+                             wait_for_ready=None,
+                             timeout=None,
+                             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/RelaySlaveTxnBySlave',
-            qrlwallet__pb2.RelaySlaveTxnBySlaveReq.SerializeToString,
-            qrlwallet__pb2.RelayTxnResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.RelaySlaveTxnBySlaveReq.SerializeToString,
+                                             qrlwallet__pb2.RelayTxnResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def ChangePassphrase(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                         target,
+                         options=(),
+                         channel_credentials=None,
+                         call_credentials=None,
+                         insecure=False,
+                         compression=None,
+                         wait_for_ready=None,
+                         timeout=None,
+                         metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/ChangePassphrase',
-            qrlwallet__pb2.ChangePassphraseReq.SerializeToString,
-            qrlwallet__pb2.ChangePassphraseResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.ChangePassphraseReq.SerializeToString,
+                                             qrlwallet__pb2.ChangePassphraseResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetTransactionsByAddress(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                                 target,
+                                 options=(),
+                                 channel_credentials=None,
+                                 call_credentials=None,
+                                 insecure=False,
+                                 compression=None,
+                                 wait_for_ready=None,
+                                 timeout=None,
+                                 metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetTransactionsByAddress',
-            qrlwallet__pb2.TransactionsByAddressReq.SerializeToString,
-            qrlwallet__pb2.TransactionsByAddressResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.TransactionsByAddressReq.SerializeToString,
+                                             qrlwallet__pb2.TransactionsByAddressResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetPaginatedTransactionsByAddress(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                                          target,
+                                          options=(),
+                                          channel_credentials=None,
+                                          call_credentials=None,
+                                          insecure=False,
+                                          compression=None,
+                                          wait_for_ready=None,
+                                          timeout=None,
+                                          metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetPaginatedTransactionsByAddress',
-            qrlwallet__pb2.PaginatedTransactionsByAddressReq.SerializeToString,
-            qrlwallet__pb2.PaginatedTransactionsByAddressResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.PaginatedTransactionsByAddressReq.SerializeToString,
+                                             qrlwallet__pb2.PaginatedTransactionsByAddressResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetTransaction(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                       target,
+                       options=(),
+                       channel_credentials=None,
+                       call_credentials=None,
+                       insecure=False,
+                       compression=None,
+                       wait_for_ready=None,
+                       timeout=None,
+                       metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetTransaction',
-            qrlwallet__pb2.TransactionReq.SerializeToString,
-            qrlwallet__pb2.TransactionResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.TransactionReq.SerializeToString,
+                                             qrlwallet__pb2.TransactionResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetBalance(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                   target,
+                   options=(),
+                   channel_credentials=None,
+                   call_credentials=None,
+                   insecure=False,
+                   compression=None,
+                   wait_for_ready=None,
+                   timeout=None,
+                   metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetBalance',
-            qrlwallet__pb2.BalanceReq.SerializeToString,
-            qrlwallet__pb2.BalanceResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.BalanceReq.SerializeToString,
+                                             qrlwallet__pb2.BalanceResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetTotalBalance(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                        target,
+                        options=(),
+                        channel_credentials=None,
+                        call_credentials=None,
+                        insecure=False,
+                        compression=None,
+                        wait_for_ready=None,
+                        timeout=None,
+                        metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetTotalBalance',
-            qrlwallet__pb2.TotalBalanceReq.SerializeToString,
-            qrlwallet__pb2.TotalBalanceResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.TotalBalanceReq.SerializeToString,
+                                             qrlwallet__pb2.TotalBalanceResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetOTS(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+               target,
+               options=(),
+               channel_credentials=None,
+               call_credentials=None,
+               insecure=False,
+               compression=None,
+               wait_for_ready=None,
+               timeout=None,
+               metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetOTS',
-            qrlwallet__pb2.OTSReq.SerializeToString,
-            qrlwallet__pb2.OTSResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.OTSReq.SerializeToString,
+                                             qrlwallet__pb2.OTSResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetHeight(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                  target,
+                  options=(),
+                  channel_credentials=None,
+                  call_credentials=None,
+                  insecure=False,
+                  compression=None,
+                  wait_for_ready=None,
+                  timeout=None,
+                  metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetHeight',
-            qrlwallet__pb2.HeightReq.SerializeToString,
-            qrlwallet__pb2.HeightResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.HeightReq.SerializeToString,
+                                             qrlwallet__pb2.HeightResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetBlock(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                 target,
+                 options=(),
+                 channel_credentials=None,
+                 call_credentials=None,
+                 insecure=False,
+                 compression=None,
+                 wait_for_ready=None,
+                 timeout=None,
+                 metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetBlock',
-            qrlwallet__pb2.BlockReq.SerializeToString,
-            qrlwallet__pb2.BlockResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.BlockReq.SerializeToString,
+                                             qrlwallet__pb2.BlockResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetBlockByNumber(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                         target,
+                         options=(),
+                         channel_credentials=None,
+                         call_credentials=None,
+                         insecure=False,
+                         compression=None,
+                         wait_for_ready=None,
+                         timeout=None,
+                         metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetBlockByNumber',
-            qrlwallet__pb2.BlockByNumberReq.SerializeToString,
-            qrlwallet__pb2.BlockResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.BlockByNumberReq.SerializeToString,
+                                             qrlwallet__pb2.BlockResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetAddressFromPK(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                         target,
+                         options=(),
+                         channel_credentials=None,
+                         call_credentials=None,
+                         insecure=False,
+                         compression=None,
+                         wait_for_ready=None,
+                         timeout=None,
+                         metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetAddressFromPK',
-            qrlwallet__pb2.AddressFromPKReq.SerializeToString,
-            qrlwallet__pb2.AddressFromPKResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.AddressFromPKReq.SerializeToString,
+                                             qrlwallet__pb2.AddressFromPKResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetNodeInfo(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                    target,
+                    options=(),
+                    channel_credentials=None,
+                    call_credentials=None,
+                    insecure=False,
+                    compression=None,
+                    wait_for_ready=None,
+                    timeout=None,
+                    metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.WalletAPI/GetNodeInfo',
-            qrlwallet__pb2.NodeInfoReq.SerializeToString,
-            qrlwallet__pb2.NodeInfoResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlwallet__pb2.NodeInfoReq.SerializeToString,
+                                             qrlwallet__pb2.NodeInfoResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

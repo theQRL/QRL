@@ -12,19 +12,18 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-
-
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rqrlbase.proto\x12\x03qrl\"\x10\n\x0eGetNodeInfoReq\"5\n\x0fGetNodeInfoResp\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x11\n\tgrpcProto\x18\x02 \x01(\t2B\n\x04\x42\x61se\x12:\n\x0bGetNodeInfo\x12\x13.qrl.GetNodeInfoReq\x1a\x14.qrl.GetNodeInfoResp\"\x00\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
+    b'\n\rqrlbase.proto\x12\x03qrl\"\x10\n\x0eGetNodeInfoReq\"5\n\x0fGetNodeInfoResp\x12\x0f\n\x07version\x18\x01 \x01(\t\x12\x11\n\tgrpcProto\x18\x02 \x01(\t2B\n\x04\x42\x61se\x12:\n\x0bGetNodeInfo\x12\x13.qrl.GetNodeInfoReq\x1a\x14.qrl.GetNodeInfoResp\"\x00\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'qrlbase_pb2', _globals)
-if _descriptor._USE_C_DESCRIPTORS == False:
-  DESCRIPTOR._options = None
-  _globals['_GETNODEINFOREQ']._serialized_start=22
-  _globals['_GETNODEINFOREQ']._serialized_end=38
-  _globals['_GETNODEINFORESP']._serialized_start=40
-  _globals['_GETNODEINFORESP']._serialized_end=93
-  _globals['_BASE']._serialized_start=95
-  _globals['_BASE']._serialized_end=161
+if not _descriptor._USE_C_DESCRIPTORS:
+    DESCRIPTOR._options = None
+    _globals['_GETNODEINFOREQ']._serialized_start = 22
+    _globals['_GETNODEINFOREQ']._serialized_end = 38
+    _globals['_GETNODEINFORESP']._serialized_start = 40
+    _globals['_GETNODEINFORESP']._serialized_end = 93
+    _globals['_BASE']._serialized_start = 95
+    _globals['_BASE']._serialized_end = 161
 # @@protoc_insertion_point(module_scope)

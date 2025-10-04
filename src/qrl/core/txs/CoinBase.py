@@ -28,9 +28,9 @@ class CoinBase(Transaction):
     def get_data_bytes(self):
         # nonce only added to the hashable bytes of CoinBase
         return self.master_addr + \
-               self.addr_to + \
-               self.nonce.to_bytes(8, byteorder='big', signed=False) + \
-               self.amount.to_bytes(8, byteorder='big', signed=False)
+            self.addr_to + \
+            self.nonce.to_bytes(8, byteorder='big', signed=False) + \
+            self.amount.to_bytes(8, byteorder='big', signed=False)
 
     @staticmethod
     def create(dev_config: DevConfig, amount, miner_address, block_number):

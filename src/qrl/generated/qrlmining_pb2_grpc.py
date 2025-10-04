@@ -15,25 +15,25 @@ class MiningAPIStub(object):
             channel: A grpc.Channel.
         """
         self.GetBlockMiningCompatible = channel.unary_unary(
-                '/qrl.MiningAPI/GetBlockMiningCompatible',
-                request_serializer=qrlmining__pb2.GetBlockMiningCompatibleReq.SerializeToString,
-                response_deserializer=qrlmining__pb2.GetBlockMiningCompatibleResp.FromString,
-                )
+            '/qrl.MiningAPI/GetBlockMiningCompatible',
+            request_serializer=qrlmining__pb2.GetBlockMiningCompatibleReq.SerializeToString,
+            response_deserializer=qrlmining__pb2.GetBlockMiningCompatibleResp.FromString,
+        )
         self.GetLastBlockHeader = channel.unary_unary(
-                '/qrl.MiningAPI/GetLastBlockHeader',
-                request_serializer=qrlmining__pb2.GetLastBlockHeaderReq.SerializeToString,
-                response_deserializer=qrlmining__pb2.GetLastBlockHeaderResp.FromString,
-                )
+            '/qrl.MiningAPI/GetLastBlockHeader',
+            request_serializer=qrlmining__pb2.GetLastBlockHeaderReq.SerializeToString,
+            response_deserializer=qrlmining__pb2.GetLastBlockHeaderResp.FromString,
+        )
         self.GetBlockToMine = channel.unary_unary(
-                '/qrl.MiningAPI/GetBlockToMine',
-                request_serializer=qrlmining__pb2.GetBlockToMineReq.SerializeToString,
-                response_deserializer=qrlmining__pb2.GetBlockToMineResp.FromString,
-                )
+            '/qrl.MiningAPI/GetBlockToMine',
+            request_serializer=qrlmining__pb2.GetBlockToMineReq.SerializeToString,
+            response_deserializer=qrlmining__pb2.GetBlockToMineResp.FromString,
+        )
         self.SubmitMinedBlock = channel.unary_unary(
-                '/qrl.MiningAPI/SubmitMinedBlock',
-                request_serializer=qrlmining__pb2.SubmitMinedBlockReq.SerializeToString,
-                response_deserializer=qrlmining__pb2.SubmitMinedBlockResp.FromString,
-                )
+            '/qrl.MiningAPI/SubmitMinedBlock',
+            request_serializer=qrlmining__pb2.SubmitMinedBlockReq.SerializeToString,
+            response_deserializer=qrlmining__pb2.SubmitMinedBlockResp.FromString,
+        )
 
 
 class MiningAPIServicer(object):
@@ -66,100 +66,101 @@ class MiningAPIServicer(object):
 
 def add_MiningAPIServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'GetBlockMiningCompatible': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetBlockMiningCompatible,
-                    request_deserializer=qrlmining__pb2.GetBlockMiningCompatibleReq.FromString,
-                    response_serializer=qrlmining__pb2.GetBlockMiningCompatibleResp.SerializeToString,
-            ),
-            'GetLastBlockHeader': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetLastBlockHeader,
-                    request_deserializer=qrlmining__pb2.GetLastBlockHeaderReq.FromString,
-                    response_serializer=qrlmining__pb2.GetLastBlockHeaderResp.SerializeToString,
-            ),
-            'GetBlockToMine': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetBlockToMine,
-                    request_deserializer=qrlmining__pb2.GetBlockToMineReq.FromString,
-                    response_serializer=qrlmining__pb2.GetBlockToMineResp.SerializeToString,
-            ),
-            'SubmitMinedBlock': grpc.unary_unary_rpc_method_handler(
-                    servicer.SubmitMinedBlock,
-                    request_deserializer=qrlmining__pb2.SubmitMinedBlockReq.FromString,
-                    response_serializer=qrlmining__pb2.SubmitMinedBlockResp.SerializeToString,
-            ),
+        'GetBlockMiningCompatible': grpc.unary_unary_rpc_method_handler(
+            servicer.GetBlockMiningCompatible,
+            request_deserializer=qrlmining__pb2.GetBlockMiningCompatibleReq.FromString,
+            response_serializer=qrlmining__pb2.GetBlockMiningCompatibleResp.SerializeToString,
+        ),
+        'GetLastBlockHeader': grpc.unary_unary_rpc_method_handler(
+            servicer.GetLastBlockHeader,
+            request_deserializer=qrlmining__pb2.GetLastBlockHeaderReq.FromString,
+            response_serializer=qrlmining__pb2.GetLastBlockHeaderResp.SerializeToString,
+        ),
+        'GetBlockToMine': grpc.unary_unary_rpc_method_handler(
+            servicer.GetBlockToMine,
+            request_deserializer=qrlmining__pb2.GetBlockToMineReq.FromString,
+            response_serializer=qrlmining__pb2.GetBlockToMineResp.SerializeToString,
+        ),
+        'SubmitMinedBlock': grpc.unary_unary_rpc_method_handler(
+            servicer.SubmitMinedBlock,
+            request_deserializer=qrlmining__pb2.SubmitMinedBlockReq.FromString,
+            response_serializer=qrlmining__pb2.SubmitMinedBlockResp.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'qrl.MiningAPI', rpc_method_handlers)
+        'qrl.MiningAPI', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
-
  # This class is part of an EXPERIMENTAL API.
+
+
 class MiningAPI(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
     def GetBlockMiningCompatible(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                                 target,
+                                 options=(),
+                                 channel_credentials=None,
+                                 call_credentials=None,
+                                 insecure=False,
+                                 compression=None,
+                                 wait_for_ready=None,
+                                 timeout=None,
+                                 metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.MiningAPI/GetBlockMiningCompatible',
-            qrlmining__pb2.GetBlockMiningCompatibleReq.SerializeToString,
-            qrlmining__pb2.GetBlockMiningCompatibleResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlmining__pb2.GetBlockMiningCompatibleReq.SerializeToString,
+                                             qrlmining__pb2.GetBlockMiningCompatibleResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetLastBlockHeader(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                           target,
+                           options=(),
+                           channel_credentials=None,
+                           call_credentials=None,
+                           insecure=False,
+                           compression=None,
+                           wait_for_ready=None,
+                           timeout=None,
+                           metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.MiningAPI/GetLastBlockHeader',
-            qrlmining__pb2.GetLastBlockHeaderReq.SerializeToString,
-            qrlmining__pb2.GetLastBlockHeaderResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlmining__pb2.GetLastBlockHeaderReq.SerializeToString,
+                                             qrlmining__pb2.GetLastBlockHeaderResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def GetBlockToMine(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                       target,
+                       options=(),
+                       channel_credentials=None,
+                       call_credentials=None,
+                       insecure=False,
+                       compression=None,
+                       wait_for_ready=None,
+                       timeout=None,
+                       metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.MiningAPI/GetBlockToMine',
-            qrlmining__pb2.GetBlockToMineReq.SerializeToString,
-            qrlmining__pb2.GetBlockToMineResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlmining__pb2.GetBlockToMineReq.SerializeToString,
+                                             qrlmining__pb2.GetBlockToMineResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def SubmitMinedBlock(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                         target,
+                         options=(),
+                         channel_credentials=None,
+                         call_credentials=None,
+                         insecure=False,
+                         compression=None,
+                         wait_for_ready=None,
+                         timeout=None,
+                         metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.MiningAPI/SubmitMinedBlock',
-            qrlmining__pb2.SubmitMinedBlockReq.SerializeToString,
-            qrlmining__pb2.SubmitMinedBlockResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrlmining__pb2.SubmitMinedBlockReq.SerializeToString,
+                                             qrlmining__pb2.SubmitMinedBlockResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

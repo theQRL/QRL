@@ -3,6 +3,7 @@
 # source: qrlstateinfo.proto
 # Protobuf Python Version: 4.25.1
 """Generated protocol buffer code."""
+import qrl.generated.qrl_pb2 as qrl__pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
@@ -12,20 +13,17 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-import qrl.generated.qrl_pb2 as qrl__pb2
-
-
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x12qrlstateinfo.proto\x12\x03qrl\x1a\tqrl.proto\"e\n\x13TransactionMetadata\x12%\n\x0btransaction\x18\x01 \x01(\x0b\x32\x10.qrl.Transaction\x12\x14\n\x0c\x62lock_number\x18\x02 \x01(\x04\x12\x11\n\ttimestamp\x18\x03 \x01(\x04\"A\n\x10LastTransactions\x12-\n\x0btx_metadata\x18\x01 \x03(\x0b\x32\x18.qrl.TransactionMetadata\"\x8a\x01\n\tForkState\x12\x1c\n\x14initiator_headerhash\x18\x01 \x01(\x0c\x12\x1d\n\x15\x66ork_point_headerhash\x18\x02 \x01(\x0c\x12\x1f\n\x17old_mainchain_hash_path\x18\x03 \x03(\x0c\x12\x1f\n\x17new_mainchain_hash_path\x18\x04 \x03(\x0c\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'qrlstateinfo_pb2', _globals)
-if _descriptor._USE_C_DESCRIPTORS == False:
-  DESCRIPTOR._options = None
-  _globals['_TRANSACTIONMETADATA']._serialized_start=38
-  _globals['_TRANSACTIONMETADATA']._serialized_end=139
-  _globals['_LASTTRANSACTIONS']._serialized_start=141
-  _globals['_LASTTRANSACTIONS']._serialized_end=206
-  _globals['_FORKSTATE']._serialized_start=209
-  _globals['_FORKSTATE']._serialized_end=347
+if not _descriptor._USE_C_DESCRIPTORS:
+    DESCRIPTOR._options = None
+    _globals['_TRANSACTIONMETADATA']._serialized_start = 38
+    _globals['_TRANSACTIONMETADATA']._serialized_end = 139
+    _globals['_LASTTRANSACTIONS']._serialized_start = 141
+    _globals['_LASTTRANSACTIONS']._serialized_end = 206
+    _globals['_FORKSTATE']._serialized_start = 209
+    _globals['_FORKSTATE']._serialized_end = 347
 # @@protoc_insertion_point(module_scope)

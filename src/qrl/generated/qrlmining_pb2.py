@@ -3,6 +3,7 @@
 # source: qrlmining.proto
 # Protobuf Python Version: 4.25.1
 """Generated protocol buffer code."""
+import qrl.generated.qrl_pb2 as qrl__pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
@@ -12,32 +13,29 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-import qrl.generated.qrl_pb2 as qrl__pb2
-
-
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fqrlmining.proto\x12\x03qrl\x1a\tqrl.proto\"-\n\x1bGetBlockMiningCompatibleReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\"\'\n\x15GetLastBlockHeaderReq\x12\x0e\n\x06height\x18\x01 \x01(\x04\"p\n\x1cGetBlockMiningCompatibleResp\x12%\n\x0b\x62lockheader\x18\x01 \x01(\x0b\x32\x10.qrl.BlockHeader\x12)\n\rblockmetadata\x18\x02 \x01(\x0b\x32\x12.qrl.BlockMetaData\"|\n\x16GetLastBlockHeaderResp\x12\x12\n\ndifficulty\x18\x01 \x01(\x04\x12\x0e\n\x06height\x18\x02 \x01(\x04\x12\x11\n\ttimestamp\x18\x03 \x01(\x04\x12\x0e\n\x06reward\x18\x04 \x01(\x04\x12\x0c\n\x04hash\x18\x05 \x01(\t\x12\r\n\x05\x64\x65pth\x18\x06 \x01(\x04\"+\n\x11GetBlockToMineReq\x12\x16\n\x0ewallet_address\x18\x01 \x01(\x0c\"\x80\x01\n\x12GetBlockToMineResp\x12\x1a\n\x12\x62locktemplate_blob\x18\x01 \x01(\t\x12\x12\n\ndifficulty\x18\x02 \x01(\x04\x12\x0e\n\x06height\x18\x03 \x01(\x04\x12\x17\n\x0freserved_offset\x18\x04 \x01(\r\x12\x11\n\tseed_hash\x18\x05 \x01(\t\"#\n\x13SubmitMinedBlockReq\x12\x0c\n\x04\x62lob\x18\x01 \x01(\x0c\"%\n\x14SubmitMinedBlockResp\x12\r\n\x05\x65rror\x18\x01 \x01(\x08\x32\xc7\x02\n\tMiningAPI\x12_\n\x18GetBlockMiningCompatible\x12 .qrl.GetBlockMiningCompatibleReq\x1a!.qrl.GetBlockMiningCompatibleResp\x12M\n\x12GetLastBlockHeader\x12\x1a.qrl.GetLastBlockHeaderReq\x1a\x1b.qrl.GetLastBlockHeaderResp\x12\x41\n\x0eGetBlockToMine\x12\x16.qrl.GetBlockToMineReq\x1a\x17.qrl.GetBlockToMineResp\x12G\n\x10SubmitMinedBlock\x12\x18.qrl.SubmitMinedBlockReq\x1a\x19.qrl.SubmitMinedBlockRespb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'qrlmining_pb2', _globals)
-if _descriptor._USE_C_DESCRIPTORS == False:
-  DESCRIPTOR._options = None
-  _globals['_GETBLOCKMININGCOMPATIBLEREQ']._serialized_start=35
-  _globals['_GETBLOCKMININGCOMPATIBLEREQ']._serialized_end=80
-  _globals['_GETLASTBLOCKHEADERREQ']._serialized_start=82
-  _globals['_GETLASTBLOCKHEADERREQ']._serialized_end=121
-  _globals['_GETBLOCKMININGCOMPATIBLERESP']._serialized_start=123
-  _globals['_GETBLOCKMININGCOMPATIBLERESP']._serialized_end=235
-  _globals['_GETLASTBLOCKHEADERRESP']._serialized_start=237
-  _globals['_GETLASTBLOCKHEADERRESP']._serialized_end=361
-  _globals['_GETBLOCKTOMINEREQ']._serialized_start=363
-  _globals['_GETBLOCKTOMINEREQ']._serialized_end=406
-  _globals['_GETBLOCKTOMINERESP']._serialized_start=409
-  _globals['_GETBLOCKTOMINERESP']._serialized_end=537
-  _globals['_SUBMITMINEDBLOCKREQ']._serialized_start=539
-  _globals['_SUBMITMINEDBLOCKREQ']._serialized_end=574
-  _globals['_SUBMITMINEDBLOCKRESP']._serialized_start=576
-  _globals['_SUBMITMINEDBLOCKRESP']._serialized_end=613
-  _globals['_MININGAPI']._serialized_start=616
-  _globals['_MININGAPI']._serialized_end=943
+if not _descriptor._USE_C_DESCRIPTORS:
+    DESCRIPTOR._options = None
+    _globals['_GETBLOCKMININGCOMPATIBLEREQ']._serialized_start = 35
+    _globals['_GETBLOCKMININGCOMPATIBLEREQ']._serialized_end = 80
+    _globals['_GETLASTBLOCKHEADERREQ']._serialized_start = 82
+    _globals['_GETLASTBLOCKHEADERREQ']._serialized_end = 121
+    _globals['_GETBLOCKMININGCOMPATIBLERESP']._serialized_start = 123
+    _globals['_GETBLOCKMININGCOMPATIBLERESP']._serialized_end = 235
+    _globals['_GETLASTBLOCKHEADERRESP']._serialized_start = 237
+    _globals['_GETLASTBLOCKHEADERRESP']._serialized_end = 361
+    _globals['_GETBLOCKTOMINEREQ']._serialized_start = 363
+    _globals['_GETBLOCKTOMINEREQ']._serialized_end = 406
+    _globals['_GETBLOCKTOMINERESP']._serialized_start = 409
+    _globals['_GETBLOCKTOMINERESP']._serialized_end = 537
+    _globals['_SUBMITMINEDBLOCKREQ']._serialized_start = 539
+    _globals['_SUBMITMINEDBLOCKREQ']._serialized_end = 574
+    _globals['_SUBMITMINEDBLOCKRESP']._serialized_start = 576
+    _globals['_SUBMITMINEDBLOCKRESP']._serialized_end = 613
+    _globals['_MININGAPI']._serialized_start = 616
+    _globals['_MININGAPI']._serialized_end = 943
 # @@protoc_insertion_point(module_scope)

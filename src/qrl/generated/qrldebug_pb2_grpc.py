@@ -24,10 +24,10 @@ class DebugAPIStub(object):
             channel: A grpc.Channel.
         """
         self.GetFullState = channel.unary_unary(
-                '/qrl.DebugAPI/GetFullState',
-                request_serializer=qrldebug__pb2.GetFullStateReq.SerializeToString,
-                response_deserializer=qrldebug__pb2.GetFullStateResp.FromString,
-                )
+            '/qrl.DebugAPI/GetFullState',
+            request_serializer=qrldebug__pb2.GetFullStateReq.SerializeToString,
+            response_deserializer=qrldebug__pb2.GetFullStateResp.FromString,
+        )
 
 
 class DebugAPIServicer(object):
@@ -51,18 +51,19 @@ class DebugAPIServicer(object):
 
 def add_DebugAPIServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'GetFullState': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetFullState,
-                    request_deserializer=qrldebug__pb2.GetFullStateReq.FromString,
-                    response_serializer=qrldebug__pb2.GetFullStateResp.SerializeToString,
-            ),
+        'GetFullState': grpc.unary_unary_rpc_method_handler(
+            servicer.GetFullState,
+            request_deserializer=qrldebug__pb2.GetFullStateReq.FromString,
+            response_serializer=qrldebug__pb2.GetFullStateResp.SerializeToString,
+        ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
-            'qrl.DebugAPI', rpc_method_handlers)
+        'qrl.DebugAPI', rpc_method_handlers)
     server.add_generic_rpc_handlers((generic_handler,))
 
-
  # This class is part of an EXPERIMENTAL API.
+
+
 class DebugAPI(object):
     """//////////////////////////
     //////////////////////////
@@ -77,17 +78,17 @@ class DebugAPI(object):
 
     @staticmethod
     def GetFullState(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
+                     target,
+                     options=(),
+                     channel_credentials=None,
+                     call_credentials=None,
+                     insecure=False,
+                     compression=None,
+                     wait_for_ready=None,
+                     timeout=None,
+                     metadata=None):
         return grpc.experimental.unary_unary(request, target, '/qrl.DebugAPI/GetFullState',
-            qrldebug__pb2.GetFullStateReq.SerializeToString,
-            qrldebug__pb2.GetFullStateResp.FromString,
-            options, channel_credentials,
-            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+                                             qrldebug__pb2.GetFullStateReq.SerializeToString,
+                                             qrldebug__pb2.GetFullStateResp.FromString,
+                                             options, channel_credentials,
+                                             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

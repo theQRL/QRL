@@ -3,6 +3,7 @@
 # source: qrldebug.proto
 # Protobuf Python Version: 4.25.1
 """Generated protocol buffer code."""
+import qrl.generated.qrl_pb2 as qrl__pb2
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import symbol_database as _symbol_database
@@ -12,20 +13,17 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-import qrl.generated.qrl_pb2 as qrl__pb2
-
-
 DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0eqrldebug.proto\x12\x03qrl\x1a\tqrl.proto\"\x11\n\x0fGetFullStateReq\"i\n\x10GetFullStateResp\x12)\n\x0e\x63oinbase_state\x18\x01 \x01(\x0b\x32\x11.qrl.AddressState\x12*\n\x0f\x61\x64\x64resses_state\x18\x02 \x03(\x0b\x32\x11.qrl.AddressState2G\n\x08\x44\x65\x62ugAPI\x12;\n\x0cGetFullState\x12\x14.qrl.GetFullStateReq\x1a\x15.qrl.GetFullStateRespb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'qrldebug_pb2', _globals)
-if _descriptor._USE_C_DESCRIPTORS == False:
-  DESCRIPTOR._options = None
-  _globals['_GETFULLSTATEREQ']._serialized_start=34
-  _globals['_GETFULLSTATEREQ']._serialized_end=51
-  _globals['_GETFULLSTATERESP']._serialized_start=53
-  _globals['_GETFULLSTATERESP']._serialized_end=158
-  _globals['_DEBUGAPI']._serialized_start=160
-  _globals['_DEBUGAPI']._serialized_end=231
+if not _descriptor._USE_C_DESCRIPTORS:
+    DESCRIPTOR._options = None
+    _globals['_GETFULLSTATEREQ']._serialized_start = 34
+    _globals['_GETFULLSTATEREQ']._serialized_end = 51
+    _globals['_GETFULLSTATERESP']._serialized_start = 53
+    _globals['_GETFULLSTATERESP']._serialized_end = 158
+    _globals['_DEBUGAPI']._serialized_start = 160
+    _globals['_DEBUGAPI']._serialized_end = 231
 # @@protoc_insertion_point(module_scope)
