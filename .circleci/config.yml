@@ -11,8 +11,8 @@ jobs:
       - run: pip install -U -r test-requirements.txt
       - run: pip install -e .
       - run: pytest --cov . --cov-report term-missing --cov-report xml
-      - run: sudo pip install -U coverage codacy-coverage
-      - run: if [[ -v CODACY_PROJECT_TOKEN ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
+      - run: pip install -U coverage codacy-coverage
+      - run: if [[ -v CODACY_PROJECT_TOKEN ]]; then python -m codacy_coverage -r coverage.xml || echo "failed"; fi
       
   test_leaks_CLI:
     docker:
