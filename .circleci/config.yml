@@ -29,7 +29,8 @@ jobs:
     steps:
       - checkout
       - run: sudo apt-get update
-      - run: sudo apt-get install -y flake8
+      - run: source /opt/venv/bin/activate
+      - run: pip install flake8
       - run: pip install -U setuptools
       - run: python3 -m flake8 -v --show-source --statistics ./src ./tests
 
