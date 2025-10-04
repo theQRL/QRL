@@ -207,7 +207,7 @@ class TestCLI(TestCase):
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
 
         result = self.runner.invoke(qrl_cli, ["wallet_decrypt"], input='wrong_password\nwrong_password\n')
-        self.assertEquals(1, result.exit_code)
+        self.assertEqual(1, result.exit_code)
         # TODO: Add appropriate error matching
 
     def test_wallet_secret_invalid_input(self):

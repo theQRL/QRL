@@ -17,18 +17,18 @@ class TestHelper(TestCase):
 
     def test_basic_1(self):
         addr = IPMetadata.from_full_address('192.168.0.1:10000')
-        self.assertEquals('192.168.0.1', addr.ip)
-        self.assertEquals(10000, addr.port)
+        self.assertEqual('192.168.0.1', addr.ip)
+        self.assertEqual(10000, addr.port)
 
     def test_basic_2(self):
         addr = IPMetadata.from_full_address('192.168.0.1:1234')
-        self.assertEquals('192.168.0.1', addr.ip)
-        self.assertEquals(1234, addr.port)
+        self.assertEqual('192.168.0.1', addr.ip)
+        self.assertEqual(1234, addr.port)
 
     def test_basic_3(self):
         addr = IPMetadata.from_full_address('192.168.0.1')
-        self.assertEquals('192.168.0.1', addr.ip)
-        self.assertEquals(config.user.p2p_local_port, addr.port)
+        self.assertEqual('192.168.0.1', addr.ip)
+        self.assertEqual(config.user.p2p_local_port, addr.port)
 
     def test_invalid_1(self):
         with self.assertRaisesRegexp(AddressValueError, 'Address cannot be empty'):
@@ -56,5 +56,5 @@ class TestHelper(TestCase):
 
     def test_global_2(self):
         addr = IPMetadata.from_full_address('123.123.123.1:9000', check_global=True)
-        self.assertEquals('123.123.123.1', addr.ip)
-        self.assertEquals(9000, addr.port)
+        self.assertEqual('123.123.123.1', addr.ip)
+        self.assertEqual(9000, addr.port)
