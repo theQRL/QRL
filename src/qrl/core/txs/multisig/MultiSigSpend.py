@@ -42,15 +42,15 @@ class MultiSigSpend(Transaction):
         return self._data.multi_sig_spend.expiry_block_number
 
     def get_data_hash(self):
-        tmp_tx_hash = (self.master_addr +
-                       self.fee.to_bytes(8, byteorder='big', signed=False) +
-                       self.multi_sig_address +
-                       self.expiry_block_number.to_bytes(8, byteorder='big', signed=False))
+        tmp_tx_hash = (self.master_addr
+                       + self.fee.to_bytes(8, byteorder='big', signed=False)
+                       + self.multi_sig_address
+                       + self.expiry_block_number.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.addrs_to)):
-            tmp_tx_hash = (tmp_tx_hash +
-                           self.addrs_to[index] +
-                           self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            tmp_tx_hash = (tmp_tx_hash
+                           + self.addrs_to[index]
+                           + self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
         return sha256(tmp_tx_hash)
 

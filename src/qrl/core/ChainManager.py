@@ -862,8 +862,8 @@ class ChainManager:
             dev_config=dev_config)
 
         block_cumulative_difficulty = StringToUInt256(str(
-            int(UInt256ToString(block_difficulty)) +
-            int(UInt256ToString(parent_cumulative_difficulty))))
+            int(UInt256ToString(block_difficulty))
+            + int(UInt256ToString(parent_cumulative_difficulty))))
 
         block_metadata.set_block_difficulty(block_difficulty)
         block_metadata.set_cumulative_difficulty(block_cumulative_difficulty)

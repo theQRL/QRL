@@ -29,7 +29,7 @@ class MessageRequest:
             logger.error('Params Keys %s', self.params.keys())
             logger.error('Data Keys %s', data.keys())
             logger.error('Key Not found %s ', k)
-        except AttributeError as k:
+        except AttributeError:
             logger.error('MessageRequest.params was not initialized before calling validate()')
 
         return False

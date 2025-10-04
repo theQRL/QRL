@@ -37,14 +37,14 @@ class MultiSigCreate(Transaction):
         return self._data.multi_sig_create.threshold
 
     def get_data_hash(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False) +
-                     self.threshold.to_bytes(8, byteorder='big', signed=False))
+        tmptxhash = (self.master_addr
+                     + self.fee.to_bytes(8, byteorder='big', signed=False)
+                     + self.threshold.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.signatories)):
-            tmptxhash = (tmptxhash +
-                         self.signatories[index] +
-                         self.weights[index].to_bytes(8, byteorder='big', signed=False))
+            tmptxhash = (tmptxhash
+                         + self.signatories[index]
+                         + self.weights[index].to_bytes(8, byteorder='big', signed=False))
 
         return sha256(tmptxhash)
 

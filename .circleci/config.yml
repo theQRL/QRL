@@ -5,6 +5,7 @@ jobs:
       - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
+      - run: source /opt/venv/bin/activate
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt

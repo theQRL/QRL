@@ -142,9 +142,9 @@ class Transaction(object, metaclass=ABCMeta):
 
     def generate_txhash(self):
         return sha256(
-            self.get_data_hash() +
-            self.signature +
-            self.PK
+            self.get_data_hash()
+            + self.signature
+            + self.PK
         )
 
     def get_data_bytes(self) -> bytes:

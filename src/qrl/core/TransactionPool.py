@@ -78,7 +78,7 @@ class TransactionPool:
 
         return True
 
-    def add_tx_to_pool(self, tx_class_obj, block_number, timestamp: int=None) -> bool:
+    def add_tx_to_pool(self, tx_class_obj, block_number, timestamp: int = None) -> bool:
         if self.is_full_transaction_pool():
             return False
 

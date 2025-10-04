@@ -37,12 +37,12 @@ class TokenTransaction(Transaction):
         return self._data.token.initial_balances
 
     def get_data_bytes(self):
-        data_bytes = (self.master_addr +
-                      self.fee.to_bytes(8, byteorder='big', signed=False) +
-                      self.symbol +
-                      self.name +
-                      self.owner +
-                      self._data.token.decimals.to_bytes(8, byteorder='big', signed=False))
+        data_bytes = (self.master_addr
+                      + self.fee.to_bytes(8, byteorder='big', signed=False)
+                      + self.symbol
+                      + self.name
+                      + self.owner
+                      + self._data.token.decimals.to_bytes(8, byteorder='big', signed=False))
 
         for initial_balance in self._data.token.initial_balances:
             data_bytes += initial_balance.address

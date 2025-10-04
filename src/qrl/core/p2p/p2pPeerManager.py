@@ -83,7 +83,7 @@ class P2PPeerManager(P2PBaseObserver):
             logger.info('Loading known peers')
             with open(self.peers_path, 'r') as infile:
                 known_peers = json.load(infile)
-        except Exception as e:
+        except Exception:
             logger.info("Could not open known_peers list")
 
         return [IPMetadata.canonical_full_address(fa) for fa in known_peers]

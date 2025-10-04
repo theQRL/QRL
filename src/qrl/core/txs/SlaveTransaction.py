@@ -21,13 +21,13 @@ class SlaveTransaction(Transaction):
         return self._data.slave.access_types
 
     def get_data_bytes(self) -> bytes:
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False))
+        tmptxhash = (self.master_addr
+                     + self.fee.to_bytes(8, byteorder='big', signed=False))
 
         for index in range(0, len(self.slave_pks)):
-            tmptxhash = (tmptxhash +
-                         self.slave_pks[index] +
-                         self.access_types[index].to_bytes(8, byteorder='big', signed=False))
+            tmptxhash = (tmptxhash
+                         + self.slave_pks[index]
+                         + self.access_types[index].to_bytes(8, byteorder='big', signed=False))
 
         return tmptxhash
 
@@ -75,8 +75,8 @@ class SlaveTransaction(Transaction):
         return True
 
     def _validate_extended(self, state_container: StateContainer) -> bool:
-        if (len(self.slave_pks) > state_container.current_dev_config.transaction_multi_output_limit or
-                len(self.access_types) > state_container.current_dev_config.transaction_multi_output_limit):
+        if (len(self.slave_pks) > state_container.current_dev_config.transaction_multi_output_limit
+                or len(self.access_types) > state_container.current_dev_config.transaction_multi_output_limit):
             logger.warning('List has more than %s slave pks or access_types',
                            state_container.current_dev_config.transaction_multi_output_limit)
             logger.warning('Slave pks len %s', len(self.slave_pks))
