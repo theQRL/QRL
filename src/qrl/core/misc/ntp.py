@@ -57,8 +57,6 @@ def getTime():
     >>> getTime() is not None
     True
     """
-    global drift, last_refresh
-
     if drift is None:
         setDrift()
 
