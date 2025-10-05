@@ -6,7 +6,7 @@ import os
 
 try:
     from packaging.requirements import Requirement
-    from importlib.metadata import distributions, version
+    from importlib.metadata import version
     MODERN_PACKAGING = True
 except ImportError:
     import pkg_resources
@@ -53,7 +53,7 @@ class DependencyChecker:
                         req = Requirement(clean_req)
                         # Check if package is installed
                         try:
-                            installed_version = version(req.name)
+                            version(req.name)
                         except Exception:
                             raise ImportError(f"Package {req.name} not found")
                         # Basic version checking could be added here if needed
