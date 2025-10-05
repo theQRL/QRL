@@ -87,7 +87,10 @@ jobs:
       - run: apt install -y python3-venv
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r tests_integration/requirements.txt
-      - run: ls tests_integration/tmp
+      - run: chmod +x tests_integration/mocknet/*.sh
+      - run: chown -R $(whoami) tests_integration/mocknet/*.sh
+      - run: chmod +x tests_integration/tests/python/fork_recovery/scripts/prepare_data.sh
+      - run: chown -R $(whoami) tests_integration/tests/python/fork_recovery/scripts/prepare_data.sh
       - run: pytest tests_integration/tests/python/basic
       - run: pytest tests_integration/tests/python/fork_recovery
       - run: pytest tests_integration/tests/python/fastnet_short
