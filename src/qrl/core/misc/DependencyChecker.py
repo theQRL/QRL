@@ -62,7 +62,7 @@ class DependencyChecker:
             else:
                 # Fallback to pkg_resources
                 pkg_resources.require(requirements)
-            
+
             # Check git-based requirements separately
             missing_git_packages = []
             for git_req in git_requirements:
@@ -70,19 +70,19 @@ class DependencyChecker:
                 if "qrllib" in git_req:
                     package_name = "pyqrllib"
                 elif "qryptonight" in git_req:
-                    package_name = "pyqryptonight" 
+                    package_name = "pyqryptonight"
                 elif "qrandomx" in git_req:
                     package_name = "pyqrandomx"
                 else:
                     continue
-                    
+
                 try:
                     __import__(package_name)
                 except ImportError:
                     missing_git_packages.append(git_req)
-            
+
             if missing_git_packages:
                 raise ImportError(f"Git packages not installed: {', '.join(missing_git_packages)}")
-                
+
         except Exception as e:
             sys.exit("dependencies not satisfied, run [pip3 install -r requirements.txt] first. \n {}".format(e))
