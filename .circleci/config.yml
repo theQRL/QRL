@@ -61,9 +61,9 @@ jobs:
   integration_fast:
     docker:
       - image: qrledger/qrl-docker-ci:noble
-    environment:
-      PYTHONPATH: /home/qrl/project:/home/qrl/project/tests_integration
-      TESTINPLACE: 1
+    #environment:
+    #  PYTHONPATH: /home/qrl/project:/home/qrl/project/tests_integration
+    #  TESTINPLACE: 1
     steps:
       - checkout
       - run: git submodule update --init --recursive --remote
