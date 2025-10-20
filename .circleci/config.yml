@@ -62,7 +62,7 @@ jobs:
     docker:
       - image: qrledger/qrl-docker-ci:noble
     environment:
-      PYTHONPATH: /root/project:/root/project/tests_integration
+      PYTHONPATH: /home/qrl/project:/home/qrl/project/tests_integration
       TESTINPLACE: 1
     steps:
       - checkout
