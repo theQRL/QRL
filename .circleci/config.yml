@@ -31,7 +31,6 @@ jobs:
       - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
-      - run: sudo apt-get update
       - run: source /opt/venv/bin/activate
       - run: pip install flake8
       - run: pip install -U setuptools
@@ -81,8 +80,6 @@ jobs:
       TESTINPLACE: 1
     steps:
       - checkout
-      - run: apt-get update
-      - run: apt-get install -y rsync
       - run: git submodule update --init --recursive --remote
       - run: apt install -y python3-venv
       - run: pip install -U -r requirements.txt
