@@ -9,8 +9,13 @@ try:
     from importlib.metadata import version
     MODERN_PACKAGING = True
 except ImportError:
-    import pkg_resources
     MODERN_PACKAGING = False
+
+# Always import pkg_resources as fallback
+try:
+    import pkg_resources
+except ImportError:
+    pkg_resources = None
 
 
 class DependencyChecker:
@@ -61,6 +66,8 @@ class DependencyChecker:
                         raise ImportError(f"Requirement '{req_line}' not satisfied: {e}")
             else:
                 # Fallback to pkg_resources
+                if pkg_resources is None:
+                    raise ImportError("Neither modern packaging nor pkg_resources is available")
                 pkg_resources.require(requirements)
 
             # Check git-based requirements separately
