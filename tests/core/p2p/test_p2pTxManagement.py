@@ -39,13 +39,13 @@ class TestP2PTxManagement(TestCase):
         self.tx_manager.new_channel(channel)
         channel.register.assert_called()
 
-        self.assertEquals(11, channel.register.call_count)
+        self.assertEqual(11, channel.register.call_count)
 
     def test_observable(self):
         channel = Observable(None)
         self.tx_manager = P2PTxManagement()
         self.tx_manager.new_channel(channel)
-        self.assertEquals(11, channel.observers_count)
+        self.assertEqual(11, channel.observers_count)
 
     def test_notification_no_observer(self):
         source = Mock()
@@ -56,7 +56,7 @@ class TestP2PTxManagement(TestCase):
 
         event = ObservableEvent("event_id")
 
-        with self.assertRaisesRegexp(RuntimeError, "Observer not registered for"):
+        with self.assertRaisesRegex(RuntimeError, "Observer not registered for"):
             channel.notify(event, force_delivery=True)
 
     def test_notification(self):

@@ -9,7 +9,7 @@ from qrl.core.txs.Transaction import Transaction
 
 class TransactionInfo:
 
-    def __init__(self, tx: Transaction, block_number: int, timestamp: int=None):
+    def __init__(self, tx: Transaction, block_number: int, timestamp: int = None):
         self._transaction = tx
         self._block_number = block_number
         self._timestamp = timestamp

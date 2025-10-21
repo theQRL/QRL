@@ -31,10 +31,10 @@ class MultiSigVote(Transaction):
         self._data.multi_sig_vote.prev_tx_hash = prev_tx_hash
 
     def get_data_hash(self):
-        tmp_tx_hash = (self.master_addr +
-                       self.fee.to_bytes(8, byteorder='big', signed=False) +
-                       self.shared_key +
-                       self.unvote.to_bytes(1, byteorder='big', signed=False))
+        tmp_tx_hash = (self.master_addr
+                       + self.fee.to_bytes(8, byteorder='big', signed=False)
+                       + self.shared_key
+                       + self.unvote.to_bytes(1, byteorder='big', signed=False))
 
         return sha256(tmp_tx_hash)
 

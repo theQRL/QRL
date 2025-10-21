@@ -432,7 +432,7 @@ def tx_inspect(ctx, txblob):
         pbdata = qrl_pb2.Transaction()
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
-    except Exception as e:
+    except Exception:
         click.echo("tx blob is not valid")
         quit(1)
 
@@ -454,7 +454,7 @@ def tx_push(ctx, txblob):
         pbdata = qrl_pb2.Transaction()
         pbdata.ParseFromString(txbin)
         tx = Transaction.from_pbdata(pbdata)
-    except Exception as e:
+    except Exception:
         click.echo("tx blob is not valid")
         quit(1)
 

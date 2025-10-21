@@ -11,6 +11,7 @@ class TokenList(object):
     """
     Maintains the list of tokens in the network.
     """
+
     def __init__(self, protobuf_data=None):
         self._data = protobuf_data
         if protobuf_data is None:

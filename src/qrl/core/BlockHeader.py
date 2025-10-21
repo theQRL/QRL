@@ -78,11 +78,11 @@ class BlockHeader(object):
 
     def mining_blob(self, dev_config: DevConfig) -> bytes:
         blob = self.block_number.to_bytes(8, byteorder='big', signed=False) \
-               + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
-               + self.prev_headerhash \
-               + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
-               + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
-               + self.tx_merkle_root
+            + self.timestamp.to_bytes(8, byteorder='big', signed=False) \
+            + self.prev_headerhash \
+            + self.block_reward.to_bytes(8, byteorder='big', signed=False) \
+            + self.fee_reward.to_bytes(8, byteorder='big', signed=False) \
+            + self.tx_merkle_root
 
         # reduce mining blob: 1 byte zero + 4 bytes nonce + 8 bytes extra_nonce by pool + 5 bytes for pool (17 bytes)
         blob = bytes(shake128(dev_config.mining_blob_size_in_bytes - 18, blob))

@@ -155,15 +155,15 @@ class TestP2PProtocol(TestCase):
         self.channel.transport.write.assert_called_with(get_headerhash_request)
 
     def test_parse_buffer_works(self):
-        self.channel._buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368' +
-                                              '000000191a170a0776657273696f6e120c67656e657369735f68617368'))
+        self.channel._buffer = bytes(hstr2bin('000000191a170a0776657273696f6e120c67656e657369735f68617368'
+                                              + '000000191a170a0776657273696f6e120c67656e657369735f68617368'))
         messages = self.channel._parse_buffer([0])
         self.assertEqual(2, len(list(messages)))
 
     @patch('qrl.core.p2p.p2pprotocol.logger', autospec=True)
     def test_parse_buffer_invalid_data(self, logger):
-        self.channel._buffer = bytes(hstr2bin('0000000000000000000000000000000000000000000000000000000000' +
-                                              '1111111111111111111111111111111111111111111111111111111111'))
+        self.channel._buffer = bytes(hstr2bin('0000000000000000000000000000000000000000000000000000000000'
+                                              + '1111111111111111111111111111111111111111111111111111111111'))
 
         messages = self.channel._parse_buffer([0])
         messages_list = list(messages)

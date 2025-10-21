@@ -72,32 +72,32 @@ class TestBlockHeader(TestCase):
         self.assertIsNotNone(self.block_header)  # just to avoid warnings
 
     def test_blob(self, time_mock):
-        self.assertEquals('00501846b24200c31fca7172a7f701ae50322579cfdf1d7777daab4ce6ead70b76debb2c51a1'
-                          'c700000000000000000000000000000000002b80aecec05ad5c7c4f2259c8f69e2966a6ce102',
-                          bin2hstr(self.block_header.mining_blob(config.dev)))
-        self.assertEquals(config.dev.mining_blob_size_in_bytes, len(self.block_header.mining_blob(config.dev)))
+        self.assertEqual('00501846b24200c31fca7172a7f701ae50322579cfdf1d7777daab4ce6ead70b76debb2c51a1'
+                         'c700000000000000000000000000000000002b80aecec05ad5c7c4f2259c8f69e2966a6ce102',
+                         bin2hstr(self.block_header.mining_blob(config.dev)))
+        self.assertEqual(config.dev.mining_blob_size_in_bytes, len(self.block_header.mining_blob(config.dev)))
 
     def test_hash(self, time_mock):
         header_hash = self.block_header.generate_headerhash(config.dev)
 
-        self.assertEquals('ac021e63df860ea930ea9de05e350d3f74af35341688134f92957f1dac3a62fb', bin2hstr(header_hash))
+        self.assertEqual('ac021e63df860ea930ea9de05e350d3f74af35341688134f92957f1dac3a62fb', bin2hstr(header_hash))
 
-        self.assertEquals(bin2hstr(header_hash), bin2hstr(self.block_header.headerhash))
+        self.assertEqual(bin2hstr(header_hash), bin2hstr(self.block_header.headerhash))
 
-        self.assertEquals(32, len(self.block_header.headerhash))
+        self.assertEqual(32, len(self.block_header.headerhash))
 
     def test_hash_nonce(self, time_mock):
         self.block_header.set_nonces(config.dev, 100, 0)
 
         header_hash = self.block_header.generate_headerhash(config.dev)
 
-        self.assertEquals('b6f937020f9876f3c6887e7a6759201411ed8826ed9ce4283ffe48e1aa90d692',
-                          bin2hstr(header_hash))
+        self.assertEqual('b6f937020f9876f3c6887e7a6759201411ed8826ed9ce4283ffe48e1aa90d692',
+                         bin2hstr(header_hash))
 
-        self.assertEquals(bin2hstr(header_hash),
-                          bin2hstr(self.block_header.headerhash))
+        self.assertEqual(bin2hstr(header_hash),
+                         bin2hstr(self.block_header.headerhash))
 
-        self.assertEquals(32, len(self.block_header.headerhash))
+        self.assertEqual(32, len(self.block_header.headerhash))
 
     def test_validate_pass(self, time_mock):
         result = self.block_header.validate(self.fee_reward, self.coinbase_amount,

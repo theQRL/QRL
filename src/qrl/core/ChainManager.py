@@ -333,15 +333,21 @@ class ChainManager:
 
         # If parent block belongs to main chain, then seed block will also be in the main chain
         prev_mainchain_block = self.get_block_by_number(blockheader.block_number - 1)
-        if prev_mainchain_block.headerhash == blockheader.prev_headerhash:
+        if prev_mainchain_block is not None and prev_mainchain_block.headerhash == blockheader.prev_headerhash:
             return self.get_block_by_number(seed_height)
 
         prev_block = self.get_block(blockheader.prev_headerhash)
+        if prev_block is None:
+            # If we can't find the previous block, return None to indicate failure
+            return None
         while prev_block.block_number > seed_height:
             prev_mainchain_block = self.get_block_by_number(prev_block.block_number)
-            if prev_mainchain_block.headerhash == prev_block.headerhash:
+            if prev_mainchain_block is not None and prev_mainchain_block.headerhash == prev_block.headerhash:
                 return self.get_block_by_number(seed_height)
             prev_block = self.get_block(prev_block.prev_headerhash)
+            if prev_block is None:
+                # If we can't find the previous block during traversal, return None
+                return None
 
         return prev_block
 
@@ -362,6 +368,10 @@ class ChainManager:
             mining_blob = blockheader.mining_blob(dev_config)
             qn = Qryptonight()
             seed_block = self.get_seed_block(blockheader)
+            if seed_block is None:
+                if enable_logging:
+                    logger.warning("Could not find seed block for validation")
+                return False
 
             if enable_logging:
                 logger.debug('-----------------START--------------------')
@@ -862,8 +872,8 @@ class ChainManager:
             dev_config=dev_config)
 
         block_cumulative_difficulty = StringToUInt256(str(
-            int(UInt256ToString(block_difficulty)) +
-            int(UInt256ToString(parent_cumulative_difficulty))))
+            int(UInt256ToString(block_difficulty))
+            + int(UInt256ToString(parent_cumulative_difficulty))))
 
         block_metadata.set_block_difficulty(block_difficulty)
         block_metadata.set_cumulative_difficulty(block_cumulative_difficulty)

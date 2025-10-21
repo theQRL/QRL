@@ -56,7 +56,6 @@ def valid_payment_permission(public_stub, master_address_state, payment_xmss, js
 
 
 def get_unused_payment_xmss(public_stub):
-    global payment_slaves
     global payment_xmss
 
     master_address = payment_slaves[0]
@@ -118,12 +117,10 @@ def api_proxy(api_method_name):
 
 
 def get_mining_stub():
-    global mining_stub
     return mining_stub
 
 
 def get_public_stub():
-    global public_stub
     return public_stub
 
 

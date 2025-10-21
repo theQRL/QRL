@@ -1,86 +1,91 @@
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
+      - run: source /opt/venv/bin/activate
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
-      - run: python3 setup.py test --addopts "--cov . --cov-report term-missing --cov-report xml"
-      - run: sudo pip install -U coverage codacy-coverage
-      - run: if [[ -v CODACY_PROJECT_TOKEN ]]; then python-codacy-coverage -r coverage.xml || echo "failed"; fi
+      - run: pip install -e .
+      - run: pytest --cov . --cov-report term-missing --cov-report xml
+      - run: pip install -U coverage codacy-coverage
+      - run: if [[ -v CODACY_PROJECT_TOKEN ]]; then python -m codacy_coverage -r coverage.xml || echo "failed"; fi
       
   test_leaks_CLI:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
       - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
-      - run: python3 setup.py test --addopts "tests/tools/ --open-files --threadleak -n0"
+      - run: pip install -e .
+      - run: pytest tests/tools/ --open-files --threadleak -n0
 
   flake8:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
+      - run: source /opt/venv/bin/activate
+      - run: pip install flake8
       - run: pip install -U setuptools
-      - run: flake8
+      - run: python3 -m flake8 -v --show-source --statistics ./src ./tests
 
   test_leaks_other:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
       - run: pip install -U pytest-openfiles pytest-leaks pytest-threadleak pytest-repeat
-      - run: python3 setup.py test --addopts "--ignore=tests/tools/ --ignore=tests/daemon/ --ignore=tests/services/test_WalletAPIService.py --open-files --threadleak -n0"
+      - run: pip install -e .
+      - run: pytest --ignore=tests/tools/ --ignore=tests/daemon/ --ignore=tests/services/test_WalletAPIService.py --open-files --threadleak -n0
 
-  build_bionic:
-    docker:
-      - image: qrledger/qrl-docker-ci:bionic
-    steps:
-      - checkout
-      - run: pip install -U setuptools
-      - run: pip install -U -r requirements.txt
-      - run: pip install -U -r test-requirements.txt
-      - run: python3 setup.py test
+  # build_noble:
+  #   docker:
+  #     - image: qrledger/qrl-docker-ci:noble
+  #   steps:
+  #     - checkout
+  #     - run: pip install -U setuptools
+  #     - run: pip install -U -r requirements.txt
+  #     - run: pip install -U -r test-requirements.txt
+  #     - run: python3 setup.py test
 
   integration_fast:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
-    environment:
-      PYTHONPATH: /root/project:/root/project/tests_integration
-      TESTINPLACE: 1
+      - image: qrledger/qrl-docker-ci:noble
+    #environment:
+    #  PYTHONPATH: /home/qrl/project:/home/qrl/project/tests_integration
+    #  TESTINPLACE: 1
     steps:
       - checkout
       - run: git submodule update --init --recursive --remote
-      - run: apt install -y python3-venv
       - run: pip install -U -r tests_integration/requirements.txt
       - run: ls tests_integration/tmp
       - run: pytest tests_integration/tests/python/fastnet_long
 
   integration_smoke:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
-    environment:
-      PYTHONPATH: /root/project:/root/project/tests_integration
-      TESTINPLACE: 1
+      - image: qrledger/qrl-docker-ci:noble
+    #environment:
+    #  PYTHONPATH: /root/project:/root/project/tests_integration
+    #  TESTINPLACE: 1
     steps:
       - checkout
-      - run: apt-get update
-      - run: apt-get install -y rsync
       - run: git submodule update --init --recursive --remote
-      - run: apt install -y python3-venv
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r tests_integration/requirements.txt
-      - run: ls tests_integration/tmp
+      - run: chmod +x tests_integration/mocknet/*.sh
+      - run: chown -R $(whoami) tests_integration/mocknet/*.sh
+      - run: chmod +x tests_integration/tests/python/fork_recovery/scripts/prepare_data.sh
+      - run: chown -R $(whoami) tests_integration/tests/python/fork_recovery/scripts/prepare_data.sh
       - run: pytest tests_integration/tests/python/basic
       - run: pytest tests_integration/tests/python/fork_recovery
       - run: pytest tests_integration/tests/python/fastnet_short
@@ -110,7 +115,7 @@ jobs:
 
   deploy-pypi:
     docker:
-      - image: qrledger/qrl-docker-ci:bionic
+      - image: qrledger/qrl-docker-ci:noble
     steps:
       - checkout
       - run: git submodule update --init --recursive
@@ -127,10 +132,10 @@ workflows:
             tags:
               only: /.*/
 
-      - build_bionic:
-          filters:
-            tags:
-              only: /.*/
+      # - build_noble:
+      #     filters:
+      #       tags:
+      #         only: /.*/
 
       - flake8:
           filters:
@@ -160,7 +165,7 @@ workflows:
       - deploy-pypi:
           requires:
             - build
-            - build_bionic
+            # - build_noble
             - flake8
             #- test_leaks_CLI
             - test_leaks_other

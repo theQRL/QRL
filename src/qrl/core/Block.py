@@ -29,8 +29,8 @@ class Block(object):
 
     def __eq__(self, other):
         equality = (self.block_number == other.block_number) and (self.headerhash == other.headerhash) and (
-                self.prev_headerhash == other.prev_headerhash) and (self.timestamp == other.timestamp) and (
-                           self.mining_nonce == other.mining_nonce)
+            self.prev_headerhash == other.prev_headerhash) and (self.timestamp == other.timestamp) and (
+            self.mining_nonce == other.mining_nonce)
         return equality
 
     @property

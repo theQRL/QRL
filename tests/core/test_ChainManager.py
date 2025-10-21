@@ -489,13 +489,13 @@ class TestChainManagerReal(TestCase):
 
             self.assertEqual(bob_addr_state.balance, 59 * int(config.dev.shor_per_quanta))
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             block_1.block_reward + block_1.fee_reward +
-                             block_2.block_reward + block_2.fee_reward +
-                             block_3.block_reward + block_3.fee_reward +
-                             block_4.block_reward + block_4.fee_reward +
-                             block_5.block_reward + block_5.fee_reward +
-                             5)
+                             100 * int(config.dev.shor_per_quanta)
+                             + block_1.block_reward + block_1.fee_reward
+                             + block_2.block_reward + block_2.fee_reward
+                             + block_3.block_reward + block_3.fee_reward
+                             + block_4.block_reward + block_4.fee_reward
+                             + block_5.block_reward + block_5.fee_reward
+                             + 5)
             self.assertEqual(random_addr_state.balance, 100 * int(config.dev.shor_per_quanta) + 10)
             self.assertEqual(multi_sig_address_state.balance, 40 * int(config.dev.shor_per_quanta) - 15)
             self.assertEqual(multi_sig_address_state.transaction_hash_count(), 3)
@@ -697,11 +697,11 @@ class TestChainManagerReal(TestCase):
 
             self.assertEqual(bob_addr_state.balance, 59 * int(config.dev.shor_per_quanta))
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             block_1.block_reward + block_1.fee_reward +
-                             block_2.block_reward + block_2.fee_reward +
-                             block_3.block_reward + block_3.fee_reward +
-                             block_4.block_reward + block_4.fee_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + block_1.block_reward + block_1.fee_reward
+                             + block_2.block_reward + block_2.fee_reward
+                             + block_3.block_reward + block_3.fee_reward
+                             + block_4.block_reward + block_4.fee_reward)
             self.assertEqual(random_addr_state.balance, 100 * int(config.dev.shor_per_quanta))
             self.assertEqual(multi_sig_address_state.balance, 40 * int(config.dev.shor_per_quanta))
             self.assertEqual(multi_sig_address_state.transaction_hash_count(), 3)
@@ -763,8 +763,8 @@ class TestChainManagerReal(TestCase):
                              100 * int(config.dev.shor_per_quanta) - 5)
             self.assertEqual(alice_addr_state.lattice_pk_count(), 1)
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             block_1.block_reward + 5)
+                             100 * int(config.dev.shor_per_quanta)
+                             + block_1.block_reward + 5)
 
             lattice_pk2 = LatticeTransaction.create(pk1=b'alice_pk11',
                                                     pk2=b'alice_pk12',
@@ -1008,9 +1008,9 @@ class TestChainManagerReal(TestCase):
 
             self.assertEqual(bob_addr_state.balance, 59 * int(config.dev.shor_per_quanta))
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             block_1.block_reward + block_1.fee_reward +
-                             multi_sig_spend.amounts[1])
+                             100 * int(config.dev.shor_per_quanta)
+                             + block_1.block_reward + block_1.fee_reward
+                             + multi_sig_spend.amounts[1])
             self.assertEqual(random_addr_state.balance,
                              100 * int(config.dev.shor_per_quanta) + multi_sig_spend.amounts[0])
             self.assertEqual(multi_sig_address_state.balance,
@@ -1224,8 +1224,8 @@ class TestChainManagerReal(TestCase):
 
             self.assertEqual(bob_addr_state.balance, 59 * int(config.dev.shor_per_quanta))
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             block_1.block_reward + block_1.fee_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + block_1.block_reward + block_1.fee_reward)
             self.assertEqual(random_addr_state.balance,
                              100 * int(config.dev.shor_per_quanta))
             self.assertEqual(multi_sig_address_state.balance,
@@ -1665,22 +1665,22 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction.fee -
-                             transfer_transaction.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction.fee
+                             - transfer_transaction.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction.total_amount
+                             - multi_sig_spend1.total_amount)
 
             seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(2))
             block_2 = Block.create(dev_config=config.dev,
@@ -1711,24 +1711,24 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction.fee -
-                             transfer_transaction.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction.fee
+                             - transfer_transaction.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction.total_amount
+                             - multi_sig_spend1.total_amount)
 
             # Check Txns in State
             vote_stats = self.chain_manager.get_vote_stats(multi_sig_spend1.txhash)
@@ -2000,22 +2000,22 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             - multi_sig_spend1.total_amount)
 
             seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(2))
             block_2 = Block.create(dev_config=config.dev,
@@ -2046,24 +2046,24 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             - multi_sig_spend1.total_amount)
 
             transfer_transaction2 = TransferTransaction.create(addrs_to=[multi_sig_address],
                                                                amounts=[40],
@@ -2103,29 +2103,29 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount -
-                             transfer_transaction2.fee -
-                             transfer_transaction2.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount
+                             - transfer_transaction2.fee
+                             - transfer_transaction2.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward +
-                             block_3.fee_reward +
-                             block_3.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward
+                             + block_3.fee_reward
+                             + block_3.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount +
-                             transfer_transaction2.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             + transfer_transaction2.total_amount
+                             - multi_sig_spend1.total_amount)
 
             multi_sig_vote5 = MultiSigVote.create(shared_key=multi_sig_spend2.txhash,
                                                   unvote=True,
@@ -2163,32 +2163,32 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount -
-                             transfer_transaction2.fee -
-                             transfer_transaction2.total_amount -
-                             multi_sig_vote5.fee)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount
+                             - transfer_transaction2.fee
+                             - transfer_transaction2.total_amount
+                             - multi_sig_vote5.fee)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward +
-                             block_3.fee_reward +
-                             block_3.block_reward +
-                             block_4.fee_reward +
-                             block_4.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward
+                             + block_3.fee_reward
+                             + block_3.block_reward
+                             + block_4.fee_reward
+                             + block_4.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount +
-                             transfer_transaction2.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             + transfer_transaction2.total_amount
+                             - multi_sig_spend1.total_amount)
 
             multi_sig_vote6 = MultiSigVote.create(shared_key=multi_sig_spend2.txhash,
                                                   unvote=False,
@@ -2226,38 +2226,38 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount -
-                             transfer_transaction2.fee -
-                             transfer_transaction2.total_amount -
-                             multi_sig_vote5.fee -
-                             multi_sig_vote6.fee)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount
+                             - transfer_transaction2.fee
+                             - transfer_transaction2.total_amount
+                             - multi_sig_vote5.fee
+                             - multi_sig_vote6.fee)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             multi_sig_spend2.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward +
-                             block_3.fee_reward +
-                             block_3.block_reward +
-                             block_4.fee_reward +
-                             block_4.block_reward +
-                             block_5.fee_reward +
-                             block_5.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + multi_sig_spend2.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward
+                             + block_3.fee_reward
+                             + block_3.block_reward
+                             + block_4.fee_reward
+                             + block_4.block_reward
+                             + block_5.fee_reward
+                             + block_5.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0] +
-                             multi_sig_spend2.amounts[1])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0]
+                             + multi_sig_spend2.amounts[1])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount +
-                             transfer_transaction2.total_amount -
-                             multi_sig_spend1.total_amount -
-                             multi_sig_spend2.total_amount)
+                             transfer_transaction1.total_amount
+                             + transfer_transaction2.total_amount
+                             - multi_sig_spend1.total_amount
+                             - multi_sig_spend2.total_amount)
 
             # Check Txns in State
             vote_stats = self.chain_manager.get_vote_stats(multi_sig_spend1.txhash)
@@ -2670,14 +2670,14 @@ class TestChainManagerReal(TestCase):
             self.assertEqual(bob_addr_state.balance,
                              100 * int(config.dev.shor_per_quanta))
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             block_1.block_reward + block_1.fee_reward -
-                             slave_txn1.fee -
-                             transfer_txn.fee -
-                             transfer_txn.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             + block_1.block_reward + block_1.fee_reward
+                             - slave_txn1.fee
+                             - transfer_txn.fee
+                             - transfer_txn.total_amount)
             self.assertEqual(random_addr_state1.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             transfer_txn.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + transfer_txn.amounts[0])
             self.assertEqual(random_addr_state2.balance, 100 * int(config.dev.shor_per_quanta))
 
             slave_metadata = self.chain_manager.get_slave_pk_access_type(alice_addr_state.address, random_xmss1.pk)
@@ -3053,13 +3053,13 @@ class TestChainManagerReal(TestCase):
 
             self.assertEqual(bob_addr_state.balance, 59 * int(config.dev.shor_per_quanta))
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             block_1.block_reward + block_1.fee_reward +
-                             block_2.block_reward + block_2.fee_reward +
-                             block_3.block_reward + block_3.fee_reward +
-                             block_4.block_reward + block_4.fee_reward +
-                             block_5.block_reward + block_5.fee_reward +
-                             5)
+                             100 * int(config.dev.shor_per_quanta)
+                             + block_1.block_reward + block_1.fee_reward
+                             + block_2.block_reward + block_2.fee_reward
+                             + block_3.block_reward + block_3.fee_reward
+                             + block_4.block_reward + block_4.fee_reward
+                             + block_5.block_reward + block_5.fee_reward
+                             + 5)
             self.assertEqual(random_addr_state.balance, 100 * int(config.dev.shor_per_quanta) + 10)
             self.assertEqual(multi_sig_address_state.balance, 40 * int(config.dev.shor_per_quanta) - 15)
             self.assertEqual(multi_sig_address_state.transaction_hash_count(), 3)
@@ -3207,22 +3207,22 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction.fee -
-                             transfer_transaction.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction.fee
+                             - transfer_transaction.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction.total_amount
+                             - multi_sig_spend1.total_amount)
 
             seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(2))
             block_2 = Block.create(dev_config=config.dev,
@@ -3253,24 +3253,24 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction.fee -
-                             transfer_transaction.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction.fee
+                             - transfer_transaction.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction.total_amount
+                             - multi_sig_spend1.total_amount)
 
             # Check Txns in State
             vote_stats = self.chain_manager.get_vote_stats(multi_sig_spend1.txhash)
@@ -3356,17 +3356,17 @@ class TestChainManagerReal(TestCase):
             self.assertEqual(random_addr_state.nonce, 0)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction.total_amount -
-                             transfer_transaction.fee)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction.total_amount
+                             - transfer_transaction.fee)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             # Check OTS key usage
             p = PaginatedBitfield(False, self.state._db)
@@ -3532,22 +3532,22 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             - multi_sig_spend1.total_amount)
 
             seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(2))
             block_2 = Block.create(dev_config=config.dev,
@@ -3578,24 +3578,24 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             - multi_sig_spend1.total_amount)
 
             transfer_transaction2 = TransferTransaction.create(addrs_to=[multi_sig_address],
                                                                amounts=[40],
@@ -3635,29 +3635,29 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount -
-                             transfer_transaction2.fee -
-                             transfer_transaction2.total_amount)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount
+                             - transfer_transaction2.fee
+                             - transfer_transaction2.total_amount)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward +
-                             block_3.fee_reward +
-                             block_3.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward
+                             + block_3.fee_reward
+                             + block_3.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount +
-                             transfer_transaction2.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             + transfer_transaction2.total_amount
+                             - multi_sig_spend1.total_amount)
 
             multi_sig_vote5 = MultiSigVote.create(shared_key=multi_sig_spend2.txhash,
                                                   unvote=True,
@@ -3695,32 +3695,32 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount -
-                             transfer_transaction2.fee -
-                             transfer_transaction2.total_amount -
-                             multi_sig_vote5.fee)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount
+                             - transfer_transaction2.fee
+                             - transfer_transaction2.total_amount
+                             - multi_sig_vote5.fee)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward +
-                             block_3.fee_reward +
-                             block_3.block_reward +
-                             block_4.fee_reward +
-                             block_4.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward
+                             + block_3.fee_reward
+                             + block_3.block_reward
+                             + block_4.fee_reward
+                             + block_4.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount +
-                             transfer_transaction2.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             + transfer_transaction2.total_amount
+                             - multi_sig_spend1.total_amount)
 
             multi_sig_vote6 = MultiSigVote.create(shared_key=multi_sig_spend2.txhash,
                                                   unvote=False,
@@ -3758,38 +3758,38 @@ class TestChainManagerReal(TestCase):
                                                                                                   multi_sig_address)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount -
-                             transfer_transaction2.fee -
-                             transfer_transaction2.total_amount -
-                             multi_sig_vote5.fee -
-                             multi_sig_vote6.fee)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount
+                             - transfer_transaction2.fee
+                             - transfer_transaction2.total_amount
+                             - multi_sig_vote5.fee
+                             - multi_sig_vote6.fee)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             multi_sig_spend2.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward +
-                             block_3.fee_reward +
-                             block_3.block_reward +
-                             block_4.fee_reward +
-                             block_4.block_reward +
-                             block_5.fee_reward +
-                             block_5.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + multi_sig_spend2.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward
+                             + block_3.fee_reward
+                             + block_3.block_reward
+                             + block_4.fee_reward
+                             + block_4.block_reward
+                             + block_5.fee_reward
+                             + block_5.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0] +
-                             multi_sig_spend2.amounts[1])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0]
+                             + multi_sig_spend2.amounts[1])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount +
-                             transfer_transaction2.total_amount -
-                             multi_sig_spend1.total_amount -
-                             multi_sig_spend2.total_amount)
+                             transfer_transaction1.total_amount
+                             + transfer_transaction2.total_amount
+                             - multi_sig_spend1.total_amount
+                             - multi_sig_spend2.total_amount)
 
             # Check Txns in State
             vote_stats = self.chain_manager.get_vote_stats(multi_sig_spend1.txhash)
@@ -3898,32 +3898,32 @@ class TestChainManagerReal(TestCase):
             self.assertEqual(random_addr_state.nonce, 0)
 
             self.assertEqual(bob_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) -
-                             transfer_transaction1.fee -
-                             transfer_transaction1.total_amount -
-                             transfer_transaction2.fee -
-                             transfer_transaction2.total_amount -
-                             multi_sig_vote5.fee)
+                             100 * int(config.dev.shor_per_quanta)
+                             - transfer_transaction1.fee
+                             - transfer_transaction1.total_amount
+                             - transfer_transaction2.fee
+                             - transfer_transaction2.total_amount
+                             - multi_sig_vote5.fee)
             self.assertEqual(alice_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[1] +
-                             block_1.fee_reward +
-                             block_1.block_reward +
-                             block_2.fee_reward +
-                             block_2.block_reward +
-                             block_3.fee_reward +
-                             block_3.block_reward +
-                             block_4.fee_reward +
-                             block_4.block_reward)
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[1]
+                             + block_1.fee_reward
+                             + block_1.block_reward
+                             + block_2.fee_reward
+                             + block_2.block_reward
+                             + block_3.fee_reward
+                             + block_3.block_reward
+                             + block_4.fee_reward
+                             + block_4.block_reward)
             self.assertEqual(random_addr_state.balance,
-                             100 * int(config.dev.shor_per_quanta) +
-                             multi_sig_spend1.amounts[0])
+                             100 * int(config.dev.shor_per_quanta)
+                             + multi_sig_spend1.amounts[0])
 
             self.assertIsNotNone(multi_sig_address_state)
             self.assertEqual(multi_sig_address_state.balance,
-                             transfer_transaction1.total_amount +
-                             transfer_transaction2.total_amount -
-                             multi_sig_spend1.total_amount)
+                             transfer_transaction1.total_amount
+                             + transfer_transaction2.total_amount
+                             - multi_sig_spend1.total_amount)
 
             # Check OTS key usage
             p = PaginatedBitfield(False, self.state._db)

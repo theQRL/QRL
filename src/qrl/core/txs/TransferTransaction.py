@@ -37,14 +37,14 @@ class TransferTransaction(Transaction):
         return self._data.transfer.message_data
 
     def get_data_bytes(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False) +
-                     self.message_data)
+        tmptxhash = (self.master_addr
+                     + self.fee.to_bytes(8, byteorder='big', signed=False)
+                     + self.message_data)
 
         for index in range(0, len(self.addrs_to)):
-            tmptxhash = (tmptxhash +
-                         self.addrs_to[index] +
-                         self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            tmptxhash = (tmptxhash
+                         + self.addrs_to[index]
+                         + self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
         return tmptxhash
 

@@ -26,11 +26,14 @@ entry_points = """
 def setup_package():
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
     sphinx = ['sphinx'] if needs_sphinx else []
+    _cmdclass = versioneer.get_cmdclass()
+    if 'test' in _cmdclass:
+        del _cmdclass['test']
     setup(setup_requires=['pyscaffold==3.0.2'] + sphinx,
           entry_points=entry_points,
           version=versioneer.get_version(),
-          cmdclass=versioneer.get_cmdclass(),
-          use_pyscaffold=True)
+          cmdclass=_cmdclass,
+          install_requires=['protobuf>=6.31.1,<7.0.0', 'grpcio-tools'])
 
 
 if __name__ == "__main__":

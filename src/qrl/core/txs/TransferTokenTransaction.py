@@ -37,14 +37,14 @@ class TransferTokenTransaction(Transaction):
         return self._data.transfer_token.amounts
 
     def get_data_bytes(self):
-        data_bytes = (self.master_addr +
-                      self.fee.to_bytes(8, byteorder='big', signed=False) +
-                      self.token_txhash)
+        data_bytes = (self.master_addr
+                      + self.fee.to_bytes(8, byteorder='big', signed=False)
+                      + self.token_txhash)
 
         for index in range(0, len(self.addrs_to)):
-            data_bytes = (data_bytes +
-                          self.addrs_to[index] +
-                          self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            data_bytes = (data_bytes
+                          + self.addrs_to[index]
+                          + self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
         return data_bytes
 
@@ -106,8 +106,8 @@ class TransferTokenTransaction(Transaction):
 
     # checks new tx validity based upon node statedb and node mempool.
     def _validate_extended(self, state_container: StateContainer):
-        if (len(self.addrs_to) > state_container.current_dev_config.transaction_multi_output_limit or
-                len(self.amounts) > state_container.current_dev_config.transaction_multi_output_limit):
+        if (len(self.addrs_to) > state_container.current_dev_config.transaction_multi_output_limit
+                or len(self.amounts) > state_container.current_dev_config.transaction_multi_output_limit):
             logger.warning('[TransferTokenTransaction] Number of addresses or amounts exceeds max limit')
             logger.warning('Number of addresses %s', len(self.addrs_to))
             logger.warning('Number of amounts %s', len(self.amounts))

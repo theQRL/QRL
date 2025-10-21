@@ -187,7 +187,7 @@ class Wallet:
         search_addr_str = self._get_Qaddress(search_addr)
         return self.get_xmss_by_qaddress(search_addr_str)
 
-    def get_xmss_by_qaddress(self, search_addr_str, passphrase: str=None) -> Optional[XMSS]:
+    def get_xmss_by_qaddress(self, search_addr_str, passphrase: str = None) -> Optional[XMSS]:
         idx, _ = self.get_address_item(search_addr_str)
 
         if idx is None:
@@ -370,7 +370,7 @@ class Wallet:
         tmp['encrypted'] = True
         self._address_items[index] = AddressItem(**tmp)
 
-    def decrypt(self, password: str, first_address_only: bool=False):
+    def decrypt(self, password: str, first_address_only: bool = False):
         if self.encrypted_partially:
             raise WalletEncryptionError("Some addresses are already decrypted. Please re-encrypt all addresses before"
                                         "running decrypt().")
@@ -446,7 +446,7 @@ class Wallet:
         self.append_xmss(tmp_xmss)
         return tmp_xmss
 
-    def add_slave(self, index, height, number_of_slaves=1, passphrase: str=None, hash_function="shake128", force=False):
+    def add_slave(self, index, height, number_of_slaves=1, passphrase: str = None, hash_function="shake128", force=False):
         if not force:
             if self.encrypted or self.encrypted_partially:
                 raise WalletEncryptionError("Please decrypt all addresses in this wallet before adding a new address!")

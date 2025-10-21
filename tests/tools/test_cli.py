@@ -207,7 +207,7 @@ class TestCLI(TestCase):
         self.assertIn(wallet["addresses"][0]["hexseed"], result.output)
 
         result = self.runner.invoke(qrl_cli, ["wallet_decrypt"], input='wrong_password\nwrong_password\n')
-        self.assertEquals(1, result.exit_code)
+        self.assertEqual(1, result.exit_code)
         # TODO: Add appropriate error matching
 
     def test_wallet_secret_invalid_input(self):
@@ -589,7 +589,7 @@ class TestCLI(TestCase):
 
         wallet = open_wallet()
         owner_address = wallet["addresses"][0]["address"]
-        typed_in_input = '\n'.join([owner_address, '100']) + '\n'
+        typed_in_input = '\n'.join([owner_address, '100', '']) + '\n'
         result = self.runner.invoke(qrl_cli, [
             "tx_token",
             "--src=0",
@@ -617,7 +617,7 @@ class TestCLI(TestCase):
 
         wallet = open_wallet()
         owner_address = wallet["addresses"][0]["address"]
-        typed_in_input = '\n'.join([owner_address, '100']) + '\n'
+        typed_in_input = '\n'.join([owner_address, '100', '']) + '\n'
 
         # Weird token names and symbols shouldn't work
         result = self.runner.invoke(qrl_cli,

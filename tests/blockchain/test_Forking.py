@@ -38,7 +38,7 @@ class TestBlockchain(TestCase):
 
             self.assertEqual(last_block._data, block_index_10._data)
             self.assertEqual(last_block._data, block_10._data)
-            self.assertNotEquals(last_block._data, block_10b._data)
+            self.assertNotEqual(last_block._data, block_10b._data)
 
     def test_forking_basic2(self):
         """
