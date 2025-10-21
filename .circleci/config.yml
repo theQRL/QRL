@@ -74,9 +74,9 @@ jobs:
   integration_smoke:
     docker:
       - image: qrledger/qrl-docker-ci:noble
-    environment:
-      PYTHONPATH: /root/project:/root/project/tests_integration
-      TESTINPLACE: 1
+    #environment:
+    #  PYTHONPATH: /root/project:/root/project/tests_integration
+    #  TESTINPLACE: 1
     steps:
       - checkout
       - run: git submodule update --init --recursive --remote
