@@ -1,4 +1,4 @@
 [submodule "tests_integration"]
 	path = tests_integration
-	url = https://github.com/jplomas/integration_tests
+	url = https://github.com/theQRL/integration_tests
 	branch = noble-work-in-progress

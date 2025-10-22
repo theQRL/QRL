@@ -39,9 +39,9 @@ mock>=5.0.0,<6.0.0  # Updated version (or use unittest.mock from stdlib)
 daemonize>=2.5.0,<3.0.0  # Updated version
 
 # QRL-specific packages
-git+https://github.com/jplomas/qrllib.git
-git+https://github.com/jplomas/qryptonight.git
-git+https://github.com/jplomas/qrandomx.git
+git+https://github.com/theQRL/qrllib.git
+git+https://github.com/theQRL/qryptonight.git
+git+https://github.com/theQRL/qrandomx.git
 
 # JSON-RPC
 json-rpc>=1.15.0,<2.0.0  # Updated version
