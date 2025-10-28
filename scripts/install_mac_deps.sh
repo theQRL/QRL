@@ -53,6 +53,71 @@ get_python_executable() {
     python3 -c "import sys; print(sys.executable)"
 }
 
+# Function to fix GCC include-fixed headers on macOS
+fix_gcc_include_fixed() {
+    print_info "Checking GCC include-fixed headers..."
+
+    # Get current macOS version (e.g., darwin24)
+    local current_darwin_version=$(uname -r | cut -d'.' -f1)
+    print_info "  Current Darwin version: darwin${current_darwin_version}"
+
+    # Find all GCC installations in Homebrew
+    local gcc_cellar_base="/usr/local/Cellar"
+    if [[ ! -d "$gcc_cellar_base" ]]; then
+        print_info "  Homebrew Cellar not found at $gcc_cellar_base, skipping GCC check"
+        return 0
+    fi
+
+    # Look for gcc and gcc@* installations
+    local fixed_any=false
+    for gcc_dir in "$gcc_cellar_base"/gcc@* "$gcc_cellar_base"/gcc; do
+        if [[ ! -d "$gcc_dir" ]]; then
+            continue
+        fi
+
+        local gcc_name=$(basename "$gcc_dir")
+        print_info "  Checking $gcc_name..."
+
+        # Find include-fixed directories in this GCC installation
+        while IFS= read -r -d '' include_fixed_dir; do
+            # Extract darwin version from path (e.g., x86_64-apple-darwin23)
+            if [[ "$include_fixed_dir" =~ darwin([0-9]+) ]]; then
+                local fixed_darwin_version="${BASH_REMATCH[1]}"
+
+                # Check if there's a version mismatch
+                if [[ "$fixed_darwin_version" != "$current_darwin_version" ]]; then
+                    print_warning "  Found include-fixed built for darwin${fixed_darwin_version} (current: darwin${current_darwin_version})"
+                    print_info "    Path: $include_fixed_dir"
+
+                    # Check if already backed up
+                    if [[ -d "${include_fixed_dir}.bak" ]]; then
+                        print_info "    Already backed up, skipping"
+                    else
+                        print_info "    Renaming to ${include_fixed_dir}.bak"
+                        if mv "$include_fixed_dir" "${include_fixed_dir}.bak" 2>/dev/null; then
+                            print_success "    Successfully renamed incompatible include-fixed directory"
+                            fixed_any=true
+                        else
+                            print_warning "    Could not rename (may need sudo), attempting build anyway"
+                        fi
+                    fi
+                else
+                    print_success "  include-fixed version matches current system (darwin${fixed_darwin_version})"
+                fi
+            fi
+        done < <(find "$gcc_dir" -type d -name "include-fixed" -print0 2>/dev/null)
+    done
+
+    if [[ "$fixed_any" == true ]]; then
+        print_success "Fixed GCC include-fixed header issues"
+    else
+        print_info "  No GCC include-fixed issues found"
+    fi
+
+    echo ""
+    return 0
+}
+
 # Function to check if a package needs rebuilding
 check_package_python_version() {
     local package_name=$1
@@ -125,19 +190,34 @@ build_qrl_package() {
     # Use the Python executable passed as parameter (to avoid pyenv switching in /tmp)
     print_info "  Using Python: $python_exec"
 
+    # Get macOS SDK path for GCC compatibility
+    local macos_sdk=""
+    if command -v xcrun &> /dev/null; then
+        macos_sdk=$(xcrun --show-sdk-path 2>/dev/null || echo "")
+        if [[ -n "$macos_sdk" ]]; then
+            print_info "  macOS SDK: $macos_sdk"
+        fi
+    fi
+
     # Configure with CMake
     print_info "  Configuring with CMake..."
-    cmake .. \
+    local cmake_output
+    if ! cmake_output=$(cmake .. \
         -DPYTHON_EXECUTABLE="$python_exec" \
         -DPython_EXECUTABLE="$python_exec" \
         -DPython3_EXECUTABLE="$python_exec" \
         -DBUILD_PYTHON=ON \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_CXX_FLAGS="" \
-        > /dev/null 2>&1 || {
+        ${macos_sdk:+-DCMAKE_OSX_SYSROOT="$macos_sdk"} \
+        2>&1); then
         print_error "CMake configuration failed for $package_name"
+        print_error "CMake output:"
+        echo "$cmake_output" | while IFS= read -r line; do
+            print_error "  $line"
+        done
         return 1
-    }
+    fi
 
     # Build
     print_info "  Building (this may take a few minutes)..."
@@ -331,6 +411,9 @@ main() {
     print_success "All required tools found"
     echo ""
 
+    # Fix GCC include-fixed headers if needed (macOS Sequoia compatibility)
+    fix_gcc_include_fixed
+
     # Define all packages to rebuild
     local packages_to_rebuild=("qrllib:pyqrllib" "qryptonight:pyqryptonight" "qrandomx:pyqrandomx")
 
@@ -446,7 +529,14 @@ main() {
             print_success "All verification tests passed!"
             print_success "All modules correctly built for Python $python_version!"
             echo ""
-            print_info "You can now run: start_qrl"
+            print_info "========================================"
+            print_info "Next Steps"
+            print_info "========================================"
+            echo ""
+            print_info "Start QRL:"
+            print_info "  start_qrl"
+            echo ""
+            print_info "If everything is set up correctly, your QRL node will start running!"
         else
             if [[ "$version_check_failed" == true ]]; then
                 print_error "Python version linkage verification failed!"
