@@ -22,6 +22,14 @@ For instructions on how to install a node, please refer to [Install Node](https:
 
 API documentation can be found at [api.theqrl.org](https://api.theqrl.org)
 
+# Building from source
+
+| OS | Guide |
+|---|---|---|
+| Linux | In progress  🌱 |
+| Mac | [INSTALLING-MAC.md](INSTALLING-MAC.md) ✅ |
+| Win | In progress 🌱 |
+
 # More information
 
  * [theqrl.org](https://theqrl.org)
