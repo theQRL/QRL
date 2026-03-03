@@ -50,7 +50,7 @@ class ProposalRecord:
         try:
             state._db.put_raw(key, proposal_record.serialize(), batch)
         except Exception as e:
-            raise Exception("[ProposalRecord] Exception in put_state %s", e)
+            raise Exception("[ProposalRecord] Exception in put_state %s" % e)
 
     @staticmethod
     def get_state(state: State, key: bytes):

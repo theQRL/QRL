@@ -43,7 +43,7 @@ class TestPublicAPI(TestCase):
 
                 service = PublicAPIService(qrlnode)
 
-                context = Mock(spec=ServicerContext)
+                context = Mock(spec=ServicerContext, peer=Mock(return_value='ipv4:127.0.0.1:12345'))
 
                 alice = get_alice_xmss()
                 my_message = b'Hello QRL!'
@@ -110,7 +110,7 @@ class TestPublicAPI(TestCase):
 
                 service = PublicAPIService(qrlnode)
 
-                context = Mock(spec=ServicerContext)
+                context = Mock(spec=ServicerContext, peer=Mock(return_value='ipv4:127.0.0.1:12345'))
 
                 alice = get_alice_xmss()
                 bob = get_bob_xmss()
@@ -157,7 +157,7 @@ class TestPublicAPI(TestCase):
 
                 service = PublicAPIService(qrlnode)
 
-                context = Mock(spec=ServicerContext)
+                context = Mock(spec=ServicerContext, peer=Mock(return_value='ipv4:127.0.0.1:12345'))
 
                 alice = get_alice_xmss()
                 bob = get_bob_xmss()
@@ -211,7 +211,7 @@ class TestPublicAPI(TestCase):
 
                 service = PublicAPIService(qrlnode)
 
-                context = Mock(spec=ServicerContext)
+                context = Mock(spec=ServicerContext, peer=Mock(return_value='ipv4:127.0.0.1:12345'))
 
                 alice = get_alice_xmss()
                 bob = get_bob_xmss()

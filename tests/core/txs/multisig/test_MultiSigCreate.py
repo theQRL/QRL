@@ -13,7 +13,7 @@ from qrl.core.MultiSigAddressState import MultiSigAddressState
 from qrl.core.txs.multisig.MultiSigCreate import MultiSigCreate
 from tests.core.txs.testdata import test_json_MultiSigCreate
 from qrl.generated.qrl_pb2 import SlaveMetadata
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_qrl_dir, set_hard_fork_block_number
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_random_xmss, set_qrl_dir, set_hard_fork_block_number
 
 logger.initialize_default()
 
@@ -326,3 +326,43 @@ class TestMultiSigCreate(TestCase):
         self.assertIn(self.random_signer.address, affected_addresses)
         for signatory_address in self.signatories:
             self.assertIn(signatory_address, affected_addresses)
+
+    def test_validate_tx_max_size(self):
+        signatories = []
+        weights = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            signatories.append(get_random_xmss().address)
+            weights.append(2**32-1)
+
+        tx = MultiSigCreate.create(signatories=signatories,
+                                   weights=weights,
+                                   threshold=config.dev.transaction_multi_output_limit,
+                                   fee=2**64-1,
+                                   xmss_pk=self.alice.pk,
+                                   master_addr=self.bob.address)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
+
+        self.assertEqual(tx.size, tx.max_size_limit)
+        self.assertTrue(tx._validate_custom())
+
+    def test_validate_tx_exceeds_max_size(self):
+        signatories = []
+        weights = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            signatories.append(get_random_xmss().address)
+            weights.append(2**32-1)
+
+        tx = MultiSigCreate.create(signatories=signatories,
+                                   weights=weights,
+                                   threshold=config.dev.transaction_multi_output_limit,
+                                   fee=2**64-1,
+                                   xmss_pk=self.alice.pk,
+                                   master_addr=self.bob.address)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
+
+        self.assertGreater(tx.size, tx.max_size_limit)
+        self.assertFalse(tx._validate_custom())

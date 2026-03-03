@@ -14,7 +14,7 @@ from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.Transaction import Transaction
 from qrl.generated import qrl_pb2
 from tests.core.txs.testdata import test_json_Token, test_signature_Token
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, get_random_xmss, set_qrl_dir
 
 logger.initialize_default()
 
@@ -316,3 +316,47 @@ class TestTokenTransaction(TestCase):
                                      xmss_pk=self.alice.pk)
         tx.set_affected_address(result)
         self.assertEqual(3, len(result))
+
+    # def test_validate_tx_max_size(self, m_logger):
+    #     symbol = b'0' * config.dev.max_token_symbol_length
+    #     name = b'0' * config.dev.max_token_name_length
+    #     initial_balances = []
+    #     for i in range(config.dev.transaction_multi_output_limit):
+    #         initial_balances.append(qrl_pb2.AddressAmount(address=get_random_xmss().address, amount=2**64-1))
+    #
+    #     tx = TokenTransaction.create(symbol=symbol,
+    #                                  name=name,
+    #                                  owner=get_random_xmss().address,
+    #                                  decimals=16,
+    #                                  initial_balances=initial_balances,
+    #                                  fee=2**64-1,
+    #                                  xmss_pk=self.alice.pk,
+    #                                  master_addr=self.bob.address)
+    #     tx._data.nonce = 2**64 - 1
+    #     tx.sign(self.alice)
+    #     tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
+    #
+    #     self.assertEqual(tx.size, tx.max_size_limit)
+    #     self.assertTrue(tx._validate_custom())
+    #
+    # def test_validate_tx_exceeds_max_size(self, m_logger):
+    #     symbol = b'0' * config.dev.max_token_symbol_length
+    #     name = b'0' * config.dev.max_token_name_length
+    #     initial_balances = []
+    #     for i in range(config.dev.transaction_multi_output_limit):
+    #         initial_balances.append(qrl_pb2.AddressAmount(address=get_random_xmss().address, amount=2**64-1))
+    #
+    #     tx = TokenTransaction.create(symbol=symbol,
+    #                                  name=name,
+    #                                  owner=get_random_xmss().address,
+    #                                  decimals=0,
+    #                                  initial_balances=initial_balances,
+    #                                  fee=2**64-1,
+    #                                  xmss_pk=self.alice.pk,
+    #                                  master_addr=self.bob.address)
+    #     tx._data.nonce = 2**64 - 1
+    #     tx.sign(self.alice)
+    #     tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
+    #
+    #     self.assertGreater(tx.size, tx.max_size_limit)
+    #     self.assertFalse(tx._validate_custom())

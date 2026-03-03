@@ -391,3 +391,29 @@ class TestMultiSigVote(TestCase):
 
         self.assertEqual(1, len(affected_addresses))
         self.assertIn(self.alice.address, affected_addresses)
+
+    def test_validate_tx_max_size(self):
+        tx = MultiSigVote.create(shared_key=b'0'*32,
+                                 unvote=True,
+                                 fee=2**64-1,
+                                 xmss_pk=self.alice.pk,
+                                 master_addr=self.bob.address)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
+        tx._data.multi_sig_vote.prev_tx_hash = b'0' * 32
+
+        self.assertTrue(tx._validate_custom())
+        self.assertEqual(tx.size, tx.max_size_limit)
+
+    def test_validate_tx_exceeds_max_size(self):
+        tx = MultiSigVote.create(shared_key=b'0'*32,
+                                 unvote=True,
+                                 fee=2**64-1,
+                                 xmss_pk=self.alice.pk,
+                                 master_addr=self.bob.address)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
+
+        self.assertFalse(tx._validate_custom())

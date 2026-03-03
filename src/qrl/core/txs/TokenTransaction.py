@@ -17,6 +17,10 @@ class TokenTransaction(Transaction):
         super(TokenTransaction, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 8797
+
+    @property
     def symbol(self):
         return self._data.token.symbol
 
@@ -81,6 +85,9 @@ class TokenTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
+        if not self.validate_size():
+            return False
+
         if len(self.symbol) == 0:
             logger.warning('Missing Token Symbol')
             return False
@@ -114,22 +121,28 @@ class TokenTransaction(Transaction):
             return False
 
         if self.fee < 0:
-            raise ValueError('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            logger.warning('TokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            return False
 
         return True
 
     # checks new tx validity based upon node statedb and node mempool.
     def _validate_extended(self, state_container: StateContainer):
         if len(self.symbol) > state_container.current_dev_config.max_token_symbol_length:
-            logger.warning('Token Symbol Length exceeds maximum limit')
+            logger.warning('[TokenTransaction] Token Symbol Length exceeds maximum limit')
             logger.warning('Found Symbol Length %s', len(self.symbol))
             logger.warning('Expected Symbol length %s', state_container.current_dev_config.max_token_symbol_length)
             return False
 
         if len(self.name) > state_container.current_dev_config.max_token_name_length:
-            logger.warning('Token Name Length exceeds maximum limit')
-            logger.warning('Found Name Length %s', len(self.symbol))
+            logger.warning('[TokenTransaction] Token Name Length exceeds maximum limit')
+            logger.warning('Found Name Length %s', len(self.name))
             logger.warning('Expected Name length %s', state_container.current_dev_config.max_token_name_length)
+            return False
+
+        if len(self.initial_balances) > state_container.current_dev_config.transaction_multi_output_limit:
+            logger.warning('[TokenTransaction] Number of addresses in initial_balance exceeds max limit')
+            logger.warning('Number of addresses %s', len(self.initial_balances))
             return False
 
         if not OptimizedAddressState.address_is_valid(self.addr_from):

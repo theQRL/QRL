@@ -41,6 +41,8 @@ class P2PProtocol(Protocol):
 
         self._public_port = 0
 
+        self._peer_list_already_handled = False
+
     @property
     def peer(self):
         return IPMetadata(self.transport.getPeer().host, self.transport.getPeer().port)
@@ -109,14 +111,15 @@ class P2PProtocol(Protocol):
             self.peer_manager.remove_channel(self)
 
     def dataReceived(self, data: bytes) -> None:
-        self._buffer += data
-        total_read = len(self._buffer)
-
-        if total_read > config.dev.max_bytes_out:
+        if len(self._buffer) + len(data) > config.dev.max_bytes_out + config.dev.reserved_quota:
             logger.warning('Disconnecting peer %s', self.peer)
             logger.warning('Buffer Size %s', len(self._buffer))
+            logger.warning('Incoming Data Size %s', len(data))
+            self._buffer = b''  # Empty buffer
             self.loseConnection()
             return
+
+        self._buffer += data
 
         read_bytes = [0]
 
@@ -271,6 +274,7 @@ class P2PProtocol(Protocol):
                 logger.warning("Problem parsing message. Banning+Dropping connection")
                 logger.exception(e)
                 self.peer_manager.ban_channel(self)
+                return
 
             finally:
                 if not ignore_skip:

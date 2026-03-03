@@ -14,7 +14,7 @@ from qrl.core.TransactionInfo import TransactionInfo
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from tests.core.txs.testdata import test_json_Simple, test_signature_Simple
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, replacement_getTime, set_qrl_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, replacement_getTime, set_qrl_dir, get_random_xmss
 
 logger.initialize_default()
 
@@ -143,6 +143,50 @@ class TestSimpleTransaction(TestCase):
 
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
+
+    def test_validate_tx_max_size(self, m_logger):
+        addrs_to = []
+        amounts = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            addrs_to.append(get_random_xmss().address)
+            amounts.append(2**64 - 1)
+
+        message = b'0' * config.dev.message_max_length
+
+        tx = TransferTransaction.create(master_addr=self.bob.address,
+                                        addrs_to=addrs_to,
+                                        amounts=amounts,
+                                        message_data=message,
+                                        fee=2**64-1,
+                                        xmss_pk=self.alice.pk)
+        tx._data.nonce = 2**64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
+
+        self.assertEqual(tx.size, tx.max_size_limit)
+        self.assertTrue(tx._validate_custom())
+
+    def test_validate_tx_exceeds_max_size(self, m_logger):
+        addrs_to = []
+        amounts = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            addrs_to.append(get_random_xmss().address)
+            amounts.append(2**64 - 1)
+
+        message = b'0' * config.dev.message_max_length
+
+        tx = TransferTransaction.create(master_addr=self.bob.address,
+                                        addrs_to=addrs_to,
+                                        amounts=amounts,
+                                        message_data=message,
+                                        fee=2**64-1,
+                                        xmss_pk=self.alice.pk)
+        tx._data.nonce = 2**64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
+
+        self.assertGreater(tx.size, tx.max_size_limit)
+        self.assertFalse(tx._validate_custom())
 
     @patch('qrl.core.txs.Transaction.config')
     def test_validate_tx_invalid(self, m_config, m_logger):

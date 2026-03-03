@@ -346,7 +346,7 @@ class TestWalletAPI(TestCase):
 
             resp = service.RelayTransferTokenTxn(qrlwallet_pb2.RelayTransferTokenTxnReq(addresses_to=qaddresses_to,
                                                                                         amounts=amounts,
-                                                                                        token_txhash='',
+                                                                                        token_txhash='0' * 64,
                                                                                         fee=100000000,
                                                                                         master_address=None,
                                                                                         signer_address=qaddress,
@@ -380,7 +380,7 @@ class TestWalletAPI(TestCase):
             resp = service.RelayTransferTokenTxnBySlave(
                 qrlwallet_pb2.RelayTransferTokenTxnBySlaveReq(addresses_to=qaddresses_to,
                                                               amounts=amounts,
-                                                              token_txhash='',
+                                                              token_txhash='0' * 64,
                                                               fee=100000000,
                                                               master_address=qaddress), context=None)
 

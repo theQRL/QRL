@@ -32,7 +32,7 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         }
 
         self.params = {
-            "token_txhash": b'I declare the TEST token',
+            "token_txhash": b'0' * 32,
             "addrs_to": [self.bob.address],
             "amounts": [100],
             "fee": 1,

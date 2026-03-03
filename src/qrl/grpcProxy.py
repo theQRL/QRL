@@ -106,7 +106,7 @@ def api_proxy(api_method_name):
 
     for arg in request.args:
         if arg not in api_method.input_type.fields_by_name:
-            raise Exception('Invalid args %s', arg)
+            raise Exception('Invalid args %s' % arg)
         data_type = type(getattr(api_request, arg))
         if data_type == bool and request.args[arg].lower() == 'false':
             continue
@@ -235,7 +235,7 @@ def transfer(destinations, fee, mixin, unlock_time):
     response = stub.PushTransaction(request=qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata))
 
     if response.error_code != 3:
-        raise Exception('Transaction Submission Failed, Response Code: %s', response.error_code)
+        raise Exception('Transaction Submission Failed, Response Code: %s' % response.error_code)
 
     response = {'tx_hash': bin2hstr(tx.txhash)}
 

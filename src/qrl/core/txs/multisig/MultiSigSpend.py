@@ -19,6 +19,10 @@ class MultiSigSpend(Transaction):
         super(MultiSigSpend, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 8467
+
+    @property
     def multi_sig_address(self):
         return self._data.multi_sig_spend.multi_sig_address
 
@@ -86,10 +90,13 @@ class MultiSigSpend(Transaction):
         return multi_sig_spend
 
     def _validate_custom(self):
+        if not self.validate_size():
+            return False
+
         for amount in self.amounts:
             if amount == 0:
                 logger.warning('Amount cannot be 0 - %s', self.amounts)
-                logger.warning('Invalid TransferTransaction')
+                logger.warning('Invalid MultiSigSpendTxn')
                 return False
 
         if self.fee < 0:

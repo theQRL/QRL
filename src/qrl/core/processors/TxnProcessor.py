@@ -22,12 +22,12 @@ class TxnProcessor:
         return self
 
     def __next__(self):
-        tx_timestamp = self.transaction_pool_obj.get_pending_transaction()
+        tx_timestamp_ip = self.transaction_pool_obj.get_pending_transaction()
 
-        if not tx_timestamp:
+        if not tx_timestamp_ip:
             raise StopIteration
 
-        tx, timestamp = tx_timestamp
+        tx, timestamp, ip = tx_timestamp_ip
 
         if not self.chain_manager.validate_all(tx, check_nonce=False):
             return False

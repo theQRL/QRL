@@ -18,9 +18,17 @@ class TransactionPool:
     # FIXME: Remove tx pool from all method names
     def __init__(self, broadcast_tx):
         self.pending_tx_pool = []
+        self._pending_tx_pool_size_in_bytes = 0
+
         self.pending_tx_pool_hash = set()
+
         self.transaction_pool = []  # FIXME: Everyone is touching this
+        self._transaction_pool_size_in_bytes = 0
+
         self.broadcast_tx = broadcast_tx
+
+        # TODO (cyyber): enable lock later after further testing
+        # self._lock = threading.RLock()
 
     @property
     def transactions(self):
@@ -35,9 +43,12 @@ class TransactionPool:
         pending_tx_set = heapq.heappop(self.pending_tx_pool)
         pending_tx = pending_tx_set[1].transaction
         timestamp = pending_tx_set[1].timestamp
+        ip = pending_tx_set[2]
+        self._pending_tx_pool_size_in_bytes -= pending_tx.size
+
         self.pending_tx_pool_hash.remove(pending_tx.txhash)
 
-        return pending_tx, timestamp
+        return pending_tx, timestamp, ip
 
     def is_full_pending_transaction_pool(self, ignore_reserve=True) -> bool:
         max_pool_size = config.user.pending_transaction_pool_size
@@ -48,15 +59,23 @@ class TransactionPool:
         if len(self.pending_tx_pool) >= max_pool_size:
             return True
 
+        if self._pending_tx_pool_size_in_bytes >= config.user.pending_transaction_pool_size_in_bytes:
+            return True
+
         return False
 
     def is_full_transaction_pool(self) -> bool:
         if len(self.transaction_pool) >= config.user.transaction_pool_size:
             return True
 
+        if self._transaction_pool_size_in_bytes >= config.user.transaction_pool_size_in_bytes:
+            return True
+
         return False
 
     def update_pending_tx_pool(self, tx, ip, ignore_reserve=True) -> bool:
+        # TODO (cyyber): enable lock later after further testing
+        # with self._lock:
         if self.is_full_pending_transaction_pool(ignore_reserve):
             return False
 
@@ -74,6 +93,8 @@ class TransactionPool:
         # Since its a min heap giving priority to lower number
         # So -1 multiplied to give higher priority to higher txn
         heapq.heappush(self.pending_tx_pool, [tx.fee * -1, TransactionInfo(tx, -1), ip])
+        self._pending_tx_pool_size_in_bytes += tx.size
+
         self.pending_tx_pool_hash.add(tx.txhash)
 
         return True
@@ -85,6 +106,7 @@ class TransactionPool:
         heapq.heappush(self.transaction_pool, [tx_class_obj.fee, TransactionInfo(tx_class_obj,
                                                                                  block_number,
                                                                                  timestamp)])
+        self._transaction_pool_size_in_bytes += tx_class_obj.size
         return True
 
     def get_tx_index_from_pool(self, txhash):
@@ -95,29 +117,25 @@ class TransactionPool:
 
         return -1
 
-    def remove_tx_from_pool(self, tx: Transaction):
+    def remove_tx_from_pool(self, tx: Transaction, should_heapify=True) -> bool:
         idx = self.get_tx_index_from_pool(tx.txhash)
         if idx > -1:
+            tx = self.transaction_pool[idx][1].transaction
+            self._transaction_pool_size_in_bytes -= tx.size
             del self.transaction_pool[idx]
-            heapq.heapify(self.transaction_pool)
+            if should_heapify:
+                heapq.heapify(self.transaction_pool)
+            return True
+        return False
 
     def remove_tx_in_block_from_pool(self, block_obj: Block):
         for protobuf_tx in block_obj.transactions[1:]:  # Ignore first transaction, as it is a coinbase txn
             tx = Transaction.from_pbdata(protobuf_tx)
-            if tx.ots_key < config.dev.max_ots_tracking_index:
-                idx = self.get_tx_index_from_pool(tx.txhash)
-                if idx > -1:
-                    del self.transaction_pool[idx]
-            else:
-                i = 0
-                while i < len(self.transaction_pool):
-                    txn = self.transaction_pool[i][1].transaction
-                    if txn.PK == tx.PK:
-                        if txn.ots_key >= config.dev.max_ots_tracking_index:
-                            if txn.ots_key <= tx.ots_key:
-                                del self.transaction_pool[i]
-                                continue
-                    i += 1
+            idx = self.get_tx_index_from_pool(tx.txhash)
+            if idx > -1:
+                tx_obj = self.transaction_pool[idx][1].transaction
+                self._transaction_pool_size_in_bytes -= tx_obj.size
+                del self.transaction_pool[idx]
 
         heapq.heapify(self.transaction_pool)
 
@@ -134,15 +152,20 @@ class TransactionPool:
                 return
 
     def check_stale_txn(self, new_state_container, update_state_container, current_block_number):
+        something_removed = False
         i = 0
         while i < len(self.transaction_pool):
             tx_info = self.transaction_pool[i][1]
             if tx_info.is_stale(current_block_number):
                 if not tx_info.validate(new_state_container, update_state_container, current_block_number):
                     logger.warning('Txn validation failed for tx in tx_pool')
-                    self.remove_tx_from_pool(tx_info.transaction)
-                    continue
+                    if self.remove_tx_from_pool(tx_info.transaction, False):
+                        something_removed = True
+                        continue
 
                 tx_info.update_block_number(current_block_number)
                 self.broadcast_tx(tx_info.transaction)
             i += 1
+
+        if something_removed:
+            heapq.heapify(self.transaction_pool)

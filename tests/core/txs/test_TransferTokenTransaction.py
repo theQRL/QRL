@@ -14,7 +14,7 @@ from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from qrl.generated import qrl_pb2
 from tests.core.txs.testdata import test_json_TransferToken, test_signature_TransferToken
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, get_random_xmss, set_qrl_dir
 
 logger.initialize_default()
 
@@ -33,7 +33,7 @@ class TestTransferTokenTransaction(TestCase):
 
     def default_params(self):
         params = {
-            "token_txhash": b'',
+            "token_txhash": b'0'*32,
             "addrs_to": [self.bob.address],
             "amounts": [100],
             "fee": 1,
@@ -42,7 +42,7 @@ class TestTransferTokenTransaction(TestCase):
         return params
 
     def test_create(self, m_logger):
-        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
+        tx = TransferTokenTransaction.create(token_txhash=b'00000000000000000000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
                                              fee=1,
@@ -50,7 +50,7 @@ class TestTransferTokenTransaction(TestCase):
         self.assertTrue(tx)
 
     def test_to_json(self, m_logger):
-        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
+        tx = TransferTokenTransaction.create(token_txhash=b'00000000000000000000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
                                              fee=1,
@@ -71,9 +71,9 @@ class TestTransferTokenTransaction(TestCase):
         self.assertEqual('01030038ea6375069f8272cc1a6601b3c76c21519455603d370036b97c779ada356'
                          '5854e3983bd564298c49ae2e7fa6e28d4b954d8cd59398f1225b08d6144854aee0e',
                          bin2hstr(tx.PK))
-        self.assertEqual(b'000000000000000', tx.token_txhash)
+        self.assertEqual(b'00000000000000000000000000000000', tx.token_txhash)
         self.assertEqual(200000, tx.total_amount)
-        self.assertEqual('390b159b34cffd29d4271a19679ff227df2ccd471078f177a7b58ca5f5d999f0', bin2hstr(tx.txhash))
+        self.assertEqual('ff30f4c2ca0fb56ae87838fa77d75eb0556b2ceae08d2c0c2e712353b97da99f', bin2hstr(tx.txhash))
         self.assertEqual(10, tx.ots_key)
 
         # z = bin2hstr(tx.signature)
@@ -91,7 +91,7 @@ class TestTransferTokenTransaction(TestCase):
         self.assertEqual(1, tx.fee)
 
     def test_validate_tx(self, m_logger):
-        tx = TransferTokenTransaction.create(token_txhash=b'000000000000000',
+        tx = TransferTokenTransaction.create(token_txhash=b'00000000000000000000000000000000',
                                              addrs_to=[self.bob.address],
                                              amounts=[200000],
                                              fee=1,
@@ -306,3 +306,43 @@ class TestTransferTokenTransaction(TestCase):
         tx = TransferTokenTransaction.create(**params)
         tx.set_affected_address(result)
         self.assertEqual(3, len(result))
+
+    def test_validate_tx_max_size(self, m_logger):
+        addrs_to = []
+        amounts = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            addrs_to.append(get_random_xmss().address)
+            amounts.append(2**64-1)
+
+        tx = TransferTokenTransaction.create(token_txhash=b'0' * 32,
+                                             addrs_to=addrs_to,
+                                             amounts=amounts,
+                                             fee=2**64-1,
+                                             xmss_pk=self.alice.pk,
+                                             master_addr=self.bob.address)
+        tx._data.nonce = 2**64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
+
+        self.assertEqual(tx.size, tx.max_size_limit)
+        self.assertTrue(tx._validate_custom())
+
+    def test_validate_tx_exceeds_max_size(self, m_logger):
+        addrs_to = []
+        amounts = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            addrs_to.append(get_random_xmss().address)
+            amounts.append(2**64-1)
+
+        tx = TransferTokenTransaction.create(token_txhash=b'0' * 32,
+                                             addrs_to=addrs_to,
+                                             amounts=amounts,
+                                             fee=2**64-1,
+                                             xmss_pk=self.alice.pk,
+                                             master_addr=self.bob.address)
+        tx._data.nonce = 2**64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
+
+        self.assertGreater(tx.size, tx.max_size_limit)
+        self.assertFalse(tx._validate_custom())

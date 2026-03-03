@@ -68,7 +68,9 @@ class TestP2PFactory(TestCase):
                               name='mock Channel 3',
                               peer=IPMetadata('3.3.3.3', config.user.p2p_public_port))
 
-        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)), sync_state=None, qrl_node=self.m_qrlnode)
+        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)),
+                                  sync_state=None,
+                                  qrl_node=self.m_qrlnode)
         self.factory.pow = Mock(autospec=POW)
 
         self.factory.add_connection(self.channel_1)
@@ -81,7 +83,9 @@ class TestP2PFactory(TestCase):
         self.factory.remove_connection(self.channel_3)
 
     def test_create_factory(self, m_reactor, m_logger):
-        factory = P2PFactory(chain_manager=ChainManager(None), sync_state=None, qrl_node=None)
+        factory = P2PFactory(chain_manager=ChainManager(None),
+                             sync_state=None,
+                             qrl_node=None)
         self.assertEqual(P2PProtocol, factory.protocol,
                          "Factory has not been assigned the expected protocol")
 
@@ -219,6 +223,42 @@ class TestP2PFactory(TestCase):
         self.factory.monitor_connections()
         self.assertEqual(self.factory.connect_peer.call_count, 5)
 
+    def test_remove_connection(self, m_reactor, m_logger):
+        self.factory.master_mr.add_peer(b'0', qrllegacy_pb2.LegacyMessage.TX, self.channel_1)
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request), 1)
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list), 1)
+        self.assertEqual(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list[0], self.channel_1)
+
+        self.factory.master_mr.add_peer(b'0', qrllegacy_pb2.LegacyMessage.TX, self.channel_2)
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request), 1)
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list), 2)
+        self.assertEqual(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list[0], self.channel_1)
+        self.assertEqual(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list[1], self.channel_2)
+
+        self.factory.master_mr.add_peer(b'1', qrllegacy_pb2.LegacyMessage.TX, self.channel_1)
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request), 2)
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'1'].peers_connection_list), 1)
+        self.assertEqual(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'1'].peers_connection_list[0], self.channel_1)
+
+        self.factory.remove_connection(self.channel_1)
+
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request), 1)
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list), 1)
+        self.assertEqual(self.factory.master_mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list[0], self.channel_2)
+        self.assertNotIn(b'1', self.factory.master_mr._requested_hash._msg_hash_msg_request)
+
+        self.factory.remove_connection(self.channel_2)
+
+        self.assertEqual(len(self.factory.master_mr._requested_hash._msg_hash_msg_request), 0)
+        self.assertNotIn(b'0', self.factory.master_mr._requested_hash._msg_hash_msg_request)
+        self.assertNotIn(b'1', self.factory.master_mr._requested_hash._msg_hash_msg_request)
+
+        self.factory.remove_connection(self.channel_3)
+
+        self.factory.connect_peer = Mock(autospec=P2PFactory.connect_peer)
+        self.factory.monitor_connections()
+        self.assertEqual(self.factory.connect_peer.call_count, 5)
+
     def test_request_full_message(self, m_reactor, m_logger):
         """
         MessageReceipt is only for Blocks and Transactions, both of which have hashes.
@@ -243,7 +283,7 @@ class TestP2PFactory(TestCase):
         message_request = MessageRequest()
         message_request.peers_connection_list.append(self.channel_1)
         message_request.already_requested_peers = []
-        self.factory.master_mr.requested_hash[b'1234'] = message_request
+        self.factory.master_mr._requested_hash._msg_hash_msg_request[b'1234'] = message_request
 
         self.factory.request_full_message(mrData)
 
@@ -266,7 +306,7 @@ class TestP2PFactory(TestCase):
         message_request = MessageRequest()
         message_request.peers_connection_list.append(self.channel_1)
         message_request.already_requested_peers = [self.channel_2]
-        self.factory.master_mr.requested_hash[b'1234'] = message_request
+        self.factory.master_mr._requested_hash._msg_hash_msg_request[b'1234'] = message_request
 
         self.factory.request_full_message(mrData)
 
@@ -286,7 +326,7 @@ class TestP2PFactory(TestCase):
         message_request = MessageRequest()
         message_request.peers_connection_list = [self.channel_1, self.channel_2]
         message_request.already_requested_peers = [self.channel_1]
-        self.factory.master_mr.requested_hash[b'1234'] = message_request
+        self.factory.master_mr._requested_hash._msg_hash_msg_request[b'1234'] = message_request
 
         self.factory.request_full_message(mrData)
 
@@ -305,14 +345,14 @@ class TestP2PFactory(TestCase):
         self.factory.master_mr._hash_msg[b'1234'] = Mock(autospec=Message)
         message_request = MessageRequest()
         message_request.peers_connection_list.append(self.channel_1)
-        self.factory.master_mr.requested_hash[b'1234'] = message_request
+        self.factory.master_mr._requested_hash._msg_hash_msg_request[b'1234'] = message_request
 
         self.factory.request_full_message(mrData)
 
         # Because we already have this message, channel_1 is left alone.
         self.channel_1.send.assert_not_called()
         # Also, this hash should no longer appear in the Master MessageReceipt.
-        self.assertIsNone(self.factory.master_mr.requested_hash.get(b'1234'))
+        self.assertIsNone(self.factory.master_mr._requested_hash._msg_hash_msg_request.get(b'1234'))
 
     def test_request_full_message_no_peer_could_provide_full_message(self, m_reactor, m_logger):
         """
@@ -326,12 +366,12 @@ class TestP2PFactory(TestCase):
         message_request = MessageRequest()
         message_request.peers_connection_list = []
         message_request.already_requested_peers = []
-        self.factory.master_mr.requested_hash[b'1234'] = message_request
+        self.factory.master_mr._requested_hash._msg_hash_msg_request[b'1234'] = message_request
 
         self.factory.request_full_message(mrData)
 
         self.channel_1.send.assert_not_called()
-        self.assertIsNone(self.factory.master_mr.requested_hash.get(b'1234'))
+        self.assertIsNone(self.factory.master_mr._requested_hash._msg_hash_msg_request.get(b'1234'))
 
         # Now that we've completely forgotten about the MessageReceipt and its hash,
         # the case in test_request_full_message_we_have_already_forgotten_about_this_hash() will happen.
@@ -359,7 +399,7 @@ class TestP2PFactory(TestCase):
     def test_broadcast_does_not_broadcast_to_peers_known_to_have_the_mr(self, m_reactor, m_logger):
         message_request = MessageRequest()
         message_request.peers_connection_list = [self.channel_2, self.channel_3]
-        self.factory.master_mr.requested_hash[b'1234'] = message_request
+        self.factory.master_mr._requested_hash._msg_hash_msg_request[b'1234'] = message_request
         self.factory.broadcast(qrllegacy_pb2.LegacyMessage.SL, b'1234')
         self.channel_1.send.assert_called_once()
         self.channel_2.send.assert_not_called()
@@ -479,7 +519,8 @@ class TestP2PFactoryCompareAndSync(TestCase):
 
         port = '9000'
         self.m_qrlnode = Mock(autospec=QRLNode, name='Fake QRLNode')
-        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)), sync_state=None,
+        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)),
+                                  sync_state=None,
                                   qrl_node=self.m_qrlnode)
 
         self.factory.peer_fetch_block = Mock(autospec=P2PFactory.peer_fetch_block)
@@ -557,7 +598,8 @@ class TestP2PFactoryPeerFetchBlock(TestCase):
         self.channel_2 = Mock(autospec=P2PProtocol, name='mock Channel 2', peer_ip='2.2.2.2', peer_port=port)
         self.channel_3 = Mock(autospec=P2PProtocol, name='mock Channel 3', peer_ip='3.3.3.3', peer_port=port)
 
-        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)), sync_state=None,
+        self.factory = P2PFactory(chain_manager=ChainManager(state=Mock(autospec=State)),
+                                  sync_state=None,
                                   qrl_node=self.m_qrlnode)
         self.factory.pow = Mock(autospec=POW)
 
@@ -619,7 +661,7 @@ class TestP2PFactoryPeerFetchBlock(TestCase):
 
         self.factory.peer_fetch_block(retry=5)
 
-        self.m_qrlnode.peer_manager.ban_channel.assert_called_once_with(self.channel_1)
+        self.factory._target_channel.punish.assert_called_once_with("FETCH_BLOCK_FAILED", hard=True)
         self.factory.is_syncing_finished.assert_called_once_with(force_finish=True)
 
 
@@ -634,7 +676,9 @@ class TestP2PFactoryBlockReceived(TestCase):
         self.channel_2 = Mock(autospec=P2PProtocol, name='mock Channel 2', peer_ip='2.2.2.2', peer_port=port)
         self.channel_3 = Mock(autospec=P2PProtocol, name='mock Channel 3', peer_ip='3.3.3.3', peer_port=port)
 
-        self.factory = P2PFactory(chain_manager=Mock(autospec=ChainManager), sync_state=None, qrl_node=self.m_qrlnode)
+        self.factory = P2PFactory(chain_manager=Mock(autospec=ChainManager),
+                                  sync_state=None,
+                                  qrl_node=self.m_qrlnode)
         self.factory.pow = Mock(autospec=POW)
 
         self.m_qrlnode.is_banned.return_value = False

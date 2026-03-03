@@ -39,13 +39,13 @@ class TestP2PTxManagement(TestCase):
         self.tx_manager.new_channel(channel)
         channel.register.assert_called()
 
-        self.assertEquals(11, channel.register.call_count)
+        self.assertEqual(11, channel.register.call_count)
 
     def test_observable(self):
         channel = Observable(None)
         self.tx_manager = P2PTxManagement()
         self.tx_manager.new_channel(channel)
-        self.assertEquals(11, channel.observers_count)
+        self.assertEqual(11, channel.observers_count)
 
     def test_notification_no_observer(self):
         source = Mock()
@@ -56,7 +56,7 @@ class TestP2PTxManagement(TestCase):
 
         event = ObservableEvent("event_id")
 
-        with self.assertRaisesRegexp(RuntimeError, "Observer not registered for"):
+        with self.assertRaisesRegex(RuntimeError, "Observer not registered for"):
             channel.notify(event, force_delivery=True)
 
     def test_notification(self):
@@ -65,6 +65,7 @@ class TestP2PTxManagement(TestCase):
         source.factory.master_mr = Mock()
         source.factory.master_mr.isRequested = Mock()
         source.factory.add_unprocessed_txn = Mock()
+        source.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
 
         channel = Observable(source)
 
@@ -264,6 +265,7 @@ class TestP2PTxManagementHandlers(TestCase):
         :return:
         """
         m_Transaction.from_pbdata.return_value = Mock(autospec=MessageTransaction, txhash=b'12345')
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
         self.channel.factory.master_mr.isRequested.return_value = True  # Yes, this is a Message which we have requested
         self.channel.factory.buffered_chain.tx_pool.pending_tx_pool_hash = []  # No, we haven't processed this TX before
 
@@ -280,6 +282,37 @@ class TestP2PTxManagementHandlers(TestCase):
         P2PTxManagement.handle_message_transaction(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_not_called()
 
+    @patch('qrl.core.p2p.p2pTxManagement.Transaction')
+    def test_handle_message_transaction_from_banned_peer(self, m_Transaction):
+        m_Transaction.from_pbdata.return_value = Mock(autospec=MessageTransaction, txhash=b'12345')
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = True
+        self.channel.factory.master_mr.isRequested.return_value = True  # Yes, this is a Message which we have requested
+        self.channel.factory.buffered_chain.tx_pool.pending_tx_pool_hash = []  # No, we haven't processed this TX before
+
+        mtData = qrl_pb2.Transaction()
+        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.MT, mtData=mtData)
+
+        P2PTxManagement.handle_message_transaction(self.channel, msg)
+
+        self.channel.factory.add_unprocessed_txn.assert_not_called()
+
+    @patch('qrl.core.p2p.p2pTxManagement.Transaction')
+    @patch('random.random', return_value=config.user.chance_trigger_tx_validation_before_pending_pool-0.01)  # probability set below threshold to trigger validation
+    def test_handle_invalid_message_transaction_with_validation(self, m_random, m_Transaction):
+        m_Transaction.from_pbdata.return_value = Mock(autospec=MessageTransaction, txhash=b'12345')
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
+        self.channel.factory._chain_manager.validate_all.return_value = False  # validation mocked to false
+        self.channel.factory.master_mr.isRequested.return_value = True  # Yes, this is a Message which we have requested
+        self.channel.factory.buffered_chain.tx_pool.pending_tx_pool_hash = []  # No, we haven't processed this TX before
+
+        mtData = qrl_pb2.Transaction()
+        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.MT, mtData=mtData)
+
+        P2PTxManagement.handle_message_transaction(self.channel, msg)
+
+        self.channel.factory.add_unprocessed_txn.assert_not_called()
+        self.channel.factory._qrl_node.peer_manager.add_channel_to_ignore_incoming_tx.assert_called_once_with(self.channel)
+
     @patch('qrl.core.p2p.p2pTxManagement.logger')
     @patch('qrl.core.p2p.p2pTxManagement.Transaction')
     def test_handle_message_transaction_invalid_transaction(self, m_Transaction, logger):
@@ -290,6 +323,7 @@ class TestP2PTxManagementHandlers(TestCase):
         :return:
         """
         m_Transaction.from_pbdata.side_effect = Exception
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
 
         mtData = qrl_pb2.Transaction()
         msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.MT, mtData=mtData)
@@ -308,6 +342,8 @@ class TestP2PTxManagementSimpleHandlers(TestCase):
         self.channel.factory.master_mr = Mock(autospec=MessageReceipt)
 
         self.channel.factory.master_mr.isRequested.return_value = True
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
+        self.channel.factory._chain_manager.validate_all.return_value = True
 
     def tearDown(self):
         del self.channel

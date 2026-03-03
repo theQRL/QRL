@@ -15,7 +15,6 @@ from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.core.BlockHeader import BlockHeader
 from qrl.crypto.misc import merkle_tx_hash
-from qrl.crypto.Qryptonight import Qryptonight
 from qrl.generated import qrl_pb2
 
 
@@ -236,8 +235,7 @@ class Block(object):
         for index in range(1, len(self.transactions)):
             fee_reward += self.transactions[index].fee
 
-        qn = Qryptonight()
-        seed_block = chain_manager.get_block_by_number(qn.get_seed_height(self.block_number))
+        seed_block = chain_manager.get_seed_block(self.blockheader)
 
         self.blockheader._seed_height = seed_block.block_number
         self.blockheader._seed_hash = seed_block.headerhash
@@ -286,7 +284,7 @@ class Block(object):
             block_size_list.append(block.size)
             if block.block_number == 0:
                 break
-        return max(dev_config.block_min_size_limit_in_bytes, dev_config.size_multiplier * median(block_size_list))
+        return min(dev_config.block_max_size_limit_in_bytes, max(dev_config.block_min_size_limit_in_bytes, dev_config.size_multiplier * median(block_size_list)))
 
     @staticmethod
     def remove_blocknumber_mapping(state: State, block_number, batch):
