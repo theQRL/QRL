@@ -362,7 +362,7 @@ class TestMultiSigSpend(TestCase):
                                   addrs_to=addrs_to,
                                   amounts=amounts,
                                   expiry_block_number=2 ** 64 - 1,
-                                  fee=2 ** 64-1,
+                                  fee=2 ** 64 - 1,
                                   xmss_pk=self.alice.pk,
                                   master_addr=self.bob.address)
         tx._data.nonce = 2 ** 64 - 1

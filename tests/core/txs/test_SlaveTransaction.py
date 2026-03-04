@@ -151,7 +151,7 @@ class TestSlaveTransaction(TestCase):
         tx = SlaveTransaction.create(master_addr=self.bob.address,
                                      slave_pks=addrs_to,
                                      access_types=access_types,
-                                     fee=2 ** 64-1,
+                                     fee=2 ** 64 - 1,
                                      xmss_pk=self.alice.pk)
         tx._data.nonce = 2 ** 64 - 1
         tx.sign(self.alice)
