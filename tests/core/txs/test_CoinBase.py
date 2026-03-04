@@ -200,23 +200,23 @@ class TestCoinBase(TestCase):
         self.assertEqual(2, len(affected_addresses))
 
     def test_validate_tx_max_size(self, m_logger):
-        amount = 2**64 - 1
+        amount = 2 ** 64 - 1
 
         tx = CoinBase.create(dev_config=config.dev,
                              amount=amount,
                              miner_address=self.alice.address,
-                             block_number=2**64-2)
+                             block_number=2 ** 64 - 2)
 
         self.assertTrue(tx._validate_custom())
         self.assertEqual(tx.size, tx.max_size_limit)
 
     def test_validate_tx_exceeds_max_size(self, m_logger):
-        amount = 2**64 - 1
+        amount = 2 ** 64 - 1
 
         tx = CoinBase.create(dev_config=config.dev,
                              amount=amount,
                              miner_address=self.alice.address,
-                             block_number=2**64-2)
+                             block_number=2 ** 64 - 2)
         # Add extra bytes to master_addr to push past the size limit
         tx._data.master_addr = b'0' * 33
 

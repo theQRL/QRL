@@ -125,7 +125,7 @@ class TestMessageReceipt(TestCase):
 
         self.assertEqual(len(mr._requested_hash._peer_to_msg_hash[peer]), target_size)
         self.assertEqual(b'1', mr._requested_hash._peer_to_msg_hash[peer][0])
-        self.assertEqual(b'0', mr._requested_hash._peer_to_msg_hash[peer][target_size-1])
+        self.assertEqual(b'0', mr._requested_hash._peer_to_msg_hash[peer][target_size - 1])
         self.assertIn(b'0', mr._requested_hash._msg_hash_msg_request)
         self.assertEqual(len(mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list), 2)
         self.assertEqual(mr._requested_hash._msg_hash_msg_request[b'0'].peers_connection_list[0], peer)
@@ -157,7 +157,7 @@ class TestMessageReceipt(TestCase):
 
         self.assertEqual(len(mr._requested_hash._peer_to_msg_hash[peer]), target_size)
         self.assertEqual(b'2', mr._requested_hash._peer_to_msg_hash[peer][1])
-        self.assertEqual(b'1', mr._requested_hash._peer_to_msg_hash[peer][target_size-1])
+        self.assertEqual(b'1', mr._requested_hash._peer_to_msg_hash[peer][target_size - 1])
 
     def test_remove_peer(self):
         mr = MessageReceipt()

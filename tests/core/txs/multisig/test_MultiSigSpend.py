@@ -334,13 +334,13 @@ class TestMultiSigSpend(TestCase):
         amounts = []
         for i in range(config.dev.transaction_multi_output_limit):
             addrs_to.append(get_random_xmss().address)
-            amounts.append(2**64-1)
+            amounts.append(2 ** 64 - 1)
 
         tx = MultiSigSpend.create(multi_sig_address=multi_sig_address,
                                   addrs_to=addrs_to,
                                   amounts=amounts,
-                                  expiry_block_number=2**64-1,
-                                  fee=2**64-1,
+                                  expiry_block_number=2 ** 64 - 1,
+                                  fee=2 ** 64 - 1,
                                   xmss_pk=self.alice.pk,
                                   master_addr=self.bob.address)
         tx._data.nonce = 2 ** 64 - 1
@@ -356,13 +356,13 @@ class TestMultiSigSpend(TestCase):
         amounts = []
         for i in range(config.dev.transaction_multi_output_limit):
             addrs_to.append(get_random_xmss().address)
-            amounts.append(2**64-1)
+            amounts.append(2 ** 64 - 1)
 
         tx = MultiSigSpend.create(multi_sig_address=multi_sig_address,
                                   addrs_to=addrs_to,
                                   amounts=amounts,
-                                  expiry_block_number=2**64-1,
-                                  fee=2**64-1,
+                                  expiry_block_number=2 ** 64 - 1,
+                                  fee=2 ** 64-1,
                                   xmss_pk=self.alice.pk,
                                   master_addr=self.bob.address)
         tx._data.nonce = 2 ** 64 - 1

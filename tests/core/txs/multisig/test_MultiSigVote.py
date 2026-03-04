@@ -393,9 +393,9 @@ class TestMultiSigVote(TestCase):
         self.assertIn(self.alice.address, affected_addresses)
 
     def test_validate_tx_max_size(self):
-        tx = MultiSigVote.create(shared_key=b'0'*32,
+        tx = MultiSigVote.create(shared_key=b'0' * 32,
                                  unvote=True,
-                                 fee=2**64-1,
+                                 fee=2 ** 64 - 1,
                                  xmss_pk=self.alice.pk,
                                  master_addr=self.bob.address)
         tx._data.nonce = 2 ** 64 - 1
@@ -407,9 +407,9 @@ class TestMultiSigVote(TestCase):
         self.assertEqual(tx.size, tx.max_size_limit)
 
     def test_validate_tx_exceeds_max_size(self):
-        tx = MultiSigVote.create(shared_key=b'0'*32,
+        tx = MultiSigVote.create(shared_key=b'0' * 32,
                                  unvote=True,
-                                 fee=2**64-1,
+                                 fee=2 ** 64 - 1,
                                  xmss_pk=self.alice.pk,
                                  master_addr=self.bob.address)
         tx._data.nonce = 2 ** 64 - 1

@@ -33,7 +33,7 @@ class TestTransferTokenTransaction(TestCase):
 
     def default_params(self):
         params = {
-            "token_txhash": b'0'*32,
+            "token_txhash": b'0' * 32,
             "addrs_to": [self.bob.address],
             "amounts": [100],
             "fee": 1,
@@ -312,15 +312,15 @@ class TestTransferTokenTransaction(TestCase):
         amounts = []
         for i in range(config.dev.transaction_multi_output_limit):
             addrs_to.append(get_random_xmss().address)
-            amounts.append(2**64-1)
+            amounts.append(2 ** 64 - 1)
 
         tx = TransferTokenTransaction.create(token_txhash=b'0' * 32,
                                              addrs_to=addrs_to,
                                              amounts=amounts,
-                                             fee=2**64-1,
+                                             fee=2 ** 64 - 1,
                                              xmss_pk=self.alice.pk,
                                              master_addr=self.bob.address)
-        tx._data.nonce = 2**64 - 1
+        tx._data.nonce = 2 ** 64 - 1
         tx.sign(self.alice)
         tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
 
@@ -332,15 +332,15 @@ class TestTransferTokenTransaction(TestCase):
         amounts = []
         for i in range(config.dev.transaction_multi_output_limit):
             addrs_to.append(get_random_xmss().address)
-            amounts.append(2**64-1)
+            amounts.append(2 ** 64 - 1)
 
         tx = TransferTokenTransaction.create(token_txhash=b'0' * 32,
                                              addrs_to=addrs_to,
                                              amounts=amounts,
-                                             fee=2**64-1,
+                                             fee=2 ** 64 - 1,
                                              xmss_pk=self.alice.pk,
                                              master_addr=self.bob.address)
-        tx._data.nonce = 2**64 - 1
+        tx._data.nonce = 2 ** 64 - 1
         tx.sign(self.alice)
         tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
 

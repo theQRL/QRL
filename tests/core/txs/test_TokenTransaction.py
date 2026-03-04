@@ -14,7 +14,7 @@ from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.Transaction import Transaction
 from qrl.generated import qrl_pb2
 from tests.core.txs.testdata import test_json_Token, test_signature_Token
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, get_random_xmss, set_qrl_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir
 
 logger.initialize_default()
 

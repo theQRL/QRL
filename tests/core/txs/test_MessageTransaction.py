@@ -162,9 +162,9 @@ class TestMessageTransaction(TestCase):
         tx = MessageTransaction.create(master_addr=self.bob.address,
                                        addr_to=get_bob_xmss().address,
                                        message_hash=message,
-                                       fee=2**64-1,
+                                       fee=2 ** 64 - 1,
                                        xmss_pk=self.alice.pk)
-        tx._data.nonce = 2**64 - 1
+        tx._data.nonce = 2 ** 64 - 1
         tx.sign(self.alice)
         tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
 
@@ -177,9 +177,9 @@ class TestMessageTransaction(TestCase):
         tx = MessageTransaction.create(master_addr=self.bob.address,
                                        addr_to=get_bob_xmss().address,
                                        message_hash=message,
-                                       fee=2**64-1,
+                                       fee=2 ** 64 - 1,
                                        xmss_pk=self.alice.pk)
-        tx._data.nonce = 2**64 - 1
+        tx._data.nonce = 2 ** 64 - 1
         tx.sign(self.alice)
         tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
 

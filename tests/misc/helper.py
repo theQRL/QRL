@@ -205,6 +205,7 @@ def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fe
     tx.sign(xmss1)
     return tx
 
+
 def destroy_state():
     try:
         db_path = os.path.join(config.user.data_dir, config.dev.db_name)

@@ -284,7 +284,9 @@ class Block(object):
             block_size_list.append(block.size)
             if block.block_number == 0:
                 break
-        return min(dev_config.block_max_size_limit_in_bytes, max(dev_config.block_min_size_limit_in_bytes, dev_config.size_multiplier * median(block_size_list)))
+        return min(dev_config.block_max_size_limit_in_bytes,
+                   max(dev_config.block_min_size_limit_in_bytes,
+                       dev_config.size_multiplier * median(block_size_list)))
 
     @staticmethod
     def remove_blocknumber_mapping(state: State, block_number, batch):

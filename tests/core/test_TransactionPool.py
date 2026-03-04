@@ -66,10 +66,10 @@ class TestTransactionPool(TestCase):
         self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
         self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
 
         self.assertFalse(self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime()))
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
 
         result = self.txpool.is_full_transaction_pool()
         self.assertTrue(result)
@@ -90,10 +90,10 @@ class TestTransactionPool(TestCase):
         self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
         self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
 
         self.assertFalse(self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime()))
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
 
         result = self.txpool.is_full_transaction_pool()
         self.assertTrue(result)
@@ -107,10 +107,10 @@ class TestTransactionPool(TestCase):
         self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
         self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
 
         self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime())
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size+tx3.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
         idx = self.txpool.get_tx_index_from_pool(b'qrlpink')
         self.assertEqual(idx, 2)
@@ -129,24 +129,22 @@ class TestTransactionPool(TestCase):
         self.txpool.add_tx_to_pool(tx1, 1, replacement_getTime())
         self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
-
         # If we try to remove a tx that wasn't there, the transaction pool should be untouched
         self.assertEqual(len(self.txpool.transaction_pool), 1)
         self.txpool.remove_tx_from_pool(tx2)
         self.assertEqual(len(self.txpool.transaction_pool), 1)
         self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
-
         # Now let's remove a tx from the heap. The size should decrease.
         self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
 
         self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime())
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size+tx3.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
         self.assertEqual(len(self.txpool.transaction_pool), 3)
         self.txpool.remove_tx_from_pool(tx2)
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx3.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx3.size)
 
         self.assertEqual(len(self.txpool.transaction_pool), 2)
 
@@ -224,24 +222,23 @@ class TestTransactionPool(TestCase):
 
         self.txpool.update_pending_tx_pool(tx1, ip)
         self.txpool.update_pending_tx_pool(tx2, ip)
-        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size)
 
         result = self.txpool.update_pending_tx_pool(tx3, ip, ignore_reserve=True)
         self.assertFalse(result)
-        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size)
 
         result = self.txpool.update_pending_tx_pool(tx3, ip, ignore_reserve=False)
         self.assertTrue(result)
-        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size+tx2.size+tx3.size)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
         result = self.txpool.update_pending_tx_pool(tx4, ip, ignore_reserve=True)
         self.assertFalse(result)
-        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size+tx2.size+tx3.size)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
         result = self.txpool.update_pending_tx_pool(tx4, ip, ignore_reserve=False)
         self.assertFalse(result)
-        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size+tx2.size+tx3.size)
-
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
     @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def test_get_pending_transaction(self):
@@ -292,7 +289,7 @@ class TestTransactionPool(TestCase):
         self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
         self.txpool.add_tx_to_pool(tx2, 5)
-        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size+tx2.size)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
         self.assertEqual(len(self.txpool.transaction_pool), 2)
 
         self.txpool.remove_tx_in_block_from_pool(m_block)

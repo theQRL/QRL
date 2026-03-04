@@ -149,7 +149,7 @@ class TestSimpleTransaction(TestCase):
         amounts = []
         for i in range(config.dev.transaction_multi_output_limit):
             addrs_to.append(get_random_xmss().address)
-            amounts.append(2**64 - 1)
+            amounts.append(2 ** 64 - 1)
 
         message = b'0' * config.dev.message_max_length
 
@@ -157,9 +157,9 @@ class TestSimpleTransaction(TestCase):
                                         addrs_to=addrs_to,
                                         amounts=amounts,
                                         message_data=message,
-                                        fee=2**64-1,
+                                        fee=2 ** 64 - 1,
                                         xmss_pk=self.alice.pk)
-        tx._data.nonce = 2**64 - 1
+        tx._data.nonce = 2 ** 64 - 1
         tx.sign(self.alice)
         tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
 
@@ -171,7 +171,7 @@ class TestSimpleTransaction(TestCase):
         amounts = []
         for i in range(config.dev.transaction_multi_output_limit):
             addrs_to.append(get_random_xmss().address)
-            amounts.append(2**64 - 1)
+            amounts.append(2 ** 64 - 1)
 
         message = b'0' * config.dev.message_max_length
 
@@ -179,9 +179,9 @@ class TestSimpleTransaction(TestCase):
                                         addrs_to=addrs_to,
                                         amounts=amounts,
                                         message_data=message,
-                                        fee=2**64-1,
+                                        fee=2 ** 64 - 1,
                                         xmss_pk=self.alice.pk)
-        tx._data.nonce = 2**64 - 1
+        tx._data.nonce = 2 ** 64 - 1
         tx.sign(self.alice)
         tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
 

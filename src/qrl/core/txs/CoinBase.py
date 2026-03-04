@@ -17,7 +17,6 @@ class CoinBase(Transaction):
     def __init__(self, protobuf_transaction=None):
         super(CoinBase, self).__init__(protobuf_transaction)
 
-
     @property
     def max_size_limit(self):
         return 133

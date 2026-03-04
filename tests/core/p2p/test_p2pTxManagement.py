@@ -297,7 +297,8 @@ class TestP2PTxManagementHandlers(TestCase):
         self.channel.factory.add_unprocessed_txn.assert_not_called()
 
     @patch('qrl.core.p2p.p2pTxManagement.Transaction')
-    @patch('random.random', return_value=config.user.chance_trigger_tx_validation_before_pending_pool-0.01)  # probability set below threshold to trigger validation
+    # probability set below threshold to trigger validation
+    @patch('random.random', return_value=config.user.chance_trigger_tx_validation_before_pending_pool - 0.01)
     def test_handle_invalid_message_transaction_with_validation(self, m_random, m_Transaction):
         m_Transaction.from_pbdata.return_value = Mock(autospec=MessageTransaction, txhash=b'12345')
         self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False

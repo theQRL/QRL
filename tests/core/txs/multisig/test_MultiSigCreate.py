@@ -332,12 +332,12 @@ class TestMultiSigCreate(TestCase):
         weights = []
         for i in range(config.dev.transaction_multi_output_limit):
             signatories.append(get_random_xmss().address)
-            weights.append(2**32-1)
+            weights.append(2 ** 32 - 1)
 
         tx = MultiSigCreate.create(signatories=signatories,
                                    weights=weights,
                                    threshold=config.dev.transaction_multi_output_limit,
-                                   fee=2**64-1,
+                                   fee=2 ** 64 - 1,
                                    xmss_pk=self.alice.pk,
                                    master_addr=self.bob.address)
         tx._data.nonce = 2 ** 64 - 1
@@ -352,12 +352,12 @@ class TestMultiSigCreate(TestCase):
         weights = []
         for i in range(config.dev.transaction_multi_output_limit):
             signatories.append(get_random_xmss().address)
-            weights.append(2**32-1)
+            weights.append(2 ** 32 - 1)
 
         tx = MultiSigCreate.create(signatories=signatories,
                                    weights=weights,
                                    threshold=config.dev.transaction_multi_output_limit,
-                                   fee=2**64-1,
+                                   fee=2 ** 64 - 1,
                                    xmss_pk=self.alice.pk,
                                    master_addr=self.bob.address)
         tx._data.nonce = 2 ** 64 - 1

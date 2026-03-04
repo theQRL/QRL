@@ -7,6 +7,7 @@ from collections import OrderedDict, defaultdict
 from qrl.core.MessageRequest import MessageRequest
 from qrl.core import config
 
+
 class RequestedHash:
     def __init__(self):
         self._msg_hash_msg_request = OrderedDict()
