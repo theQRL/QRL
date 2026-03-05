@@ -391,7 +391,7 @@ class P2PPeerManager(P2PBaseObserver):
         self._ignore_tx_from_ips[channel.peer.ip] = ntp.getTime() + config.user.ignore_tx_duration_seconds
         if len(self._ignore_tx_from_ips) > config.user.max_ignore_tx_ip_limit:
             self._ignore_tx_from_ips.popitem(last=False)
-        logger.warning('Ignoring tx from %s upto %d', channel.peer.ip, self._ignore_tx_from_ips[channel.peer.ip])
+        logger.warning('Ignoring tx from %s till timestamp %d', channel.peer.ip, self._ignore_tx_from_ips[channel.peer.ip])
 
     def is_channel_in_ignore_incoming_tx(self, channel: P2PProtocol) -> bool:
         if channel.peer.ip in self._ignore_tx_from_ips:

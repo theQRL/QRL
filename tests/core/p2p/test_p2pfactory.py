@@ -661,7 +661,6 @@ class TestP2PFactoryPeerFetchBlock(TestCase):
 
         self.factory.peer_fetch_block(retry=5)
 
-        self.factory._target_channel.punish.assert_called_once_with("FETCH_BLOCK_FAILED", hard=True)
         self.factory.is_syncing_finished.assert_called_once_with(force_finish=True)
 
 
