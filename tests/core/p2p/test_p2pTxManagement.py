@@ -124,7 +124,6 @@ def make_message(xmss=None, **kwargs):
 
                 kwargs[key] = tx
 
-
     return qrllegacy_pb2.LegacyMessage(**kwargs)
 
 
