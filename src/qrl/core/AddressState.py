@@ -30,7 +30,7 @@ class AddressState(object):
 
     @property
     def height(self):
-        return self._data.address[1] << 1
+        return (self._data.address[1] & 0x0F) << 1
 
     @property
     def nonce(self):

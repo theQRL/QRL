@@ -1,3 +1,5 @@
+import random
+
 from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core import config
@@ -6,6 +8,7 @@ from qrl.core.txs.Transaction import Transaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.misc import logger, ntp
 from qrl.core.p2p.p2pObserver import P2PBaseObserver
+from qrl.crypto.xmss import XMSS
 from qrl.generated import qrllegacy_pb2
 
 
@@ -101,18 +104,11 @@ class P2PTxManagement(P2PBaseObserver):
         Executed whenever a new TX type message is received.
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.TX)
-        try:
-            tx = Transaction.from_pbdata(message.txData)
-        except Exception as e:
-            logger.error('Message Txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        # NOTE: Connects to MR
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.TX,
+                                                     message=message,
+                                                     sub_message=message.txData,
+                                                     tx_type_str="transfer_tx")
 
     @staticmethod
     def handle_message_transaction(source, message: qrllegacy_pb2.LegacyMessage):
@@ -122,17 +118,11 @@ class P2PTxManagement(P2PBaseObserver):
         subtype MESSAGE is received.
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.MT)
-        try:
-            tx = Transaction.from_pbdata(message.mtData)
-        except Exception as e:
-            logger.error('Message Txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.MT,
+                                                     message=message,
+                                                     sub_message=message.mtData,
+                                                     tx_type_str="message_txn")
 
     @staticmethod
     def handle_token_transaction(source, message: qrllegacy_pb2.LegacyMessage):
@@ -142,17 +132,11 @@ class P2PTxManagement(P2PBaseObserver):
         subtype TOKEN is received.
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.TK)
-        try:
-            tx = Transaction.from_pbdata(message.tkData)
-        except Exception as e:
-            logger.error('Token Txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.TK,
+                                                     message=message,
+                                                     sub_message=message.tkData,
+                                                     tx_type_str="token_txn")
 
     @staticmethod
     def handle_transfer_token_transaction(source, message: qrllegacy_pb2.LegacyMessage):
@@ -162,17 +146,11 @@ class P2PTxManagement(P2PBaseObserver):
         subtype TRANSFERTOKEN is received.
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.TT)
-        try:
-            tx = Transaction.from_pbdata(message.ttData)
-        except Exception as e:
-            logger.error('Transfer Token Txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.TT,
+                                                     message=message,
+                                                     sub_message=message.ttData,
+                                                     tx_type_str="transfer_token_txn")
 
     @staticmethod
     def handle_lattice(source, message: qrllegacy_pb2.LegacyMessage):
@@ -182,17 +160,11 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.LT)
-        try:
-            tx = Transaction.from_pbdata(message.ltData)
-        except Exception as e:
-            logger.error('lattice_public_key rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.LT,
+                                                     message=message,
+                                                     sub_message=message.ltData,
+                                                     tx_type_str="lattice_public_key")
 
     @staticmethod
     def handle_slave(source, message: qrllegacy_pb2.LegacyMessage):
@@ -202,17 +174,11 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.SL)
-        try:
-            tx = Transaction.from_pbdata(message.slData)
-        except Exception as e:
-            logger.error('slave_txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.SL,
+                                                     message=message,
+                                                     sub_message=message.slData,
+                                                     tx_type_str="slave_txn")
 
     @staticmethod
     def handle_multi_sig_create(source, message: qrllegacy_pb2.LegacyMessage):
@@ -222,17 +188,11 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.MC)
-        try:
-            tx = Transaction.from_pbdata(message.mcData)
-        except Exception as e:
-            logger.error('multi_sig_create txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.MC,
+                                                     message=message,
+                                                     sub_message=message.mcData,
+                                                     tx_type_str="multi_sig_create")
 
     @staticmethod
     def handle_multi_sig_spend(source, message: qrllegacy_pb2.LegacyMessage):
@@ -242,17 +202,11 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.MS)
-        try:
-            tx = Transaction.from_pbdata(message.msData)
-        except Exception as e:
-            logger.error('multi_sig_spend txn rejected - unable to decode serialised data - closing connection')
-            logger.exception(e)
-            source.loseConnection()
-            return
-
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.MS,
+                                                     message=message,
+                                                     sub_message=message.msData,
+                                                     tx_type_str="multi_sig_spend")
 
     @staticmethod
     def handle_multi_sig_vote(source, message: qrllegacy_pb2.LegacyMessage):
@@ -262,14 +216,55 @@ class P2PTxManagement(P2PBaseObserver):
         :param message:
         :return:
         """
-        P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.MV)
+        P2PTxManagement._process_incoming_tx_message(source=source,
+                                                     msg_type=qrllegacy_pb2.LegacyMessage.MV,
+                                                     message=message,
+                                                     sub_message=message.mvData,
+                                                     tx_type_str="multi_sig_vote")
+
+    @staticmethod
+    def _process_tx(source, tx: Transaction):
+        if tx.txhash != tx.generate_txhash():
+            source.factory._qrl_node.peer_manager.add_channel_to_ignore_incoming_tx(source)
+            return False
+
+        if random.random() < config.user.chance_trigger_tx_validation_before_pending_pool:  # 0.1 = 10% chance to trigger
+            if not source.factory._chain_manager.validate_all(tx, check_nonce=False):
+                source.factory._qrl_node.peer_manager.add_channel_to_ignore_incoming_tx(source)
+                return False
+
+        if source.factory.master_mr.isRequested(tx.txhash, source):
+            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+
+        return True
+
+    @staticmethod
+    def _process_incoming_tx_message(source, msg_type, message, sub_message, tx_type_str: str):
+        if source.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx(source):
+            return
+
         try:
-            tx = Transaction.from_pbdata(message.mvData)
+            P2PBaseObserver._validate_message(message, msg_type)
         except Exception as e:
-            logger.error('multi_sig_vote txn rejected - unable to decode serialised data - closing connection')
+            logger.error('%s txn rejected - validate_message failed - closing connection', tx_type_str)
             logger.exception(e)
             source.loseConnection()
             return
 
-        if source.factory.master_mr.isRequested(tx.get_message_hash(), source):
-            source.factory.add_unprocessed_txn(tx, source.peer.ip)
+        try:
+            tx = Transaction.from_pbdata(sub_message)
+            if not tx.validate_size():
+                logger.error('%s txn rejected - invalid tx size - closing connection', tx_type_str)
+                source.loseConnection()
+                return
+            if not XMSS.validate_signature(tx.signature, tx.PK):
+                logger.error('%s txn rejected - failed to verify - closing connection', tx_type_str)
+                source.loseConnection()
+                return
+        except Exception as e:
+            logger.error('%s txn rejected - unable to decode serialised data - closing connection', tx_type_str)
+            logger.exception(e)
+            source.loseConnection()
+            return
+
+        P2PTxManagement._process_tx(source, tx)

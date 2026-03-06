@@ -347,9 +347,15 @@ class XMSS(object):
 
     @staticmethod
     def validate_signature(signature, PK):
-        height = XMSS.get_height_from_sig_size(len(signature))
+        if PK is None or len(PK) != 67:
+            return False
 
-        if height == 0 or 2 * int(bin2hstr(PK)[2:4]) != height:
+        try:
+            height = XMSS.get_height_from_sig_size(len(signature))
+        except Exception:
+            return False
+
+        if height == 0 or 2 * (int(bin2hstr(bytes([PK[1]])), 16) & 0x0F) != height:
             return False
 
         return True

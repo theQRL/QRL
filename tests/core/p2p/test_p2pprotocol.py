@@ -107,6 +107,7 @@ class TestP2PProtocol(TestCase):
         """
         config_dev.max_bytes_out = 10
         config_dev.trust_min_msgcount = 10
+        config_dev.reserved_quota = 10
         getTime.return_value = 1525078652.9991353
         acknowledgement_bytes = b'\x00\x00\x00\x08\x08\x13\xaa\x01\x03\x08\x88\x01'
         self.channel._buffer = 10 * acknowledgement_bytes

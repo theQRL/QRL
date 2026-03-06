@@ -3,6 +3,7 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 from unittest import TestCase
 from os import urandom
+import random
 
 from mock import Mock, patch, PropertyMock, MagicMock
 from pyqrllib.pyqrllib import hstr2bin
@@ -12,8 +13,11 @@ from qrl.generated import qrlstateinfo_pb2
 from qrl.core import config
 from qrl.crypto.xmss import XMSS
 from qrl.crypto.QRandomX import QRandomX
-from qrl.core.OptimizedAddressState import OptimizedAddressState
+from qrl.core.AddressState import AddressState
+from qrl.core.Indexer import Indexer
 from qrl.core.MultiSigAddressState import MultiSigAddressState
+from qrl.core.OptimizedAddressState import OptimizedAddressState
+from qrl.core.StateContainer import StateContainer
 from qrl.core.Block import Block
 from qrl.core.BlockMetadata import BlockMetadata
 from qrl.core.ChainManager import ChainManager
@@ -28,7 +32,7 @@ from qrl.core.txs.multisig.MultiSigCreate import MultiSigCreate
 from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
 from qrl.core.txs.multisig.MultiSigVote import MultiSigVote
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_default_balance_size, set_hard_fork_block_number, \
-    set_qrl_dir, replacement_getTime, get_some_address, gen_blocks
+    set_qrl_dir, setup_qrl_dir_without_ctx, cleanup_qrl_dir, replacement_getTime, get_some_address, gen_blocks
 
 alice = get_alice_xmss()
 bob = get_bob_xmss()
@@ -70,19 +74,22 @@ def create_m_block(block_number, previous_block, miner_address):
 
 class TestChainManagerReal(TestCase):
     def setUp(self):
-        with set_qrl_dir('no_data'):
-            self.state = State()
-            self.state.get_measurement = Mock(return_value=10000000)
-            self._qn = QRandomX()
+        self.dst_dir, self.prev_val = setup_qrl_dir_without_ctx('no_data')
+        self.state = State()
+        self.state.get_measurement = Mock(return_value=10000000)
+        self._qn = QRandomX()
 
-            try:
-                del GenesisBlock.instance  # Removing Singleton instance
-            except Exception:  # noqa
-                pass
-            self.genesis_block = GenesisBlock()
+        try:
+            del GenesisBlock.instance  # Removing Singleton instance
+        except Exception:  # noqa
+            pass
+        self.genesis_block = GenesisBlock()
 
-            self.chain_manager = ChainManager(self.state)
-            self.chain_manager._difficulty_tracker = Mock()
+        self.chain_manager = ChainManager(self.state)
+        self.chain_manager._difficulty_tracker = Mock()
+
+    def tearDown(self):
+        cleanup_qrl_dir(self.dst_dir, self.prev_val)
 
     def test_load(self):
         # load() has the following tasks:
@@ -2870,6 +2877,101 @@ class TestChainManagerReal(TestCase):
             self.assertFalse(result)
 
     @set_default_balance_size()
+    @patch('qrl.core.misc.ntp.getTime')
+    def test_add_block16(self, time_mock):
+        """
+        Test to verify chain re-org beyond re-org limit
+
+        :param time_mock:
+        :return:
+        """
+        # import logging
+        # from qrl.core.misc import logger as qrl_logger
+
+        # Reinitialize logger with console output enabled
+        # qrl_logger.initialize_default(force_console_output=True).setLevel(logging.DEBUG)
+        def generate_block(prev_block, nonce=3):
+            new_block = Block.create(dev_config=config.dev,
+                                     block_number=i,
+                                     prev_headerhash=prev_block.headerhash,
+                                     prev_timestamp=prev_block.timestamp,
+                                     transactions=[],
+                                     miner_address=alice_xmss.address,
+                                     seed_height=None,
+                                     seed_hash=None)
+            new_block.set_nonces(config.dev, nonce, 0)
+            # Uncomment only to determine the correct mining_nonce of above blocks
+            while not self.chain_manager.validate_mining_nonce(new_block.blockheader, config.dev, False):
+                new_block.set_nonces(config.dev, new_block.mining_nonce + 1)
+            return new_block
+
+        mock_difficulty = Mock()
+
+        with patch.object(DifficultyTracker, 'get', mock_difficulty):
+            mock_difficulty.return_value = ask_difficulty_tracker('20', config.dev)
+            self.chain_manager.load(self.genesis_block)
+            alice_xmss = get_alice_xmss(4)
+
+            time_mock.return_value = 1615270948  # Very high to get an easy difficulty
+
+            prev_block = self.genesis_block
+            prev_block_alt = self.genesis_block
+            premined_nonces = [5, 11, 4, 8, 4, 3, 3, 7, 5, 5, 6, 4, 4, 9, 4, 6, 5, 4, 5, 5, 10, 3, 4, 6, 9, 4, 4, 3, 6,
+                               10, 4, 7, 5, 10, 7, 3, 5, 4, 5, 3, 7, 4, 3, 7, 7, 3, 4, 5, 4, 3, 3, 4, 5, 3, 8, 4, 5, 5,
+                               6, 3, 6, 3, 4, 4, 3, 3, 5, 4, 8, 3, 3, 3, 5, 3, 8, 3, 6, 9, 4, 6, 5, 4, 4, 8, 3, 8, 14,
+                               9, 3, 3, 5, 3, 4, 3, 5, 5, 7, 3, 8, 4, 3, 7, 4, 3, 3, 4, 3, 5, 3, 4, 3, 4, 7, 6, 3, 4, 3,
+                               4, 6, 3, 3, 6, 3, 4, 3, 5, 3, 5, 3, 3, 3, 12, 3, 11, 3, 3, 4, 6, 3, 7, 5, 6, 3, 6, 5, 3,
+                               4, 5, 5, 3, 3, 4, 7, 3, 3, 3, 5, 7, 8, 5, 8, 10, 7, 6, 11, 4, 4, 6, 3, 5, 3, 3, 4, 7, 3,
+                               4, 3, 5, 3, 6, 7, 4, 3, 4, 7, 3, 10, 3, 3, 6, 7, 5, 6, 4, 5, 4, 3, 5, 5, 3, 3, 5, 3, 7,
+                               4, 3, 5, 3, 3, 4, 7, 9, 5, 10, 11, 9, 6, 4, 7, 4, 3, 5, 9, 4, 8, 8, 3, 3, 5, 5, 3, 5, 7,
+                               3, 8, 4, 7, 3, 3, 12, 4, 3, 7, 3, 3, 7, 3, 4, 3, 3, 5, 5, 7, 3, 7, 7, 3, 9, 10, 4, 3, 4,
+                               6, 3, 6, 4, 3, 6, 3, 3, 4, 3, 11, 6, 4, 7, 5, 6, 6, 3, 6, 4, 6, 3, 4, 4, 3, 3, 10, 3, 3,
+                               5, 5, 3, 5, 3, 6, 3, 4, 3, 8, 3, 3, 4, 10, 5, 3, 4, 9]
+            premined_nonces_alt = [3, 3, 3, 4, 3, 6, 3, 3, 5, 3, 4, 7, 5, 4, 5, 3, 4, 4, 4, 3, 3, 3, 4, 3, 3, 6, 4, 3,
+                                   3, 3, 3, 6, 6, 5, 4, 4, 7, 3, 3, 3, 3, 3, 3, 3, 3, 4, 3, 9, 3, 6, 6, 4, 3, 4, 3, 4,
+                                   4, 3, 3, 3, 3, 5, 3, 3, 7, 5, 8, 7, 4, 4, 7, 4, 4, 3, 3, 3, 3, 3, 5, 3, 3, 3, 6, 3,
+                                   4, 3, 4, 4, 3, 5, 3, 3, 4, 3, 3, 6, 6, 4, 5, 5, 3, 3, 3, 3, 4, 5, 3, 4, 4, 4, 3, 5,
+                                   4, 6, 4, 3, 3, 3, 3, 3, 3, 3, 5, 3, 3, 4, 5, 5, 4, 4, 4, 3, 3, 3, 3, 5, 4, 7, 6, 3,
+                                   3, 5, 3, 5, 4, 4, 10, 3, 4, 3, 3, 11, 4, 22, 4, 7, 7, 3, 7, 11, 4, 9, 11, 5, 7, 3, 7,
+                                   9, 3, 4, 4, 3, 7, 10, 5, 3, 3, 7, 4, 4, 6, 5, 4, 9, 5, 3, 3, 6, 3, 3, 9, 3, 8, 10,
+                                   11, 3, 6, 6, 7, 6, 10, 7, 4, 5, 5, 19, 4, 5, 13, 3, 8, 3, 12, 4, 4, 3, 3, 5, 3, 5, 6,
+                                   4, 5, 4, 6, 3, 3, 8, 5, 4, 3, 16, 10, 8, 16, 3, 5, 3, 5, 11, 4, 14, 6, 9, 17, 5, 3,
+                                   5, 3, 5, 24, 8, 4, 3, 6, 4, 3, 5, 3, 4, 4, 5, 3, 9, 9, 3, 12, 3, 4, 8, 3, 8, 3, 7, 4,
+                                   5, 3, 6, 4, 7, 3, 6, 8, 9, 3, 3, 3, 3, 4, 3, 3, 5, 6, 3, 6, 6, 3, 6, 6, 3, 6, 3, 5,
+                                   3, 4, 9, 3, 6, 5]
+            for i in range(1, 310):
+                mock_difficulty.return_value = ask_difficulty_tracker('3', config.dev)
+                new_block = generate_block(prev_block, premined_nonces[i - 1])
+                self.assertTrue(new_block.validate(self.chain_manager, {}))
+                result = self.chain_manager.add_block(new_block)
+                self.assertTrue(result)
+
+                if i <= 150:
+                    mock_difficulty.return_value = ask_difficulty_tracker('2', config.dev)
+                else:
+                    mock_difficulty.return_value = ask_difficulty_tracker('4', config.dev)
+                new_block_alt = generate_block(prev_block_alt, premined_nonces_alt[i - 1])
+                self.assertTrue(new_block_alt.validate(self.chain_manager, {}))
+                result = self.chain_manager.add_block(new_block_alt)
+                if i < 301:
+                    self.assertTrue(result)
+                else:
+                    # Should fail as chain re-org beyond re-org limit
+                    self.assertFalse(result)
+
+                b = self.chain_manager.get_block_by_number(new_block.block_number)
+                # new_block should be the part of mainchain
+                self.assertTrue(b.headerhash == new_block.headerhash)
+
+                prev_block = new_block
+                prev_block_alt = new_block_alt
+                time_mock.return_value = prev_block.timestamp + 1
+                if len(premined_nonces) < i:
+                    premined_nonces.append(new_block.mining_nonce)
+                if len(premined_nonces_alt) < i:
+                    premined_nonces_alt.append(new_block_alt.mining_nonce)
+
+    @set_default_balance_size()
     @set_hard_fork_block_number()
     @patch('qrl.core.misc.ntp.getTime')
     def test_rollback(self, time_mock):
@@ -4610,3 +4712,98 @@ class TestChainManager(TestCase):
                 self.assertTrue(success)
                 self.assertEqual(addresses_state[alice_state.address].serialize(),
                                  addresses_state1[alice_state.address].serialize())
+
+    def test_get_unused_ots_index(self):
+        with set_qrl_dir('no_data'):
+            with State() as state:
+                chain_manager = ChainManager(state)
+                alice_xmss = get_alice_xmss(xmss_height=14)
+                alice_state = OptimizedAddressState.get_optimized_address_state(state, alice_xmss.address)
+                addresses_state = {
+                    alice_state.address: alice_state,
+                }
+                ots_indices = list(range(0, 2 ** alice_xmss.height))
+                random_ots_indices = list(range(0, 2 ** alice_xmss.height))
+                random.shuffle(random_ots_indices)
+                done_ots = []
+                for ots_index in random_ots_indices:
+                    done_ots.append(ots_index)
+                    e = chain_manager.get_unused_ots_index2(alice_xmss.address, 0)
+                    if e != ots_indices[0]:
+                        print(done_ots)
+                        print(ots_indices)
+                    self.assertEqual(e, ots_indices[0])
+                    state_container = StateContainer(addresses_state=addresses_state,
+                                                     tokens=Indexer(b'token', None),
+                                                     slaves=Indexer(b'slave', None),
+                                                     lattice_pk=Indexer(b'lattice_pk', None),
+                                                     multi_sig_spend_txs=dict(),
+                                                     votes_stats=dict(),
+                                                     block_number=1,
+                                                     total_coin_supply=100,
+                                                     current_dev_config=config.dev,
+                                                     write_access=True,
+                                                     my_db=state._db,
+                                                     batch=None)
+                    state_container.paginated_bitfield.set_ots_key(state_container.addresses_state, alice_xmss.address, ots_index)
+                    state_container.paginated_bitfield.put_paginated_data(None)
+                    AddressState.put_addresses_state(state, state_container.addresses_state, None)
+                    OptimizedAddressState.put_optimized_addresses_state(state, addresses_state, None)
+                    ots_indices.remove(ots_index)
+
+                self.assertIsNone(chain_manager.get_unused_ots_index2(alice_xmss.address, 0))
+
+    def test_get_unused_ots_index_high_tree_heights(self):
+        """
+        Tests get_unused_ots_index byte-level indexing for heights > 10.
+        """
+        with set_qrl_dir('no_data'):
+            with State() as state:
+                chain_manager = ChainManager(state)
+                paginated_bitfield = PaginatedBitfield(False, state._db)
+
+                # --- Height 12: 4096 keys = 512 valid bytes ---
+                alice_xmss = get_alice_xmss(xmss_height=12)
+                address12 = alice_xmss.address
+                address_state12 = OptimizedAddressState.get_default(address12)
+                addresses_state12 = {address12: address_state12}
+
+                # Craft bitfield: bytes 0-511 = 0xFF (all 4096 keys used),
+                # bytes 512-1023 = 0x00 (phantom range beyond height 12)
+                key12 = paginated_bitfield.generate_bitfield_key(address12, 1)
+                valid_bytes = 2 ** 12 // 8  # 512
+                bitfield12 = [b'\xff'] * valid_bytes + [b'\x00'] * (config.dev.ots_bitfield_size - valid_bytes)
+                addresses_bitfield12 = {key12: bitfield12}
+
+                result = chain_manager.get_unused_ots_index(
+                    addresses_bitfield=addresses_bitfield12,
+                    addresses_state=addresses_state12,
+                    address=address12,
+                    paginated_bitfield=paginated_bitfield,
+                    start_ots_index=0)
+
+                # All 4096 valid keys are used → must return None.
+                # Without >> 3, this returns 4096 (invalid phantom index).
+                self.assertIsNone(result)
+
+                # --- Height 14: 16384 keys, 2 pages ---
+                bob_xmss = get_bob_xmss(xmss_height=14)
+                address14 = bob_xmss.address
+                address_state14 = OptimizedAddressState.get_default(address14)
+                addresses_state14 = {address14: address_state14}
+
+                # Craft page 1 bitfield: all 1024 bytes = 0xFF (8192 keys used)
+                key14 = paginated_bitfield.generate_bitfield_key(address14, 1)
+                bitfield14 = [b'\xff'] * config.dev.ots_bitfield_size
+                addresses_bitfield14 = {key14: bitfield14}
+
+                result = chain_manager.get_unused_ots_index(
+                    addresses_bitfield=addresses_bitfield14,
+                    addresses_state=addresses_state14,
+                    address=address14,
+                    paginated_bitfield=paginated_bitfield,
+                    start_ots_index=0)
+
+                # Should cross page boundary and find first unused key on page 2 (8192).
+                # Without >> 3, this raises IndexError at ots_bitfield[1024].
+                self.assertEqual(config.dev.ots_tracking_per_page, result)
