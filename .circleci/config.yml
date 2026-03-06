@@ -50,7 +50,17 @@ jobs:
       - run: pip install -U setuptools
       - run: pip install -U -r requirements.txt
       - run: pip install -U -r test-requirements.txt
-      - run: python3 setup.py test
+      - run:
+          name: Run tests
+          command: |
+            python3 setup.py test --addopts "--junitxml=/tmp/test-results/results.xml" 2>&1 | tee /tmp/test_output.log
+            - store_test_results:
+                path: /tmp/test-results
+                when: always
+            - store_artifacts:
+                path: /tmp/test_output.log
+                destination: test_output.log
+                when: always
 
   integration_fast:
     docker:
