@@ -8,7 +8,12 @@ from mock import Mock, patch
 from qrl.core import config
 from qrl.core.ESyncState import ESyncState
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
+from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
+from qrl.core.txs.TokenTransaction import TokenTransaction
+from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.core.txs.MessageTransaction import MessageTransaction
+from qrl.core.txs.LatticeTransaction import LatticeTransaction
 from qrl.core.messagereceipt import MessageReceipt
 from qrl.core.misc import logger
 from qrl.core.notification.Observable import Observable
@@ -16,14 +21,109 @@ from qrl.core.notification.ObservableEvent import ObservableEvent
 from qrl.core.p2p.p2pprotocol import P2PProtocol
 from qrl.core.p2p.p2pfactory import P2PFactory
 from qrl.core.p2p.p2pTxManagement import P2PTxManagement
-from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.generated import qrl_pb2, qrllegacy_pb2
-from tests.misc.helper import get_some_address
+from tests.misc.helper import get_some_address, get_alice_xmss
 
 logger.initialize_default()
 
 
-def make_message(**kwargs):
+def make_message(xmss=None, **kwargs):
+    """
+    Create a message with properly signed transactions if xmss is provided.
+
+    :param xmss: Optional XMSS object to sign the transaction. If not provided, dummy signatures are used.
+    :param kwargs: Message parameters
+    :return: LegacyMessage
+    """
+    # Create a valid transaction with minimal required fields if mtData/tkData/ttData/ltData/slData is empty
+    tx_type_map = {
+        'mtData': 'message',
+        'tkData': 'token',
+        'ttData': 'transfer_token',
+        'ltData': 'latticePK',
+        'slData': 'slave'
+    }
+
+    for key, tx_type in tx_type_map.items():
+        if key in kwargs and not kwargs[key].ByteSize():
+            # If xmss is provided, create properly signed transaction
+            if xmss:
+                tx_obj = None
+                if tx_type == 'message':
+                    tx_obj = MessageTransaction.create(
+                        addr_to=get_some_address(),
+                        message_hash=bytes(32),
+                        fee=1,
+                        xmss_pk=xmss.pk
+                    )
+                elif tx_type == 'token':
+                    tx_obj = TokenTransaction.create(
+                        symbol=b'TEST',
+                        name=b'Test Token',
+                        owner=xmss.address,
+                        decimals=0,
+                        initial_balances=[qrl_pb2.AddressAmount(address=get_some_address(), amount=1000)],
+                        fee=1,
+                        xmss_pk=xmss.pk
+                    )
+                elif tx_type == 'transfer_token':
+                    tx_obj = TransferTokenTransaction.create(
+                        token_txhash=bytes(32),
+                        addrs_to=[get_some_address()],
+                        amounts=[1],
+                        fee=1,
+                        xmss_pk=xmss.pk
+                    )
+                elif tx_type == 'latticePK':
+                    tx_obj = LatticeTransaction.create(
+                        pk1=bytes(config.dev.lattice_pk1_max_length),
+                        pk2=bytes(config.dev.lattice_pk2_max_length),
+                        pk3=bytes(config.dev.lattice_pk3_max_length),
+                        fee=1,
+                        xmss_pk=xmss.pk
+                    )
+                elif tx_type == 'slave':
+                    tx_obj = SlaveTransaction.create(
+                        slave_pks=[bytes(67)],
+                        access_types=[0],
+                        fee=1,
+                        xmss_pk=xmss.pk
+                    )
+
+                if tx_obj:
+                    tx_obj.sign(xmss)
+                    kwargs[key] = tx_obj.pbdata
+            else:
+                # Create a minimal valid transaction protobuf with dummy signature
+                tx = qrl_pb2.Transaction()
+                tx.public_key = bytes(67)  # Dummy XMSS public key
+                tx.signature = bytes(2287)  # Dummy signature
+                tx.transaction_hash = bytes(32)  # Dummy transaction hash
+                tx.fee = 1
+                tx.nonce = 0
+
+                # Add the appropriate transaction type
+                if tx_type == 'message':
+                    tx.message.message_hash = bytes(32)
+                elif tx_type == 'token':
+                    tx.token.symbol = b'TEST'
+                    tx.token.name = b'Test Token'
+                    tx.token.owner = get_some_address()
+                    tx.token.decimals = 0
+                    tx.token.initial_balances.add(address=get_some_address(), amount=1000)
+                elif tx_type == 'transfer_token':
+                    tx.transfer_token.token_txhash = bytes(32)
+                    tx.transfer_token.addrs_to.append(get_some_address())
+                    tx.transfer_token.amounts.append(1)
+                elif tx_type == 'latticePK':
+                    tx.latticePK.pk1 = bytes(1568)
+                    tx.latticePK.pk2 = bytes(2592)
+                elif tx_type == 'slave':
+                    tx.slave.slave_pks.append(bytes(67))
+                    tx.slave.access_types.append(0)
+
+                kwargs[key] = tx
+
     return qrllegacy_pb2.LegacyMessage(**kwargs)
 
 
@@ -39,13 +139,13 @@ class TestP2PTxManagement(TestCase):
         self.tx_manager.new_channel(channel)
         channel.register.assert_called()
 
-        self.assertEquals(11, channel.register.call_count)
+        self.assertEqual(11, channel.register.call_count)
 
     def test_observable(self):
         channel = Observable(None)
         self.tx_manager = P2PTxManagement()
         self.tx_manager.new_channel(channel)
-        self.assertEquals(11, channel.observers_count)
+        self.assertEqual(11, channel.observers_count)
 
     def test_notification_no_observer(self):
         source = Mock()
@@ -56,7 +156,7 @@ class TestP2PTxManagement(TestCase):
 
         event = ObservableEvent("event_id")
 
-        with self.assertRaisesRegexp(RuntimeError, "Observer not registered for"):
+        with self.assertRaisesRegex(RuntimeError, "Observer not registered for"):
             channel.notify(event, force_delivery=True)
 
     def test_notification(self):
@@ -65,18 +165,21 @@ class TestP2PTxManagement(TestCase):
         source.factory.master_mr = Mock()
         source.factory.master_mr.isRequested = Mock()
         source.factory.add_unprocessed_txn = Mock()
+        source.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
 
         channel = Observable(source)
 
         self.tx_manager = P2PTxManagement()
         self.tx_manager.new_channel(channel)
 
+        alice_xmss = get_alice_xmss()
         tx = TransferTransaction.create(
             addrs_to=[get_some_address()],
             amounts=[1],
             message_data=None,
             fee=10,
-            xmss_pk=bytes(67))
+            xmss_pk=alice_xmss.pk)
+        tx.sign(alice_xmss)
 
         event = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.TX,
                                             txData=tx.pbdata)
@@ -122,6 +225,7 @@ class TestP2PTxManagementHandlers(TestCase):
         self.channel.factory.pow = Mock()
         self.channel.factory.pow.suspend_mining_timestamp = 0
         self.channel.factory.master_mr = Mock(autospec=MessageReceipt)
+        self.xmss = get_alice_xmss()
 
     def tearDown(self):
         del self.channel
@@ -263,12 +367,13 @@ class TestP2PTxManagementHandlers(TestCase):
         :param m_Transaction:
         :return:
         """
-        m_Transaction.from_pbdata.return_value = Mock(autospec=MessageTransaction, txhash=b'12345')
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
         self.channel.factory.master_mr.isRequested.return_value = True  # Yes, this is a Message which we have requested
         self.channel.factory.buffered_chain.tx_pool.pending_tx_pool_hash = []  # No, we haven't processed this TX before
 
         mtData = qrl_pb2.Transaction()
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.MT, mtData=mtData)
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.MT, mtData=mtData)
+        m_Transaction.from_pbdata.return_value = Transaction.from_pbdata(msg.mtData)
 
         P2PTxManagement.handle_message_transaction(self.channel, msg)
 
@@ -280,6 +385,38 @@ class TestP2PTxManagementHandlers(TestCase):
         P2PTxManagement.handle_message_transaction(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_not_called()
 
+    @patch('qrl.core.p2p.p2pTxManagement.Transaction')
+    def test_handle_message_transaction_from_banned_peer(self, m_Transaction):
+        m_Transaction.from_pbdata.return_value = Mock(autospec=MessageTransaction, txhash=b'12345')
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = True
+        self.channel.factory.master_mr.isRequested.return_value = True  # Yes, this is a Message which we have requested
+        self.channel.factory.buffered_chain.tx_pool.pending_tx_pool_hash = []  # No, we haven't processed this TX before
+
+        mtData = qrl_pb2.Transaction()
+        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.MT, mtData=mtData)
+
+        P2PTxManagement.handle_message_transaction(self.channel, msg)
+
+        self.channel.factory.add_unprocessed_txn.assert_not_called()
+
+    @patch('qrl.core.p2p.p2pTxManagement.Transaction')
+    # probability set below threshold to trigger validation
+    @patch('random.random', return_value=config.user.chance_trigger_tx_validation_before_pending_pool - 0.01)
+    def test_handle_invalid_message_transaction_with_validation(self, m_random, m_Transaction):
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
+        self.channel.factory._chain_manager.validate_all.return_value = False  # validation mocked to false
+        self.channel.factory.master_mr.isRequested.return_value = True  # Yes, this is a Message which we have requested
+        self.channel.factory.buffered_chain.tx_pool.pending_tx_pool_hash = []  # No, we haven't processed this TX before
+
+        mtData = qrl_pb2.Transaction()
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.MT, mtData=mtData)
+        m_Transaction.from_pbdata.return_value = Transaction.from_pbdata(msg.mtData)
+
+        P2PTxManagement.handle_message_transaction(self.channel, msg)
+
+        self.channel.factory.add_unprocessed_txn.assert_not_called()
+        self.channel.factory._qrl_node.peer_manager.add_channel_to_ignore_incoming_tx.assert_called_once_with(self.channel)
+
     @patch('qrl.core.p2p.p2pTxManagement.logger')
     @patch('qrl.core.p2p.p2pTxManagement.Transaction')
     def test_handle_message_transaction_invalid_transaction(self, m_Transaction, logger):
@@ -290,6 +427,7 @@ class TestP2PTxManagementHandlers(TestCase):
         :return:
         """
         m_Transaction.from_pbdata.side_effect = Exception
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
 
         mtData = qrl_pb2.Transaction()
         msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.MT, mtData=mtData)
@@ -308,57 +446,66 @@ class TestP2PTxManagementSimpleHandlers(TestCase):
         self.channel.factory.master_mr = Mock(autospec=MessageReceipt)
 
         self.channel.factory.master_mr.isRequested.return_value = True
+        self.channel.factory._qrl_node.peer_manager.is_channel_in_ignore_incoming_tx.return_value = False
+        self.channel.factory._chain_manager.validate_all.return_value = True
+
+        # Create XMSS object for signing transactions
+        self.xmss = get_alice_xmss()
 
     def tearDown(self):
         del self.channel
 
-    def test_handle_token_transaction(self, m_Transaction, m_logger):
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.TK, tkData=qrl_pb2.Transaction())
+    def test_handle_token_transaction(self, m_transaction, m_logger):
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.TK, tkData=qrl_pb2.Transaction())
+        m_transaction.from_pbdata.return_value = Transaction.from_pbdata(msg.tkData)
         P2PTxManagement.handle_token_transaction(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_called()
 
-    def test_handle_token_transaction_error_parsing_transaction(self, m_Transaction, m_logger):
-        m_Transaction.from_pbdata.side_effect = Exception
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.TK, tkData=qrl_pb2.Transaction())
+    def test_handle_token_transaction_error_parsing_transaction(self, m_transaction, m_logger):
+        m_transaction.from_pbdata.side_effect = Exception
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.TK, tkData=qrl_pb2.Transaction())
         P2PTxManagement.handle_token_transaction(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_not_called()
         m_logger.exception.assert_called()
         self.channel.loseConnection.assert_called()
 
-    def test_handle_transfer_token_transaction(self, m_Transaction, m_logger):
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.TT, ttData=qrl_pb2.Transaction())
+    def test_handle_transfer_token_transaction(self, m_transaction, m_logger):
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.TT, ttData=qrl_pb2.Transaction())
+        m_transaction.from_pbdata.return_value = Transaction.from_pbdata(msg.ttData)
         P2PTxManagement.handle_transfer_token_transaction(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_called()
 
-    def test_handle_transfer_token_transaction_error_parsing_transaction(self, m_Transaction, m_logger):
-        m_Transaction.from_pbdata.side_effect = Exception
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.TT, ttData=qrl_pb2.Transaction())
+    def test_handle_transfer_token_transaction_error_parsing_transaction(self, m_transaction, m_logger):
+        m_transaction.from_pbdata.side_effect = Exception
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.TT, ttData=qrl_pb2.Transaction())
         P2PTxManagement.handle_transfer_token_transaction(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_not_called()
         m_logger.exception.assert_called()
         self.channel.loseConnection.assert_called()
 
-    def test_handle_lattice(self, m_Transaction, m_logger):
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.LT, ltData=qrl_pb2.Transaction())
+    def test_handle_lattice(self, m_transaction, m_logger):
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.LT, ltData=qrl_pb2.Transaction())
+        m_transaction.from_pbdata.return_value = Transaction.from_pbdata(msg.ltData)
         P2PTxManagement.handle_lattice(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_called()
 
-    def test_handle_lattice_error_parsing_transaction(self, m_Transaction, m_logger):
-        m_Transaction.from_pbdata.side_effect = Exception
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.LT, ltData=qrl_pb2.Transaction())
+    def test_handle_lattice_error_parsing_transaction(self, m_transaction, m_logger):
+        m_transaction.from_pbdata.side_effect = Exception
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.LT, ltData=qrl_pb2.Transaction())
         P2PTxManagement.handle_lattice(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_not_called()
         m_logger.exception.assert_called()
         self.channel.loseConnection.assert_called()
 
-    def test_handle_slave(self, m_Transaction, m_logger):
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.SL, slData=qrl_pb2.Transaction())
+    def test_handle_slave(self, m_transaction, m_logger):
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.SL, slData=qrl_pb2.Transaction())
+        m_transaction.from_pbdata.return_value = Transaction.from_pbdata(msg.slData)
         P2PTxManagement.handle_slave(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_called()
 
-    def test_handle_slave_error_parsing_transaction(self, m_Transaction, m_logger):
-        m_Transaction.from_pbdata.side_effect = Exception
-        msg = make_message(func_name=qrllegacy_pb2.LegacyMessage.SL, slData=qrl_pb2.Transaction())
+    def test_handle_slave_error_parsing_transaction(self, m_transaction, m_logger):
+        m_transaction.from_pbdata.side_effect = Exception
+        msg = make_message(xmss=self.xmss, func_name=qrllegacy_pb2.LegacyMessage.SL, slData=qrl_pb2.Transaction())
         P2PTxManagement.handle_slave(self.channel, msg)
         self.channel.factory.add_unprocessed_txn.assert_not_called()
         m_logger.exception.assert_called()

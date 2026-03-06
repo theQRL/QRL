@@ -13,6 +13,10 @@ class SlaveTransaction(Transaction):
         super(SlaveTransaction, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 10314
+
+    @property
     def slave_pks(self):
         return self._data.slave.slave_pks
 
@@ -51,6 +55,9 @@ class SlaveTransaction(Transaction):
         return transaction
 
     def _validate_custom(self) -> bool:
+        if not self.validate_size():
+            return False
+
         if len(self.slave_pks) != len(self.access_types):
             logger.warning('Number of slave pks are not equal to the number of access types provided')
             logger.warning('Slave pks len %s', len(self.slave_pks))
@@ -92,7 +99,7 @@ class SlaveTransaction(Transaction):
 
         for i in range(len(self.slave_pks)):
             slave_pk = self.slave_pks[i]
-            if state_container.block_number < state_container.current_dev_config.hard_fork_heights[0]:
+            if state_container.block_number >= state_container.current_dev_config.hard_fork_heights[0]:
                 if len(slave_pk) > state_container.current_dev_config.slave_pk_max_length:
                     logger.info("[Slave Transaction] Slave PK length is beyond limit")
                     return False

@@ -14,6 +14,10 @@ class MessageTransaction(Transaction):
         super(MessageTransaction, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 3434
+
+    @property
     def message_hash(self):
         return self._data.message.message_hash
 
@@ -47,6 +51,9 @@ class MessageTransaction(Transaction):
         return transaction
 
     def _validate_custom(self) -> bool:
+        if not self.validate_size():
+            return False
+
         if len(self.message_hash) == 0:
             logger.warning('Message cannot be empty')
             return False

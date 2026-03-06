@@ -2,9 +2,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import os
+from collections import OrderedDict
 from enum import Enum
-from typing import Callable, Set, List
 from ipaddress import IPv4Address
+from typing import Callable, Set, List
 
 import simplejson as json
 from pyqryptonight.pyqryptonight import UInt256ToString
@@ -39,6 +40,7 @@ class P2PPeerManager(P2PBaseObserver):
         self.banned_peers_filename = os.path.join(config.user.wallet_dir, config.dev.banned_peers_filename)
         self._banned_peer_ips = ExpiringSet(expiration_time=config.user.ban_minutes * 60,
                                             filename=self.banned_peers_filename)
+        self._ignore_tx_from_ips = OrderedDict()  # key is ip, value is timestamp
 
         self._observable = Observable(self)
         self._p2p_factory = None
@@ -271,6 +273,10 @@ class P2PPeerManager(P2PBaseObserver):
             self.ban_channel(source)
 
     def handle_peer_list(self, source, message: qrllegacy_pb2.LegacyMessage):
+        if source._peer_list_already_handled:
+            return
+
+        source._peer_list_already_handled = True
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.PL)
 
         if not config.user.enable_peer_discovery:
@@ -290,7 +296,8 @@ class P2PPeerManager(P2PBaseObserver):
         sender_peer = IPMetadata(source.peer.ip, message.plData.public_port)
 
         # Check if peer list contains global ip, if it was sent by peer from a global ip address
-        new_peers = self.combine_peer_lists(message.plData.peer_ips,
+        peer_ips = message.plData.peer_ips[:config.dev.max_peer_list_per_peer]
+        new_peers = self.combine_peer_lists(peer_ips,
                                             [sender_peer.full_address],
                                             check_global=IPv4Address(source.peer.ip).is_global)
 
@@ -314,7 +321,7 @@ class P2PPeerManager(P2PBaseObserver):
     def monitor_chain_state(self):
         # FIXME: Not sure this belongs to peer management
         current_timestamp = ntp.getTime()
-        for channel in self._channels:
+        for channel in list(self._channels):
             if channel not in self._peer_node_status:
                 channel.loseConnection()
                 continue
@@ -328,7 +335,7 @@ class P2PPeerManager(P2PBaseObserver):
         # FIXME: Not sure this belongs to peer management
         # TODO: Verify/Disconnect problematic channels
         # Ping all channels
-        for channel in self._channels:
+        for channel in list(self._channels):
             self.send_node_chain_state(channel, node_chain_state)
 
         self._observable.notify(ObservableEvent(self.EventType.NO_PEERS))
@@ -345,14 +352,14 @@ class P2PPeerManager(P2PBaseObserver):
             source.loseConnection()
             return
 
-        self._peer_node_status[source] = message.chainStateData
-
         if not self._get_version_compatibility(message.chainStateData.version):
             logger.warning("Disconnecting from Peer %s running incompatible node version %s",
                            source.peer.ip,
-                           message.veData.version)
+                           message.chainStateData.version)
             source.loseConnection()
             return
+
+        self._peer_node_status[source] = message.chainStateData
 
     def handle_p2p_acknowledgement(self, source, message: qrllegacy_pb2.LegacyMessage):
         P2PBaseObserver._validate_message(message, qrllegacy_pb2.LegacyMessage.P2P_ACK)
@@ -364,6 +371,7 @@ class P2PPeerManager(P2PBaseObserver):
             logger.warning('bytes_sent %s', source.bytes_sent)
             logger.warning('Ack bytes_processed %s', message.p2pAckData.bytes_processed)
             source.loseConnection()
+            return
 
         source.send_next()
 
@@ -378,6 +386,20 @@ class P2PPeerManager(P2PBaseObserver):
         self._banned_peer_ips.add(channel.peer.ip)
         logger.warning('Banned %s', channel.peer.ip)
         channel.loseConnection()
+
+    def add_channel_to_ignore_incoming_tx(self, channel: P2PProtocol):
+        self._ignore_tx_from_ips[channel.peer.ip] = ntp.getTime() + config.user.ignore_tx_duration_seconds
+        if len(self._ignore_tx_from_ips) > config.user.max_ignore_tx_ip_limit:
+            self._ignore_tx_from_ips.popitem(last=False)
+        logger.warning('Ignoring tx from %s till timestamp %d', channel.peer.ip, self._ignore_tx_from_ips[channel.peer.ip])
+
+    def is_channel_in_ignore_incoming_tx(self, channel: P2PProtocol) -> bool:
+        if channel.peer.ip in self._ignore_tx_from_ips:
+            if ntp.getTime() < self._ignore_tx_from_ips[channel.peer.ip]:
+                return True
+            else:
+                del self._ignore_tx_from_ips[channel.peer.ip]
+        return False
 
     def get_peers_stat(self) -> list:
         peers_stat = []

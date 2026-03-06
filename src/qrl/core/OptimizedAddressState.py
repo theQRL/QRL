@@ -43,7 +43,7 @@ class OptimizedAddressState(object):
 
     @staticmethod
     def get_height_from_address(bin_address):
-        return bin_address[1] << 1
+        return (bin_address[1] & 0x0F) << 1
 
     @property
     def pbdata(self):
@@ -60,7 +60,7 @@ class OptimizedAddressState(object):
 
     @property
     def height(self):
-        return self._data.address[1] << 1
+        return (self._data.address[1] & 0x0F) << 1
 
     @property
     def nonce(self):

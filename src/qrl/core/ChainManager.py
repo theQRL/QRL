@@ -328,20 +328,41 @@ class ChainManager:
             return dev_config
 
     def get_seed_block(self, blockheader: BlockHeader):
+        if not blockheader:
+            raise Exception("[get_seed_block] blockheader is none")
         qn = Qryptonight()
         seed_height = qn.get_seed_height(blockheader.block_number)
 
         # If parent block belongs to main chain, then seed block will also be in the main chain
         prev_mainchain_block = self.get_block_by_number(blockheader.block_number - 1)
+        if not prev_mainchain_block:
+            raise Exception("[get_seed_block] prev_mainchain_block is none for block_number %d" %
+                            (blockheader.block_number - 1))
         if prev_mainchain_block.headerhash == blockheader.prev_headerhash:
-            return self.get_block_by_number(seed_height)
+            seed_block = self.get_block_by_number(seed_height)
+            if seed_block is None:
+                raise Exception("[get_seed_block] seed_block is none for block_number %d" % seed_height)
+            return seed_block
 
         prev_block = self.get_block(blockheader.prev_headerhash)
+        if not prev_block:
+            raise Exception("[get_seed_block] prev_block is none for headerhash %s" %
+                            bin2hstr(blockheader.prev_headerhash))
         while prev_block.block_number > seed_height:
             prev_mainchain_block = self.get_block_by_number(prev_block.block_number)
+            if not prev_mainchain_block:
+                raise Exception("[get_seed_block] prev_mainchain_block is none for block_number %d" %
+                                prev_block.block_number)
             if prev_mainchain_block.headerhash == prev_block.headerhash:
-                return self.get_block_by_number(seed_height)
-            prev_block = self.get_block(prev_block.prev_headerhash)
+                seed_block = self.get_block_by_number(seed_height)
+                if seed_block is None:
+                    raise Exception("[get_seed_block] seed_block is none for block_number %d" % seed_height)
+                return seed_block
+            prev_block_headerhash = prev_block.prev_headerhash
+            prev_block = self.get_block(prev_block_headerhash)
+            if not prev_block:
+                raise Exception("[get_seed_block] prev_block is none for headerhash %s" %
+                                bin2hstr(prev_block_headerhash))
 
         return prev_block
 
@@ -688,19 +709,22 @@ class ChainManager:
         tmp_block = block
         hash_path = []
         while True:
-            if not block:
-                raise Exception('[get_state] No Block Found %s, Initiator %s', block.headerhash, tmp_block.headerhash)
-
             mainchain_block = Block.get_block_by_number(self._state, block.block_number)
             if mainchain_block and mainchain_block.headerhash == block.headerhash:
                 break
 
-            if block.block_number == 0:
-                raise Exception('[get_state] Alternate chain genesis is different, Initiator %s', tmp_block.headerhash)
-            hash_path.append(block.headerhash)
-            block = Block.get_block(self._state, block.prev_headerhash)
+            if block.block_number <= self.re_org_limit:
+                return None, [], True
 
-        return block.headerhash, hash_path
+            if block.block_number == 0:
+                raise Exception('[_get_fork_point] Alternate chain genesis is different, Initiator %s' % bin2hstr(tmp_block.headerhash))
+            hash_path.append(block.headerhash)
+            new_block = Block.get_block(self._state, block.prev_headerhash)
+            if not new_block:
+                raise Exception('[_get_fork_point] No Block Found %s, Initiator %s' % (bin2hstr(block.prev_headerhash), bin2hstr(tmp_block.headerhash)))
+            block = new_block
+
+        return block.headerhash, hash_path, False
 
     def _rollback(self, forked_header_hash: bytes, fork_state: qrlstateinfo_pb2.ForkState = None):
         """
@@ -712,13 +736,14 @@ class ChainManager:
         hash_path = []
         while self._last_block.headerhash != forked_header_hash:
             block = Block.get_block(self._state, self._last_block.headerhash)
-            mainchain_block = Block.get_block_by_number(self._state, block.block_number)
-
             if block is None:
                 logger.warning("self.state.get_block(self.last_block.headerhash) returned None")
+                return hash_path, False
 
+            mainchain_block = Block.get_block_by_number(self._state, block.block_number)
             if mainchain_block is None:
                 logger.warning("self.get_block_by_number(block.block_number) returned None")
+                return hash_path, False
 
             if block.headerhash != mainchain_block.headerhash:
                 break
@@ -780,7 +805,13 @@ class ChainManager:
             logger.info("Recovering from last fork recovery interruption")
             forked_header_hash, hash_path = fork_state.fork_point_headerhash, fork_state.new_mainchain_hash_path
         else:
-            forked_header_hash, hash_path = self._get_fork_point(block)
+            forked_header_hash, hash_path, beyond_re_org_limit = self._get_fork_point(block)
+            if beyond_re_org_limit:
+                logger.info('[_fork_recovery] Block #%s hash %s | current height %d | beyond re-org limit',
+                            block.block_number, bin2hstr(block.headerhash), self.height)
+                self._state.delete_fork_state()
+                self.trigger_miner = True
+                return False
             fork_state.fork_point_headerhash = forked_header_hash
             fork_state.new_mainchain_hash_path.extend(hash_path)
             self._state.put_fork_state(fork_state)
@@ -1288,22 +1319,20 @@ class ChainManager:
         if address_state.ots_bitfield_used_page == max_page:
             return None
 
-        page = max(address_state.ots_bitfield_used_page, start_ots_index // config.dev.ots_tracking_per_page) + 1
-
-        for i in range((page - 1) * config.dev.ots_tracking_per_page // 8, ots_key_count // 8):
-            page = (i // config.dev.ots_tracking_per_page) + 1
+        for curr_ots in range(start_ots_index, ots_key_count):
+            page = (curr_ots // config.dev.ots_tracking_per_page) + 1
             key = paginated_bitfield.generate_bitfield_key(address, page)
             if key not in addresses_bitfield:
                 addresses_bitfield[key] = paginated_bitfield.get_paginated_data(address, page)
 
             ots_bitfield = addresses_bitfield[key]
-            index = i % config.dev.ots_tracking_per_page
+            index = (curr_ots % config.dev.ots_tracking_per_page) >> 3
             if ots_bitfield[index][0] < 255:
-                offset = 8 * index + (page - 1) * config.dev.ots_tracking_per_page
+                ots_offset = 8 * index + (page - 1) * config.dev.ots_tracking_per_page
                 bitfield = bytearray(ots_bitfield[index])
                 for relative in range(0, 8):
                     if ((bitfield[0] >> relative) & 1) != 1:
-                        if offset + relative >= start_ots_index:
-                            return offset + relative
+                        if ots_offset + relative >= start_ots_index:
+                            return ots_offset + relative
 
         return None

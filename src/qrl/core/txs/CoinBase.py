@@ -18,6 +18,10 @@ class CoinBase(Transaction):
         super(CoinBase, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 133
+
+    @property
     def addr_to(self):
         return self._data.coinbase.addr_to
 
@@ -60,6 +64,13 @@ class CoinBase(Transaction):
         return self.addr_to
 
     def _validate_custom(self):
+        self._data.fee = 0
+        self._data.public_key = b''
+        self._data.signature = b''
+
+        if not self.validate_size():
+            return False
+
         if self.fee != 0:
             logger.warning('Fee for coinbase transaction should be 0')
             return False

@@ -1,11 +1,12 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import ipaddress
 import os
 import time
 from unittest import TestCase
 
-from mock import Mock, patch, mock
+from mock import Mock, PropertyMock, patch, mock
 from pyqrllib.pyqrllib import hstr2bin
 from pyqryptonight.pyqryptonight import StringToUInt256
 
@@ -38,12 +39,16 @@ def make_node_chain_state():
 
 
 # Some functions have logger patched out, so that tests are not too noisy when unexpected things happen.
-@patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestP2PPeerManager(TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
     def setUp(self):
+        # Patch with a Mock that CALLS THROUGH to replacement_getTime by default.
+        self.gettime_patcher = patch('qrl.core.misc.ntp.getTime', new=Mock(wraps=replacement_getTime))
+        self.mock_getTime = self.gettime_patcher.start()
+        self.addCleanup(self.gettime_patcher.stop)
+
         self.peer_manager = P2PPeerManager()
 
     def tearDown(self):
@@ -491,3 +496,103 @@ class TestP2PPeerManager(TestCase):
 
             time_mock.return_value = channel.connected_at + config.dev.trust_min_conntime + 1
             self.assertTrue(self.peer_manager.trusted_peer(channel))
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer', new_callable=PropertyMock)
+    def test_add_channel_to_ignore_incoming_tx_length_limit(self, mock_peer):
+        channel = P2PProtocol()
+        initial_ip_addr = '192.168.0.1'
+        start_ip = ipaddress.ip_address(initial_ip_addr)
+        self.mock_getTime.return_value = time.time()
+        for i in range(config.user.max_ignore_tx_ip_limit):
+            mock_peer.return_value = IPMetadata(str(start_ip + i), 1000)
+            self.peer_manager.add_channel_to_ignore_incoming_tx(channel)
+
+        # test we have config.user.max_ignore_tx_ip_limit items in the _ignore_tx_from_ips
+        self.assertEqual(len(self.peer_manager._ignore_tx_from_ips), config.user.max_ignore_tx_ip_limit)
+
+        self.assertIn(initial_ip_addr, self.peer_manager._ignore_tx_from_ips)
+
+        # adding config.user.max_ignore_tx_ip_limit + 1'th item in the ignore_incoming_tx
+        mock_peer.return_value = IPMetadata(str(start_ip + config.user.max_ignore_tx_ip_limit), 1000)
+        self.peer_manager.add_channel_to_ignore_incoming_tx(channel)
+
+        # len of _ignore_tx_from_ips should not go beyond the configured limit config.user.max_ignore_tx_ip_limit
+        self.assertEqual(len(self.peer_manager._ignore_tx_from_ips), config.user.max_ignore_tx_ip_limit)
+
+        self.assertNotIn(initial_ip_addr, self.peer_manager._ignore_tx_from_ips)
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer', new_callable=PropertyMock)
+    def test_add_channel_to_ignore_incoming_tx_adding_same_ip(self, mock_peer):
+        channel = P2PProtocol()
+        initial_ip_addr = '192.168.0.1'
+        start_ip = ipaddress.ip_address(initial_ip_addr)
+        t = int(time.time())
+        self.mock_getTime.return_value = t
+        mock_peer.return_value = IPMetadata(str(start_ip), 1000)
+
+        self.assertEqual(len(self.peer_manager._ignore_tx_from_ips), 0)
+
+        self.peer_manager.add_channel_to_ignore_incoming_tx(channel)
+        self.assertEqual(len(self.peer_manager._ignore_tx_from_ips), 1)
+        self.assertIn(initial_ip_addr, self.peer_manager._ignore_tx_from_ips)
+        self.assertEqual(self.peer_manager._ignore_tx_from_ips[channel.peer.ip], t + config.user.ignore_tx_duration_seconds)
+
+        self.mock_getTime.return_value = t + 100
+
+        self.peer_manager.add_channel_to_ignore_incoming_tx(channel)
+        self.assertEqual(len(self.peer_manager._ignore_tx_from_ips), 1)
+        self.assertIn(initial_ip_addr, self.peer_manager._ignore_tx_from_ips)
+        self.assertEqual(self.peer_manager._ignore_tx_from_ips[channel.peer.ip], t + 100 + config.user.ignore_tx_duration_seconds)
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer', new_callable=PropertyMock)
+    def test_is_channel_in_ignore_incoming_tx(self, mock_peer):
+        channel = P2PProtocol()
+        ip_addr = '192.168.0.1'
+        t = int(time.time())
+        self.mock_getTime.return_value = t
+        mock_peer.return_value = IPMetadata(ip_addr, 1000)
+
+        # Channel is not in ignore list initially
+        self.assertFalse(self.peer_manager.is_channel_in_ignore_incoming_tx(channel))
+
+        # Add channel to ignore list
+        self.peer_manager.add_channel_to_ignore_incoming_tx(channel)
+
+        # Channel should now be in ignore list
+        self.assertTrue(self.peer_manager.is_channel_in_ignore_incoming_tx(channel))
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer', new_callable=PropertyMock)
+    def test_is_channel_in_ignore_incoming_tx_expiry(self, mock_peer):
+        channel = P2PProtocol()
+        ip_addr = '192.168.0.1'
+        t = int(time.time())
+        self.mock_getTime.return_value = t
+        mock_peer.return_value = IPMetadata(ip_addr, 1000)
+
+        # Add channel to ignore list
+        self.peer_manager.add_channel_to_ignore_incoming_tx(channel)
+        self.assertTrue(self.peer_manager.is_channel_in_ignore_incoming_tx(channel))
+
+        # Advance time past expiry
+        self.mock_getTime.return_value = t + config.user.ignore_tx_duration_seconds + 1
+
+        # Channel should no longer be in ignore list (expired and cleaned up)
+        self.assertFalse(self.peer_manager.is_channel_in_ignore_incoming_tx(channel))
+
+        # Entry should have been deleted from the dict
+        self.assertNotIn(ip_addr, self.peer_manager._ignore_tx_from_ips)
+
+    @patch('qrl.core.p2p.p2pprotocol.P2PProtocol.peer', new_callable=PropertyMock)
+    def test_is_channel_in_ignore_incoming_tx_different_channel_same_ip(self, mock_peer):
+        channel1 = P2PProtocol()
+        channel2 = P2PProtocol()
+        ip_addr = '192.168.0.1'
+        t = int(time.time())
+        self.mock_getTime.return_value = t
+        mock_peer.return_value = IPMetadata(ip_addr, 1000)
+
+        # Add channel1 to ignore list
+        self.peer_manager.add_channel_to_ignore_incoming_tx(channel1)
+
+        # channel2 with the same IP should also be ignored
+        self.assertTrue(self.peer_manager.is_channel_in_ignore_incoming_tx(channel2))

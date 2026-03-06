@@ -86,6 +86,29 @@ def set_qrl_dir(data_name):
         config.user.qrl_dir = prev_val
 
 
+def setup_qrl_dir_without_ctx(data_name):
+    """Setup QRL directory without automatic cleanup. Returns (dst_dir, prev_val)"""
+    dst_dir = tempfile.mkdtemp()
+    prev_val = config.user.qrl_dir
+
+    test_path = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(test_path, "..", "data")
+    src_dir = os.path.join(data_dir, data_name)
+    shutil.rmtree(dst_dir)
+    shutil.copytree(src_dir, dst_dir)
+    shutil.copy(os.path.join(data_dir, 'core', 'genesis.yml'), dst_dir)
+    shutil.copy(os.path.join(data_dir, 'core', 'config.yml'), dst_dir)
+    config.user.qrl_dir = dst_dir
+
+    return dst_dir, prev_val
+
+
+def cleanup_qrl_dir(dst_dir, prev_val):
+    """Cleanup QRL directory created by setup_qrl_dir"""
+    shutil.rmtree(dst_dir)
+    config.user.qrl_dir = prev_val
+
+
 def get_genesis_with_only_coin_base_txn(coin_base_reward_addr, dev_config):
     g = GenesisBlock()
 
@@ -172,13 +195,15 @@ def get_token_transaction(xmss1, xmss2, amount1=400000000, amount2=200000000, fe
     initial_balances.append(qrl_pb2.AddressAmount(address=xmss2.address,
                                                   amount=amount2))
 
-    return TokenTransaction.create(symbol=b'QRL',
-                                   name=b'Quantum Resistant Ledger',
-                                   owner=xmss1.address,
-                                   decimals=4,
-                                   initial_balances=initial_balances,
-                                   fee=fee,
-                                   xmss_pk=xmss1.pk)
+    tx = TokenTransaction.create(symbol=b'QRL',
+                                 name=b'Quantum Resistant Ledger',
+                                 owner=xmss1.address,
+                                 decimals=4,
+                                 initial_balances=initial_balances,
+                                 fee=fee,
+                                 xmss_pk=xmss1.pk)
+    tx.sign(xmss1)
+    return tx
 
 
 def destroy_state():

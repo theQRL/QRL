@@ -863,7 +863,7 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
             tx = walletd.relay_transfer_token_txn(qaddresses_to=qaddresses_to,
                                                   amounts=amounts,
-                                                  token_txhash='',
+                                                  token_txhash='0000000000000000000000000000000000000000000000000000000000000000',
                                                   fee=100000000,
                                                   master_qaddress=None,
                                                   signer_address=qaddress,
@@ -874,7 +874,7 @@ class TestWalletD(TestCase):
             with self.assertRaises(ValueError):
                 walletd.relay_transfer_token_txn(qaddresses_to=qaddresses_to,
                                                  amounts=amounts,
-                                                 token_txhash='',
+                                                 token_txhash='0000000000000000000000000000000000000000000000000000000000000000',
                                                  fee=100000000,
                                                  master_qaddress=None,
                                                  signer_address=qaddress,
@@ -954,7 +954,7 @@ class TestWalletD(TestCase):
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
             tx = walletd.relay_transfer_token_txn_by_slave(qaddresses_to=qaddresses_to,
                                                            amounts=amounts,
-                                                           token_txhash='',
+                                                           token_txhash='0000000000000000000000000000000000000000000000000000000000000000',
                                                            fee=100000000,
                                                            master_qaddress=qaddress)
             self.assertIsNotNone(tx)
@@ -963,7 +963,7 @@ class TestWalletD(TestCase):
             with self.assertRaises(ValueError):
                 walletd.relay_transfer_token_txn_by_slave(qaddresses_to=qaddresses_to,
                                                           amounts=amounts,
-                                                          token_txhash='',
+                                                          token_txhash='0000000000000000000000000000000000000000000000000000000000000000',
                                                           fee=100000000,
                                                           master_qaddress=qaddress)
 

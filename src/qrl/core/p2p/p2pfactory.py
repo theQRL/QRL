@@ -1,6 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import itertools
 import random
 
 from pyqrllib.pyqrllib import bin2hstr
@@ -71,7 +72,6 @@ class P2PFactory(ServerFactory):
                  chain_manager: ChainManager,
                  sync_state: SyncState,
                  qrl_node):
-
         self.master_mr = MessageReceipt()
         self.pow = None
         self.sync_state = sync_state
@@ -106,7 +106,12 @@ class P2PFactory(ServerFactory):
         connection has not already been established from that ip and port
         before adding the new set of peer into _peer_q
         """
-        peer_set = set(peer_list)
+        if len(self._peer_q) >= config.user.peer_q_size:
+            return
+
+        available = min(config.dev.max_peer_list_per_peer, config.user.peer_q_size - len(self._peer_q))
+
+        peer_set = set(itertools.islice(set(peer_list), available))
         for peer_conn in self._peer_connections:
             ip_port = peer_conn.peer.full_address
             if ip_port in peer_set:
@@ -347,20 +352,19 @@ class P2PFactory(ServerFactory):
         :return:
         """
 
-        # FIXME: Again, breaking encasulation
+        # FIXME: Again, breaking encapsulation
         # FIXME: Huge amount of lookups in dictionaries
         msg_hash = mr_data.hash
 
         if msg_hash in self.master_mr._hash_msg:
-            if msg_hash in self.master_mr.requested_hash:
-                del self.master_mr.requested_hash[msg_hash]
+            self.master_mr.remove_msg_hash_from_requested_hash(msg_hash)
             return
 
-        if msg_hash not in self.master_mr.requested_hash:
+        message_request = self.master_mr.get_msg_request(msg_hash)
+        if message_request is None:
             return
 
-        peers_list = self.master_mr.requested_hash[msg_hash].peers_connection_list
-        message_request = self.master_mr.requested_hash[msg_hash]
+        peers_list = message_request.peers_connection_list
         for peer in peers_list:
             if peer in message_request.already_requested_peers:
                 continue
@@ -381,8 +385,7 @@ class P2PFactory(ServerFactory):
         # If execution reach to this line, then it means no peer was able to provide
         # Full message for this hash thus the hash has to be deleted.
         # Moreover, negative points could be added to the peers, for this behavior
-        if msg_hash in self.master_mr.requested_hash:
-            del self.master_mr.requested_hash[msg_hash]
+        self.master_mr.remove_msg_hash_from_requested_hash(msg_hash)
 
     ##############################################
     ##############################################
@@ -407,14 +410,18 @@ class P2PFactory(ServerFactory):
             return False
 
         if not self._txn_processor_running:
-            txn_processor = TxnProcessor(chain_manager=self._chain_manager,
-                                         transaction_pool_obj=self._chain_manager.tx_pool,
-                                         broadcast_tx=self.broadcast_tx)
+            try:
+                txn_processor = TxnProcessor(chain_manager=self._chain_manager,
+                                             transaction_pool_obj=self._chain_manager.tx_pool,
+                                             broadcast_tx=self.broadcast_tx)
 
-            task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
-            task_defer.addCallback(self.reset_processor_flag) \
-                .addErrback(self.reset_processor_flag_with_err)
-            self._txn_processor_running = True
+                self._txn_processor_running = True
+                task_defer = TxnProcessor.create_cooperate(txn_processor).whenDone()
+                task_defer.addCallback(self.reset_processor_flag) \
+                    .addErrback(self.reset_processor_flag_with_err)
+            except Exception as e:
+                logger.warning("exception while trying to run the txn_processor %s", e)
+                self._txn_processor_running = False
 
         return True
 
@@ -468,8 +475,9 @@ class P2PFactory(ServerFactory):
         :return:
         """
         ignore_peers = []
-        if msg_hash in self.master_mr.requested_hash:
-            ignore_peers = self.master_mr.requested_hash[msg_hash].peers_connection_list
+        message_request = self.master_mr.get_msg_request(msg_hash)
+        if message_request:
+            ignore_peers = message_request.peers_connection_list
 
         if not mr_data:
             mr_data = qrllegacy_pb2.MRData()
@@ -543,6 +551,8 @@ class P2PFactory(ServerFactory):
 
         if conn_protocol.peer.full_address in self.peer_blockheight:
             del self.peer_blockheight[conn_protocol.peer.full_address]
+
+        self.master_mr.remove_peer(conn_protocol)
 
     def monitor_connections(self):
         reactor.callLater(config.user.monitor_connections_interval, self.monitor_connections)

@@ -83,13 +83,12 @@ class TestXMSS(TestCase):
 
     def test_validate_signature(self):
         xmss = get_alice_xmss()
-        xmss2 = get_alice_xmss(8)
+        xmss2 = get_alice_xmss(12)
         pk = xmss.pk
         signature = xmss.sign(b"hello")
 
         self.assertTrue(XMSS.validate_signature(signature, pk))
 
-        with self.assertRaises(ValueError):
-            XMSS.validate_signature(signature, None)
+        self.assertFalse(XMSS.validate_signature(signature, None))
 
         self.assertFalse(XMSS.validate_signature(signature, xmss2.pk))
