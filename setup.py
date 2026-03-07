@@ -29,7 +29,7 @@ def setup_package():
     _cmdclass = versioneer.get_cmdclass()
     if 'test' in _cmdclass:
         del _cmdclass['test']
-    setup(setup_requires=['pyscaffold==3.0.2'] + sphinx,
+    setup(setup_requires=[] + sphinx,
           entry_points=entry_points,
           version=versioneer.get_version(),
           cmdclass=_cmdclass,
