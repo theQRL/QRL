@@ -31,7 +31,6 @@ This script:
 - Rebuilds LevelDB from source with RTTI enabled if needed
 - Installs the plyvel Python bindings correctly
 
-
 If you encounter issues, force a complete rebuild:
 ```bash
 ./scripts/install_leveldb.sh --rebuild
@@ -96,7 +95,6 @@ This script:
 - Rebuilds pyqrllib, pyqryptonight, and pyqrandomx from source
 - Ensures all native modules are correctly linked
 - Verifies the installation with tests
-
 
 ### Step 7: Start QRL
 
