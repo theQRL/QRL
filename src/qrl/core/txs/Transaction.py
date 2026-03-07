@@ -56,6 +56,10 @@ class Transaction(object, metaclass=ABCMeta):
         return self._data.ByteSize()
 
     @property
+    def max_size_limit(self):
+        raise NotImplementedError
+
+    @property
     def pbdata(self):
         """
         Returns a protobuf object that contains persistable data representing this object
@@ -94,7 +98,7 @@ class Transaction(object, metaclass=ABCMeta):
     @staticmethod
     def get_ots_from_signature(signature):
         try:
-            return int(bin2hstr(signature)[0:8], 16)
+            return int(bin2hstr(signature[0:4]), 16)
         except ValueError:
             raise ValueError('OTS Key Index: First 4 bytes of signature are invalid')
 
@@ -136,6 +140,9 @@ class Transaction(object, metaclass=ABCMeta):
     @property
     def txhash(self) -> bytes:
         return self._data.transaction_hash
+
+    def validate_size(self) -> bool:
+        return self.size <= self.max_size_limit
 
     def update_txhash(self):
         self._data.transaction_hash = self.generate_txhash()

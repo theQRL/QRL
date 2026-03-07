@@ -36,10 +36,11 @@ class TestTransactionPool(TestCase):
         self.txpool = TransactionPool(None)
 
     def test_add_tx_to_pool(self):
-        tx = make_tx()
+        tx = make_tx(size=10)
         result = self.txpool.add_tx_to_pool(tx, 1, replacement_getTime())
         self.assertTrue(result)
         self.assertEqual(len(self.txpool.transactions), 1)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx.size)
 
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', autospec=True)
     def test_add_tx_to_pool_while_full(self, m_is_full_func):
@@ -50,29 +51,66 @@ class TestTransactionPool(TestCase):
         self.assertEqual(len(self.txpool.transactions), 0)  # remains untouched
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
-    def test_is_full_transaction_pool(self, m_config):
+    def test_is_full_transaction_pool_by_pool_size(self, m_config):
         m_config.user.transaction_pool_size = 2
+        m_config.user.transaction_pool_size_in_bytes = 200
 
         result = self.txpool.is_full_transaction_pool()
         self.assertFalse(result)
 
-        tx1 = make_tx(fee=1)
-        tx2 = make_tx(fee=2)
+        tx1 = make_tx(fee=1, size=5)
+        tx2 = make_tx(fee=2, size=15)
+        tx3 = make_tx(fee=3, size=10)
 
         self.txpool.add_tx_to_pool(tx1, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
+
         self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
+
+        self.assertFalse(self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime()))
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
+
+        result = self.txpool.is_full_transaction_pool()
+        self.assertTrue(result)
+
+    @patch('qrl.core.TransactionPool.config', autospec=True)
+    def test_is_full_transaction_pool_by_pool_size_in_bytes(self, m_config):
+        m_config.user.transaction_pool_size = 200
+        m_config.user.transaction_pool_size_in_bytes = 20
+
+        result = self.txpool.is_full_transaction_pool()
+        self.assertFalse(result)
+
+        tx1 = make_tx(fee=1, size=5)
+        tx2 = make_tx(fee=2, size=15)
+        tx3 = make_tx(fee=3, size=10)
+
+        self.txpool.add_tx_to_pool(tx1, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
+
+        self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
+
+        self.assertFalse(self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime()))
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
 
         result = self.txpool.is_full_transaction_pool()
         self.assertTrue(result)
 
     def test_get_tx_index_from_pool(self):
-        tx1 = make_tx(txhash=b'red')
-        tx2 = make_tx(txhash=b'blue')
-        tx3 = make_tx(txhash=b'qrlpink')
+        tx1 = make_tx(txhash=b'red', size=5)
+        tx2 = make_tx(txhash=b'blue', size=15)
+        tx3 = make_tx(txhash=b'qrlpink', size=10)
 
         self.txpool.add_tx_to_pool(tx1, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
+
         self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
+
         self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
         idx = self.txpool.get_tx_index_from_pool(b'qrlpink')
         self.assertEqual(idx, 2)
@@ -84,61 +122,75 @@ class TestTransactionPool(TestCase):
         self.assertEqual(idx, -1)
 
     def test_remove_tx_from_pool(self):
-        tx1 = make_tx(txhash=b'red')
-        tx2 = make_tx(txhash=b'blue')
-        tx3 = make_tx(txhash=b'qrlpink')
+        tx1 = make_tx(txhash=b'red', size=5)
+        tx2 = make_tx(txhash=b'blue', size=15)
+        tx3 = make_tx(txhash=b'qrlpink', size=10)
 
         self.txpool.add_tx_to_pool(tx1, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
         # If we try to remove a tx that wasn't there, the transaction pool should be untouched
         self.assertEqual(len(self.txpool.transaction_pool), 1)
         self.txpool.remove_tx_from_pool(tx2)
         self.assertEqual(len(self.txpool.transaction_pool), 1)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
         # Now let's remove a tx from the heap. The size should decrease.
         self.txpool.add_tx_to_pool(tx2, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
+
         self.txpool.add_tx_to_pool(tx3, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
         self.assertEqual(len(self.txpool.transaction_pool), 3)
         self.txpool.remove_tx_from_pool(tx2)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx3.size)
+
         self.assertEqual(len(self.txpool.transaction_pool), 2)
 
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_pending_transaction_pool', autospec=True)
     def test_update_pending_tx_pool(self, m_is_full_pending_transaction_pool):
-        tx1 = make_tx()
+        tx1 = make_tx(size=10)
         ip = '127.0.0.1'
         m_is_full_pending_transaction_pool.return_value = False
+
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, 0)
 
         # Due to the straightforward way the function is written, no special setup is needed to get the tx to go in.
         result = self.txpool.update_pending_tx_pool(tx1, ip)
         self.assertTrue(result)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size)
 
         # If we try to re-add the same tx to the pending_tx_pool, though, it should fail.
         result = self.txpool.update_pending_tx_pool(tx1, ip)
         self.assertFalse(result)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size)
 
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_pending_transaction_pool', autospec=True)
     def test_update_pending_tx_pool_tx_already_validated(self, m_is_full_pending_transaction_pool):
         """
         If the tx is already in TransactionPool.transaction_pool, do not add it to pending_tx_pool.
         """
-        tx1 = make_tx()
+        tx1 = make_tx(size=10)
         ip = '127.0.0.1'
         m_is_full_pending_transaction_pool.return_value = False
 
         self.txpool.add_tx_to_pool(tx1, 1, replacement_getTime())
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
 
         result = self.txpool.update_pending_tx_pool(tx1, ip)
         self.assertFalse(result)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, 0)
 
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_pending_transaction_pool', autospec=True)
     def test_update_pending_tx_pool_is_full_already(self, m_is_full_pending_transaction_pool):
-        tx1 = make_tx()
+        tx1 = make_tx(size=10)
         ip = '127.0.0.1'
         m_is_full_pending_transaction_pool.return_value = True
 
         result = self.txpool.update_pending_tx_pool(tx1, ip)
         self.assertFalse(result)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, 0)
 
     @patch('qrl.core.TransactionPool.logger')
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_pending_transaction_pool', autospec=True)
@@ -149,6 +201,7 @@ class TestTransactionPool(TestCase):
 
         result = self.txpool.update_pending_tx_pool(tx1, ip)
         self.assertFalse(result)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, 0)
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     def test_is_full_pending_transaction_pool(self, m_config):
@@ -158,25 +211,34 @@ class TestTransactionPool(TestCase):
         However, after that, adding even more transactions will always fail.
         """
         m_config.user.pending_transaction_pool_size = 3
+        m_config.user.pending_transaction_pool_size_in_bytes = 300
         m_config.user.pending_transaction_pool_reserve = 1
 
-        tx4 = make_tx(txhash=b'red')
-        tx1 = make_tx(txhash=b'green')
-        tx3 = make_tx(txhash=b'blue')
-        tx2 = make_tx(txhash=b'pink')
+        tx4 = make_tx(txhash=b'red', size=5)
+        tx1 = make_tx(txhash=b'green', size=15)
+        tx3 = make_tx(txhash=b'blue', size=10)
+        tx2 = make_tx(txhash=b'pink', size=20)
         ip = '127.0.0.1'
 
         self.txpool.update_pending_tx_pool(tx1, ip)
         self.txpool.update_pending_tx_pool(tx2, ip)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size)
+
         result = self.txpool.update_pending_tx_pool(tx3, ip, ignore_reserve=True)
         self.assertFalse(result)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size)
+
         result = self.txpool.update_pending_tx_pool(tx3, ip, ignore_reserve=False)
         self.assertTrue(result)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
         result = self.txpool.update_pending_tx_pool(tx4, ip, ignore_reserve=True)
         self.assertFalse(result)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
+
         result = self.txpool.update_pending_tx_pool(tx4, ip, ignore_reserve=False)
         self.assertFalse(result)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size + tx2.size + tx3.size)
 
     @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def test_get_pending_transaction(self):
@@ -185,14 +247,16 @@ class TestTransactionPool(TestCase):
         Because it may return a single None, or two variables, a funny hack is used in TxnProcessor where the return
         from this function is stored in one variable then unpacked later if it is not None.
         """
-        tx1 = make_tx()
+        tx1 = make_tx(size=5)
         ip = '127.0.0.1'
         self.txpool.update_pending_tx_pool(tx1, ip)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, tx1.size)
 
         self.assertEqual(len(self.txpool.pending_tx_pool_hash), 1)
         tx_timestamp = self.txpool.get_pending_transaction()
         self.assertEqual(tx_timestamp[0], tx1)
         self.assertEqual(len(self.txpool.pending_tx_pool_hash), 0)
+        self.assertEqual(self.txpool._pending_tx_pool_size_in_bytes, 0)
 
         tx_timestamp = self.txpool.get_pending_transaction()
         self.assertIsNone(tx_timestamp)
@@ -216,17 +280,21 @@ class TestTransactionPool(TestCase):
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
     def test_remove_tx_in_block_from_pool(self):
         m_block = Mock(autospec=Block)
-        tx1 = make_tx(name='Mock TX 1', ots_key=1, PK=b'pk')
-        tx2 = make_tx(name='Mock TX 2', ots_key=2, PK=b'pk')
+        tx1 = make_tx(name='Mock TX 1', ots_key=1, PK=b'pk', size=5)
+        tx2 = make_tx(name='Mock TX 2', ots_key=2, PK=b'pk', size=10)
         m_block.transactions = [CoinBase(), tx1, tx2]
 
         # To remove the tx from the pool we have to add it first!
         self.txpool.add_tx_to_pool(tx1, 5)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size)
+
         self.txpool.add_tx_to_pool(tx2, 5)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, tx1.size + tx2.size)
         self.assertEqual(len(self.txpool.transaction_pool), 2)
 
         self.txpool.remove_tx_in_block_from_pool(m_block)
         self.assertEqual(len(self.txpool.transaction_pool), 0)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes, 0)
 
     @patch('qrl.core.TransactionInfo.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
@@ -277,32 +345,20 @@ class TestTransactionPool(TestCase):
 
 @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
 class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
-    """
-    Up until 4096 (max_ots_tracking_index), the state of each OTS index USED/UNUSED is stored in a bitfield.
-    Default height of wallet is 12, so 2^12 = 4096 obviously
-    Above that however, the network only keeps track of the last used OTS index as a number. So the next
-    tx.ots_index must be 4096 < ots_index < network_ots_index_counter (AddressState.ots_counter).
-
-    Suppose you have a Block with two Transactions from the same public address in it, with ots_index=4098 and 4099.
-    If TransactionPool has 4097, it should be invalidated because 4098 is already used and we are on an counter
-    method of keeping track of OTS indexes.
-    Of course, 4098 and 4099 also have to be deleted.
-    """
-
     @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def setUp(self):
 
         self.txpool = TransactionPool(None)
 
-        self.tx_3907 = make_tx(name='Mock TX 3907', txhash=b'h3907', ots_key=3907)
+        self.tx_3907 = make_tx(name='Mock TX 3907', txhash=b'h3907', ots_key=3907, size=5)
 
-        self.tx_4095 = make_tx(name='Mock TX 4095', txhash=b'h4095', ots_key=4095)
-        self.tx_4096 = make_tx(name='Mock TX 4096', txhash=b'h4096', ots_key=4096)
-        self.tx_4097 = make_tx(name='Mock TX 4097', txhash=b'h4097', ots_key=4097)
-        self.tx_4098 = make_tx(name='Mock TX 4098', txhash=b'h4098', ots_key=4098)
-        self.tx_4099 = make_tx(name='Mock TX 4099', txhash=b'h4099', ots_key=4099)
-        self.tx_4100 = make_tx(name='Mock TX 4100', txhash=b'h4100', ots_key=4100)
-        self.tx_4200 = make_tx(name='Mock TX 4200', txhash=b'h4200', ots_key=4200)
+        self.tx_4095 = make_tx(name='Mock TX 4095', txhash=b'h4095', ots_key=4095, size=15)
+        self.tx_4096 = make_tx(name='Mock TX 4096', txhash=b'h4096', ots_key=4096, size=10)
+        self.tx_4097 = make_tx(name='Mock TX 4097', txhash=b'h4097', ots_key=4097, size=20)
+        self.tx_4098 = make_tx(name='Mock TX 4098', txhash=b'h4098', ots_key=4098, size=30)
+        self.tx_4099 = make_tx(name='Mock TX 4099', txhash=b'h4099', ots_key=4099, size=25)
+        self.tx_4100 = make_tx(name='Mock TX 4100', txhash=b'h4100', ots_key=4100, size=40)
+        self.tx_4200 = make_tx(name='Mock TX 4200', txhash=b'h4200', ots_key=4200, size=100)
 
         # To remove the tx from the pool we have to add it first!
         self.txpool.add_tx_to_pool(self.tx_4095, 5)
@@ -313,6 +369,8 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.txpool.add_tx_to_pool(self.tx_4100, 5)
         self.txpool.add_tx_to_pool(self.tx_4200, 5)
 
+        self.transaction_pool_current_size_in_bytes = self.txpool._transaction_pool_size_in_bytes
+
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
     @patch('qrl.core.txs.Transaction.Transaction.from_pbdata', new=replacement_from_pbdata)
@@ -320,7 +378,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         """
         TxPool = [4095-4100, 4200]
         Block = [4098, 4099]
-        TxPool Afterwards = [4095, 4100, 4200]
+        TxPool Afterwards = [4095-4097, 4100, 4200]
         """
         # Ensure that a "large OTS index" is 4096
         m_config.dev.max_ots_tracking_index = 4096
@@ -328,15 +386,19 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         m_block = Mock(autospec=Block)
         m_block.transactions = [CoinBase(), self.tx_4098, self.tx_4099]
 
+        print(self.txpool._transaction_pool_size_in_bytes, len(self.txpool.transaction_pool))
         self.txpool.remove_tx_in_block_from_pool(m_block)
         txs_in_txpool = [t[1].transaction for t in self.txpool.transaction_pool]
 
-        self.assertEqual(len(self.txpool.transaction_pool), 3)
-        self.assertNotIn(self.tx_4097, txs_in_txpool)
+        self.assertEqual(len(self.txpool.transaction_pool), 5)
         self.assertNotIn(self.tx_4098, txs_in_txpool)
         self.assertNotIn(self.tx_4099, txs_in_txpool)
+        self.assertEqual(self.txpool._transaction_pool_size_in_bytes,
+                         self.transaction_pool_current_size_in_bytes - self.tx_4098.size - self.tx_4099.size)
 
         self.assertIn(self.tx_4095, txs_in_txpool)
+        self.assertIn(self.tx_4096, txs_in_txpool)
+        self.assertIn(self.tx_4097, txs_in_txpool)
         self.assertIn(self.tx_4100, txs_in_txpool)
         self.assertIn(self.tx_4200, txs_in_txpool)
 
@@ -347,7 +409,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         """
         TxPool = [3907, 4095-4100, 4200]
         Block = [4098, 4099]
-        TxPool Afterwards = [3907, 4095, 4100, 4200]
+        TxPool Afterwards = [3907, 4095-4097, 4100, 4200]
         """
         # Ensure that a "large OTS index" is 4096
         m_config.dev.max_ots_tracking_index = 4096
@@ -361,13 +423,14 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         txs_in_txpool = [t[1].transaction for t in self.txpool.transaction_pool]
 
         # 3907 should also be in the Pool since it is exempt from the counter
-        self.assertEqual(len(self.txpool.transaction_pool), 4)
-        self.assertNotIn(self.tx_4097, txs_in_txpool)
+        self.assertEqual(len(self.txpool.transaction_pool), 6)
         self.assertNotIn(self.tx_4098, txs_in_txpool)
         self.assertNotIn(self.tx_4099, txs_in_txpool)
 
         self.assertIn(self.tx_3907, txs_in_txpool)
         self.assertIn(self.tx_4095, txs_in_txpool)
+        self.assertIn(self.tx_4096, txs_in_txpool)
+        self.assertIn(self.tx_4097, txs_in_txpool)
         self.assertIn(self.tx_4100, txs_in_txpool)
         self.assertIn(self.tx_4200, txs_in_txpool)
 
@@ -378,7 +441,7 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         """
         TxPool = [3907, 4095-4100, 4200]
         Block = [4200]
-        TxPool Afterwards = [3907, 4095]
+        TxPool Afterwards = [3907, 4095-4100]
         """
         # Ensure that a "large OTS index" is 4096
         m_config.dev.max_ots_tracking_index = 4096
@@ -391,9 +454,14 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.txpool.remove_tx_in_block_from_pool(m_block)
         txs_in_txpool = [t[1].transaction for t in self.txpool.transaction_pool]
 
-        self.assertEqual(len(self.txpool.transaction_pool), 2)
+        self.assertEqual(len(self.txpool.transaction_pool), 7)
         self.assertIn(self.tx_3907, txs_in_txpool)
         self.assertIn(self.tx_4095, txs_in_txpool)
+        self.assertIn(self.tx_4096, txs_in_txpool)
+        self.assertIn(self.tx_4097, txs_in_txpool)
+        self.assertIn(self.tx_4098, txs_in_txpool)
+        self.assertIn(self.tx_4099, txs_in_txpool)
+        self.assertIn(self.tx_4100, txs_in_txpool)
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)
@@ -410,9 +478,9 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         m_block = Mock(autospec=Block)
         m_block.transactions = [CoinBase(), self.tx_4200]
 
-        tx_other_4095 = make_tx(name='Mock TX 4095', txhash=b'h4095_other', ots_key=4095, PK='otherppl')
-        tx_other_4096 = make_tx(name='Mock TX 4096', txhash=b'h4096_other', ots_key=4096, PK='otherppl')
-        tx_other_4097 = make_tx(name='Mock TX 4097', txhash=b'h4097_other', ots_key=4097, PK='otherppl')
+        tx_other_4095 = make_tx(name='Mock TX 4095', txhash=b'h4095_other', ots_key=4095, PK='otherppl', size=10)
+        tx_other_4096 = make_tx(name='Mock TX 4096', txhash=b'h4096_other', ots_key=4096, PK='otherppl', size=15)
+        tx_other_4097 = make_tx(name='Mock TX 4097', txhash=b'h4097_other', ots_key=4097, PK='otherppl', size=25)
 
         self.txpool.add_tx_to_pool(tx_other_4095, 5)
         self.txpool.add_tx_to_pool(tx_other_4096, 5)
@@ -421,11 +489,14 @@ class TestTransactionPoolRemoveTxInBlockFromPool(TestCase):
         self.txpool.remove_tx_in_block_from_pool(m_block)
         txs_in_txpool = [t[1].transaction for t in self.txpool.transaction_pool]
 
-        self.assertEqual(len(self.txpool.transaction_pool), 4)
+        self.assertEqual(len(self.txpool.transaction_pool), 9)
         self.assertIn(self.tx_4095, txs_in_txpool)
         self.assertIn(tx_other_4095, txs_in_txpool)
         self.assertIn(tx_other_4096, txs_in_txpool)
         self.assertIn(tx_other_4097, txs_in_txpool)
+        self.assertIn(self.tx_4098, txs_in_txpool)
+        self.assertIn(self.tx_4099, txs_in_txpool)
+        self.assertIn(self.tx_4100, txs_in_txpool)
 
     @patch('qrl.core.TransactionPool.config', autospec=True)
     @patch('qrl.core.TransactionPool.TransactionPool.is_full_transaction_pool', return_value=False)

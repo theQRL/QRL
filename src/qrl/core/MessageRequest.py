@@ -16,8 +16,18 @@ class MessageRequest:
 
     def add_peer(self, msg_type, peer, params=None):
         self.msg_type = msg_type
-        self.peers_connection_list.append(peer)
+        if peer not in self.peers_connection_list:
+            self.peers_connection_list.append(peer)
         self.params = params
+
+    def remove_peer(self, peer):
+        if peer in self.peers_connection_list:
+            self.peers_connection_list.remove(peer)
+        if peer in self.already_requested_peers:
+            self.already_requested_peers.remove(peer)
+
+    def total_peers(self) -> int:
+        return len(self.peers_connection_list)
 
     def validate(self, data):
         try:

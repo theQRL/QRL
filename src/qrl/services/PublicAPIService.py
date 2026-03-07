@@ -2,16 +2,19 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 import traceback
+from collections import OrderedDict
 import os
 from statistics import variance, mean
+import threading
 
 from pyqrllib.pyqrllib import hstr2bin, QRLHelper, QRLDescriptor
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
-from qrl.core.misc import logger
+from qrl.core.misc import logger, ntp
 from qrl.core.qrlnode import QRLNode
 from qrl.core.txs.Transaction import Transaction, CODEMAP
+from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
 from qrl.services.grpcHelper import GrpcExceptionWrapper
@@ -23,6 +26,47 @@ class PublicAPIService(PublicAPIServicer):
     # TODO: Separate the Service from the node model
     def __init__(self, qrlnode: QRLNode):
         self.qrlnode = qrlnode
+        self._tx_rate_limiter = OrderedDict()
+        self._tx_rate_limiter_lock = threading.Lock()
+
+    def _check_and_update_tx_rate_limit(self, peer_ip: str, now: int) -> bool:
+        window = config.user.public_api_tx_push_rate_limit_window
+        limit = config.user.public_api_tx_push_rate_limit
+        max_ips = config.user.public_api_tx_push_rate_limit_max_ips
+
+        with self._tx_rate_limiter_lock:
+            existing = self._tx_rate_limiter.get(peer_ip)
+            if existing is not None:
+                count, window_start = existing
+                if now - window_start >= window:
+                    count, window_start = 0, now
+
+                if count >= limit:
+                    return False
+
+                self._tx_rate_limiter[peer_ip] = [count + 1, window_start]
+                self._tx_rate_limiter.move_to_end(peer_ip)
+                return True
+
+            # New IP path: prune expired windows only when at capacity.
+            if len(self._tx_rate_limiter) >= max_ips:
+                expired_ips = [
+                    ip
+                    for ip, (_, window_start) in self._tx_rate_limiter.items()
+                    if now - window_start >= window
+                ]
+                for ip in expired_ips:
+                    self._tx_rate_limiter.pop(ip, None)
+
+            # Still full after pruning: evict one least-recently-used entry.
+            if len(self._tx_rate_limiter) >= max_ips:
+                self._tx_rate_limiter.popitem(last=False)
+
+            if 0 >= limit:
+                return False
+
+            self._tx_rate_limiter[peer_ip] = [1, now]
+            return True
 
     @GrpcExceptionWrapper(qrl_pb2.GetAddressFromPKResp)
     def GetAddressFromPK(self, request: qrl_pb2.GetAddressFromPKReq, context) -> qrl_pb2.GetAddressFromPKResp:
@@ -147,18 +191,30 @@ class PublicAPIService(PublicAPIServicer):
         logger.debug("[PublicAPI] PushTransaction")
         answer = qrl_pb2.PushTransactionResp()
 
+        peer = context.peer()  # returns "ipv4:1.2.3.4:port" or "ipv6:[::1]:port"
+        peer_ip = peer.rsplit(':', 1)[0]  # "ipv4:1.2.3.4"
+        current_time = ntp.getTime()
+
+        if not self._check_and_update_tx_rate_limit(peer_ip, current_time):
+            answer.error_description = 'rate limit exceeded'
+            answer.error_code = qrl_pb2.PushTransactionResp.VALIDATION_FAILED
+            return answer
+
         try:
             tx = Transaction.from_pbdata(request.transaction_signed)
             tx.update_txhash()
 
             # FIXME: Full validation takes too much time. At least verify there is a signature
             # the validation happens later in the tx pool
-            if len(tx.signature) > 1000:
+            if not tx.validate_size():
+                answer.error_description = 'transaction size is too long'
+                answer.error_code = qrl_pb2.PushTransactionResp.VALIDATION_FAILED
+            elif XMSS.validate_signature(tx.signature, tx.PK):
                 self.qrlnode.submit_send_tx(tx)
                 answer.error_code = qrl_pb2.PushTransactionResp.SUBMITTED
                 answer.tx_hash = tx.txhash
             else:
-                answer.error_description = 'Signature too short'
+                answer.error_description = 'signature validation failed for transaction'
                 answer.error_code = qrl_pb2.PushTransactionResp.VALIDATION_FAILED
 
         except Exception as e:

@@ -12,7 +12,7 @@ from qrl.core.MultiSigAddressState import MultiSigAddressState
 from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
 from tests.core.txs.testdata import test_json_MultiSigSpend
 from qrl.generated.qrl_pb2 import SlaveMetadata
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_qrl_dir, set_hard_fork_block_number
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_random_xmss, set_qrl_dir, set_hard_fork_block_number
 
 logger.initialize_default()
 
@@ -327,3 +327,47 @@ class TestMultiSigSpend(TestCase):
         self.assertEqual(3, len(affected_addresses))
         self.assertIn(self.alice.address, affected_addresses)
         self.assertIn(multi_sig_address, affected_addresses)
+
+    def test_validate_tx_max_size(self):
+        multi_sig_address = MultiSigAddressState.generate_multi_sig_address(b'')
+        addrs_to = []
+        amounts = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            addrs_to.append(get_random_xmss().address)
+            amounts.append(2 ** 64 - 1)
+
+        tx = MultiSigSpend.create(multi_sig_address=multi_sig_address,
+                                  addrs_to=addrs_to,
+                                  amounts=amounts,
+                                  expiry_block_number=2 ** 64 - 1,
+                                  fee=2 ** 64 - 1,
+                                  xmss_pk=self.alice.pk,
+                                  master_addr=self.bob.address)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
+
+        self.assertEqual(tx.size, tx.max_size_limit)
+        self.assertTrue(tx._validate_custom())
+
+    def test_validate_tx_exceeds_max_size(self):
+        multi_sig_address = MultiSigAddressState.generate_multi_sig_address(b'')
+        addrs_to = []
+        amounts = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            addrs_to.append(get_random_xmss().address)
+            amounts.append(2 ** 64 - 1)
+
+        tx = MultiSigSpend.create(multi_sig_address=multi_sig_address,
+                                  addrs_to=addrs_to,
+                                  amounts=amounts,
+                                  expiry_block_number=2 ** 64 - 1,
+                                  fee=2 ** 64 - 1,
+                                  xmss_pk=self.alice.pk,
+                                  master_addr=self.bob.address)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
+
+        self.assertGreater(tx.size, tx.max_size_limit)
+        self.assertFalse(tx._validate_custom())

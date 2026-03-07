@@ -8,7 +8,7 @@ from qrl.core.State import State
 from qrl.core.StateContainer import StateContainer
 from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
-from tests.misc.helper import get_alice_xmss, get_slave_xmss, get_bob_xmss, set_qrl_dir
+from tests.misc.helper import get_alice_xmss, get_slave_xmss, get_bob_xmss, set_qrl_dir, get_random_xmss
 
 
 @patch('qrl.core.txs.Transaction.logger')
@@ -21,6 +21,7 @@ class TestSlaveTransaction(TestCase):
     def setUp(self):
         self.alice = get_alice_xmss()
         self.slave = get_slave_xmss()
+        self.bob = get_bob_xmss()
         self.params = {
             "slave_pks": [self.slave.pk],
             "access_types": [0],
@@ -139,3 +140,41 @@ class TestSlaveTransaction(TestCase):
         # Should fail, as we have modified with invalid transaction_hash
         with self.assertRaises(ValueError):
             tx.validate_or_raise()
+
+    def test_validate_tx_max_size(self, m_logger):
+        addrs_to = []
+        access_types = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            addrs_to.append(get_random_xmss().pk)
+            access_types.append(1)
+
+        tx = SlaveTransaction.create(master_addr=self.bob.address,
+                                     slave_pks=addrs_to,
+                                     access_types=access_types,
+                                     fee=2 ** 64 - 1,
+                                     xmss_pk=self.alice.pk)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
+
+        self.assertEqual(tx.size, tx.max_size_limit)
+        self.assertTrue(tx._validate_custom())
+
+    def test_validate_tx_exceeds_max_size(self, m_logger):
+        addrs_to = []
+        access_types = []
+        for i in range(config.dev.transaction_multi_output_limit):
+            addrs_to.append(get_random_xmss().pk)
+            access_types.append(1)
+
+        tx = SlaveTransaction.create(master_addr=self.bob.address,
+                                     slave_pks=addrs_to,
+                                     access_types=access_types,
+                                     fee=2 ** 64 - 1,
+                                     xmss_pk=self.alice.pk)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
+
+        self.assertGreater(tx.size, tx.max_size_limit)
+        self.assertFalse(tx._validate_custom())

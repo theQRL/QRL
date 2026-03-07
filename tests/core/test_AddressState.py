@@ -204,7 +204,7 @@ class TestAddressState(TestCase):
         self.assertFalse(AddressState.address_is_valid(b'fake address'))
 
     def test_height(self):
-        self.assertEqual(self.addr_state.height, alice.address[1] << 1)
+        self.assertEqual(self.addr_state.height, (alice.address[1] & 0x0F) << 1)
 
     def test_get_unused_ots_index(self):
         random_xmss = get_random_xmss(xmss_height=4)

@@ -13,7 +13,7 @@ jobs:
       - run: pytest --cov . --cov-report term-missing --cov-report xml
       - run: pip install -U coverage codacy-coverage
       - run: if [[ -v CODACY_PROJECT_TOKEN ]]; then python -m codacy_coverage -r coverage.xml || echo "failed"; fi
-      
+
   test_leaks_CLI:
     docker:
       - image: qrledger/qrl-docker-ci:noble

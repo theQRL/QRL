@@ -70,9 +70,8 @@ class BlockMetadata(object):
             del self._data.last_N_headerhashes[0]
 
         if len(self._data.last_N_headerhashes) > config.dev.N_measurement:
-            raise Exception('Size of last_N_headerhashes is more than expected %s %s',
-                            len(self._data.last_N_headerhashes),
-                            config.dev.N_measurement)
+            raise Exception('Size of last_N_headerhashes is more than expected %s %s' %
+                            (len(self._data.last_N_headerhashes), config.dev.N_measurement))
 
     @staticmethod
     def create(block_difficulty=bytes([0] * 32),

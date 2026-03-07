@@ -185,7 +185,7 @@ class WalletD:
     def _get_wallet_index_xmss(self, signer_address: str, ots_index: int):
         index, _ = self._wallet.get_address_item(signer_address)
         if index is None:
-            raise Exception("Signer Address Not Found ", signer_address)
+            raise Exception("Signer Address Not Found %s" % signer_address)
         xmss = self._wallet.get_xmss_by_index(index, self._passphrase)
         if ots_index > 0:
             xmss.set_ots_index(ots_index)
@@ -379,7 +379,7 @@ class WalletD:
     def get_slave(self, master_qaddress):
         index, item = self._wallet.get_address_item(master_qaddress)
         if index is None:
-            raise Exception("Signer Address Not Found ", master_qaddress)
+            raise Exception("Signer Address Not Found %s" % master_qaddress)
 
         # Should we check available OTS for master
         # Get slave list using address state
@@ -485,7 +485,7 @@ class WalletD:
     # def get_slave(self, master_qaddress):
     #     index, item = self._wallet.get_address_item(master_qaddress)
     #     if index is None:
-    #         raise Exception("Signer Address Not Found ", master_qaddress)
+    #         raise Exception("Signer Address Not Found %s" % master_qaddress)
     #
     #     # Should we check available OTS for master
     #     # Get slave list using address state
@@ -599,7 +599,7 @@ class WalletD:
         self.authenticate()
         _, addr_item = self._wallet.get_address_item(qaddress)
         if addr_item is None:
-            raise Exception("Address Not Found ", qaddress)
+            raise Exception("Address Not Found %s" % qaddress)
         return addr_item.slaves
 
     def verify_ots(self, signer_address, xmss, user_ots_index):
@@ -612,7 +612,7 @@ class WalletD:
 
         if user_ots_index > 0:
             if verified_ots_index != xmss.ots_index:
-                raise Exception("Used OTS Index %s", user_ots_index)
+                raise Exception("Used OTS Index %s" % user_ots_index)
         else:
             xmss.set_ots_index(verified_ots_index)
 

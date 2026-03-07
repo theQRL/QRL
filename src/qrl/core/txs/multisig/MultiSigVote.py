@@ -16,6 +16,10 @@ class MultiSigVote(Transaction):
         super(MultiSigVote, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 3348
+
+    @property
     def shared_key(self):
         return self._data.multi_sig_vote.shared_key
 
@@ -61,6 +65,11 @@ class MultiSigVote(Transaction):
         return multi_sig_vote
 
     def _validate_custom(self):
+        self.set_prev_tx_hash(b'')
+
+        if not self.validate_size():
+            return False
+
         if self.fee < 0:
             logger.warning('MultiSigVote [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
             return False

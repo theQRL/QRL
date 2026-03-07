@@ -198,7 +198,6 @@ class QRLNode:
         self._p2pfactory = P2PFactory(chain_manager=self._chain_manager,
                                       sync_state=self.sync_state,
                                       qrl_node=self)  # FIXME: Try to avoid cyclic references
-
         self.peer_manager.set_p2p_factory(self._p2pfactory)
         self._p2pfactory.start_listening()
 
@@ -210,7 +209,10 @@ class QRLNode:
     @staticmethod
     def validate_amount(amount_str: str) -> bool:
         # FIXME: Refactored code. Review Decimal usage all over the code
-        Decimal(amount_str)
+        try:
+            Decimal(amount_str)
+        except Exception:
+            return False
         return True
 
     ####################################################

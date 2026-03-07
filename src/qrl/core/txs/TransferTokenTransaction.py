@@ -17,6 +17,10 @@ class TransferTokenTransaction(Transaction):
         super(TransferTokenTransaction, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 8449
+
+    @property
     def token_txhash(self):
         return self._data.transfer_token.token_txhash
 
@@ -77,6 +81,9 @@ class TransferTokenTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
+        if not self.validate_size():
+            return False
+
         for amount in self.amounts:
             if amount == 0:
                 logger.warning('Amount cannot be 0 - %s', self.amounts)
@@ -85,6 +92,10 @@ class TransferTokenTransaction(Transaction):
 
         if self.fee < 0:
             logger.info('TransferTokenTransaction [%s] Invalid Fee = %d', bin2hstr(self.txhash), self.fee)
+            return False
+
+        if len(self.token_txhash) != 32:
+            logger.warning('[TransferTokenTransaction] Invalid token txn hash length %d', len(self.token_txhash))
             return False
 
         if len(self.addrs_to) != len(self.amounts):
