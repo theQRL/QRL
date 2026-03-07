@@ -253,14 +253,14 @@ class VoteStats:
         try:
             state._db.put_raw(b'shared_key_' + self.shared_key, self.serialize(), batch)
         except Exception as e:
-            raise Exception("[put_state] Exception in VoteStats %s", e)
+            raise Exception("[put_state] Exception in VoteStats %s" % e)
 
     @staticmethod
     def delete_state(state: State, shared_key: bytes, batch):
         try:
             state._db.delete(b'shared_key_' + shared_key, batch)
         except Exception as e:
-            raise Exception("[delete_state] Exception in VoteStats %s", e)
+            raise Exception("[delete_state] Exception in VoteStats %s" % e)
 
     @staticmethod
     def get_state(state: State, shared_key):

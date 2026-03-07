@@ -13,6 +13,10 @@ class LatticeTransaction(Transaction):
         super(LatticeTransaction, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 5945
+
+    @property
     def pk1(self):  # kyber_pk
         return self._data.latticePK.pk1
 
@@ -50,6 +54,9 @@ class LatticeTransaction(Transaction):
         return transaction
 
     def _validate_custom(self) -> bool:
+        if not self.validate_size():
+            return False
+
         if self.fee < 0:
             logger.info('State validation failed for %s because: Negative send', bin2hstr(self.txhash))
             return False

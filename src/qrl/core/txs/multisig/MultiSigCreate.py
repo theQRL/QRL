@@ -18,6 +18,10 @@ class MultiSigCreate(Transaction):
         super(MultiSigCreate, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 7917
+
+    @property
     def signatories(self):
         return self._data.multi_sig_create.signatories
 
@@ -71,6 +75,9 @@ class MultiSigCreate(Transaction):
         return multi_sig_create
 
     def _validate_custom(self):
+        if not self.validate_size():
+            return False
+
         if len(self.signatories) == 0:
             logger.warning("[MultiSigCreate] No Signatories found")
             return False
@@ -128,7 +135,7 @@ class MultiSigCreate(Transaction):
 
         if tx_balance < self.fee:
             logger.info('State validation failed for %s because: Insufficient funds', bin2hstr(self.txhash))
-            logger.info('balance: %s, fee: %s, amount: %s', tx_balance, self.fee)
+            logger.info('balance: %s, fee: %s', tx_balance, self.fee)
             return False
 
         return True

@@ -12,7 +12,7 @@ class OutgoingMessage:
         self.message = message
 
     def is_expired(self):
-        return self.timestamp - ntp.getTime() > config.user.outgoing_message_expiry
+        return ntp.getTime() - self.timestamp > config.user.outgoing_message_expiry
 
     def __lt__(self, outgoing_message):
         return self.priority < outgoing_message.priority

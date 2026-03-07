@@ -1,6 +1,7 @@
 from pyqrllib.pyqrllib import bin2hstr
 from pyqryptonight.pyqryptonight import UInt256ToString
 
+from qrl.core import config
 from qrl.core.misc import logger
 from qrl.core.Block import Block
 from qrl.core.p2p.p2pObserver import P2PBaseObserver
@@ -128,4 +129,11 @@ class P2PChainManager(P2PBaseObserver):
                                               nodeHeaderHash=node_headerhash)
             source.send(msg)
         else:
+            if len(message.nodeHeaderHash.headerhashes) > 2 * (config.dev.reorg_limit + config.dev.N_measurement):
+                logger.warning('Header hashes size beyond limit %s %s',
+                               source.peer.full_address,
+                               len(message.nodeHeaderHash.headerhashes))
+                source.loseConnection()
+                return
+
             source.factory.compare_and_sync(source, message.nodeHeaderHash)

@@ -42,10 +42,10 @@ class TestTxnProcessor(TestCase):
         self.tx4 = make_tx(name='Mock TX 4', **tx_attrs)
 
         self.m_txpool = Mock(autospec=TransactionPool)
-        self.m_txpool.get_pending_transaction.side_effect = [(self.tx1, replacement_getTime()),
-                                                             (self.tx2, replacement_getTime()),
-                                                             (self.tx3, replacement_getTime()),
-                                                             (self.tx4, replacement_getTime())]
+        self.m_txpool.get_pending_transaction.side_effect = [(self.tx1, replacement_getTime(), '127.0.0.1'),
+                                                             (self.tx2, replacement_getTime(), '127.0.0.1'),
+                                                             (self.tx3, replacement_getTime(), '127.0.0.1'),
+                                                             (self.tx4, replacement_getTime(), '127.0.0.1')]
 
         self.m_broadcast_tx = Mock(autospec=P2PFactory.broadcast_tx)
         self.txnprocessor = TxnProcessor(chain_manager=self.chain_manager,

@@ -8,7 +8,7 @@ from typing import Optional
 
 from qrl.core import config
 from qrl.core.Message import Message
-from qrl.core.MessageRequest import MessageRequest
+from qrl.core.RequestedHash import RequestedHash
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.generated import qrllegacy_pb2
 from qrl.generated.qrllegacy_pb2 import LegacyMessage
@@ -92,10 +92,7 @@ class MessageReceipt(object):
 
     def __init__(self):
         self._hash_msg = OrderedDict()
-        self.requested_hash = OrderedDict()
-
-    def register_duplicate(self, msg_hash: bytes):
-        self.requested_hash[msg_hash].is_duplicate = True
+        self._requested_hash = RequestedHash()
 
     def register(self, msg_type, msg_hash: bytes, pbdata):
         """
@@ -129,18 +126,21 @@ class MessageReceipt(object):
         if msg_type not in self.allowed_types:
             return
 
-        # Limit amount
-        if len(self.requested_hash) >= config.dev.message_q_size:
-            self.__remove__(self.requested_hash)
+        self._requested_hash.add_msg_hash_and_peer(msg_hash, msg_type, peer, data)
 
-        if msg_hash not in self.requested_hash:
-            self.requested_hash[msg_hash] = MessageRequest()
+    def remove_peer(self, peer):
+        self._requested_hash.remove_peer(peer)
 
-        self.requested_hash[msg_hash].add_peer(msg_type, peer, data)
+    def remove_msg_hash_from_requested_hash(self, msg_hash: bytes):
+        self._requested_hash.remove_msg_hash(msg_hash)
+
+    def get_msg_request(self, msg_hash: bytes):
+        return self._requested_hash.get_msg_request(msg_hash)
 
     def isRequested(self, msg_hash: bytes, peer, block=None):
-        if msg_hash in self.requested_hash:
-            if peer in self.requested_hash[msg_hash].peers_connection_list:
+        message_request = self._requested_hash.get_msg_request(msg_hash)
+        if message_request:
+            if peer in message_request.peers_connection_list:
                 return True
 
         if block:
@@ -151,10 +151,11 @@ class MessageReceipt(object):
         return False
 
     def block_params(self, msg_hash: bytes, block):
-        if msg_hash not in self.requested_hash:
+        message_receipt = self._requested_hash.get_msg_request(msg_hash)
+        if message_receipt is None:
             return False
 
-        params = self.requested_hash[msg_hash].params
+        params = message_receipt.params
         coinbase_tx = CoinBase.from_pbdata(block.transactions[0])
         if coinbase_tx.addr_from != params.stake_selector:
             return False
@@ -178,12 +179,8 @@ class MessageReceipt(object):
         myObj.popitem(last=False)
 
     def remove_hash(self, msg_hash: bytes, peer):
-        if msg_hash in self.requested_hash:
-            message_request = self.requested_hash[msg_hash]
-            if peer in message_request.peers_connection_list:
-                message_request.peers_connection_list.remove(peer)
-                if not message_request.peers_connection_list:
-                    del self.requested_hash[msg_hash]
+        self._requested_hash.remove_peer_from_msg_hash(msg_hash, peer)
+        self._requested_hash.remove_msg_hash_from_peer(msg_hash, peer)
 
     def contains(self, msg_hash: bytes, msg_type):
         """
@@ -201,8 +198,9 @@ class MessageReceipt(object):
         return False
 
     def is_callLater_active(self, msg_hash):
-        if msg_hash in self.requested_hash:
-            if self.requested_hash[msg_hash].callLater:
+        message_request = self._requested_hash.get_msg_request(msg_hash)
+        if message_request:
+            if message_request.callLater:
                 return True
 
         return False

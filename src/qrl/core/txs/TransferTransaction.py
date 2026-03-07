@@ -18,6 +18,10 @@ class TransferTransaction(Transaction):
         super(TransferTransaction, self).__init__(protobuf_transaction)
 
     @property
+    def max_size_limit(self):
+        return 8497
+
+    @property
     def addrs_to(self):
         return self._data.transfer.addrs_to
 
@@ -73,6 +77,9 @@ class TransferTransaction(Transaction):
         return transaction
 
     def _validate_custom(self):
+        if not self.validate_size():
+            return False
+
         for amount in self.amounts:
             if amount == 0:
                 logger.warning('Amount cannot be 0 - %s', self.amounts)

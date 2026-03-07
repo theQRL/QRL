@@ -155,3 +155,33 @@ class TestMessageTransaction(TestCase):
         tx = MessageTransaction.create(**self.params)
         tx.set_affected_address(result)
         self.assertEqual(1, len(result))
+
+    def test_validate_tx_max_size(self, m_logger):
+        message = b'0' * config.dev.message_max_length
+
+        tx = MessageTransaction.create(master_addr=self.bob.address,
+                                       addr_to=get_bob_xmss().address,
+                                       message_hash=message,
+                                       fee=2 ** 64 - 1,
+                                       xmss_pk=self.alice.pk)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3140  # max expected signature size based on height 30
+
+        self.assertEqual(tx.size, tx.max_size_limit)
+        self.assertTrue(tx._validate_custom())
+
+    def test_validate_tx_exceeds_max_size(self, m_logger):
+        message = b'0' * config.dev.message_max_length
+
+        tx = MessageTransaction.create(master_addr=self.bob.address,
+                                       addr_to=get_bob_xmss().address,
+                                       message_hash=message,
+                                       fee=2 ** 64 - 1,
+                                       xmss_pk=self.alice.pk)
+        tx._data.nonce = 2 ** 64 - 1
+        tx.sign(self.alice)
+        tx._data.signature = b'8' * 3141  # 1 byte over max expected signature size
+
+        self.assertGreater(tx.size, tx.max_size_limit)
+        self.assertFalse(tx._validate_custom())

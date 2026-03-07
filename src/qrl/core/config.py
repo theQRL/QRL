@@ -46,12 +46,16 @@ class UserConfig(object):
                           '18.130.119.29',
                           '209.250.251.100']
 
+        self.peer_q_size = 10000
         self.p2p_local_port = 19000  # Locally binded port at which node will listen for connection
         self.p2p_public_port = 19000  # Public port forwarding connections to server
 
         self.peer_rate_limit = 500  # Max Number of messages per minute per peer
         self.p2p_q_size = 10000
         self.outgoing_message_expiry = 90  # Outgoing message expires after 90 seconds
+        self.max_ignore_tx_ip_limit = 10000  # Number of peer ip to be maintained to ignore tx
+        self.ignore_tx_duration_seconds = 60 * 60  # 3600 seconds = 1 hour
+        self.chance_trigger_tx_validation_before_pending_pool = 0.1  # 10% chance to trigger the validation
 
         self.ntp_servers = ['pool.ntp.org', 'ntp.ubuntu.com']
         self.ntp_refresh = 12 * 60 * 60  # 12 hours
@@ -59,14 +63,16 @@ class UserConfig(object):
         self.ban_minutes = 20  # Allows to ban a peer's IP who is breaking protocol
 
         self.monitor_connections_interval = 30  # Monitor connection every 30 seconds
-        self.max_peers_limit = 100  # Number of allowed peers
+        self.max_peers_limit = 50  # Number of allowed peers
         self.chain_state_timeout = 180
         self.chain_state_broadcast_period = 30
         # must be less than ping_timeout
 
         self.transaction_minimum_fee = int(0 * dev.shor_per_quanta)
-        self.transaction_pool_size = 25000
-        self.pending_transaction_pool_size = 75000
+        self.transaction_pool_size = 20000
+        self.transaction_pool_size_in_bytes = 200 * 1024 * 1024  # 200 MB
+        self.pending_transaction_pool_size = 20000
+        self.pending_transaction_pool_size_in_bytes = 200 * 1024 * 1024  # 200 MB
         # 1% of the pending_transaction_pool will be reserved for moving stale txn
         self.pending_transaction_pool_reserve = int(self.pending_transaction_pool_size * 0.01)
         self.stale_transaction_threshold = 15  # 15 Blocks
@@ -90,6 +96,9 @@ class UserConfig(object):
         self.public_api_port = 19009
         self.public_api_threads = 1
         self.public_api_max_concurrent_rpc = 100
+        self.public_api_tx_push_rate_limit = 20            # max PushTransaction calls per IP per window
+        self.public_api_tx_push_rate_limit_window = 60     # window in seconds
+        self.public_api_tx_push_rate_limit_max_ips = 1000  # max tracked IPs
 
         # ======================================
         #        MINING API CONFIGURATION
@@ -222,7 +231,7 @@ class DevConfig(object):
 
         self.block_lead_timestamp = 30
         self.block_max_drift = 15
-        self.max_future_blocks_length = 256
+        self.max_future_blocks_length = 64
         self.max_margin_block_number = 32
         self.min_margin_block_number = 7
 
@@ -231,7 +240,8 @@ class DevConfig(object):
 
         self.message_q_size = 300
         self.message_receipt_timeout = 10  # request timeout for full message
-        self.message_buffer_size = 64 * 1024 * 1024  # 64 MB
+        self.message_buffer_size = 16 * 1024 * 1024  # 16 MB
+        self.max_peer_list_per_peer = 100
 
         self.timestamp_error = 5  # Error in second
 
@@ -284,7 +294,7 @@ class DevConfig(object):
         # ======================================
         #            P2P SETTINGS
         # ======================================
-        self.max_receivable_bytes = 10 * 1024 * 1024  # 10 MB [Temporary Restriction]
+        self.max_receivable_bytes = 10 * 1024 * 1024  # 10 MB
         self.reserved_quota = 1024  # 1 KB
         self.max_bytes_out = self.max_receivable_bytes - self.reserved_quota
         self.sync_delay_mining = 60  # Delay mining by 60 seconds while syncing blocks to mainchain
@@ -321,6 +331,11 @@ class DevConfig(object):
         # ======================================
         self.proposal_unit_percentage = 100
         self.banned_address = [bytes(hstr2bin('010600fcd0db869d2e1b17b452bdf9848f6fe8c74ee5b8f935408cc558c601fb69eb553fa916a1'))]
+
+        # ======================================
+        # New Block CONFIG
+        # ======================================
+        self.block_max_size_limit_in_bytes = 2 * 1024 * 1024  # Max block size
 
     @property
     def pbdata(self):
