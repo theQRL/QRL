@@ -5,8 +5,8 @@ This guide provides step-by-step instructions for building and running QRL from 
 ## Prerequisites
 
 Before you begin, ensure you have:
-- **Homebrew package manager** - Install from https://brew.sh if needed
-- **Command Line Tools for Xcode** - Run `xcode-select --install` if not already installed
+- **Homebrew package manager** - Install from <https://brew.sh> if needed
+- **Command Line Tools for Xcode** - Run `xcode-select --install`
 - **Git** - Typically included with Command Line Tools
 
 ### Step 1: Clone the Repository & fetch submodules
@@ -25,22 +25,26 @@ Run the automated LevelDB installation script:
 ```
 
 This script:
+
 - Installs LevelDB from Homebrew
 - Automatically detects and fixes RTTI symbol issues
 - Rebuilds LevelDB from source with RTTI enabled if needed
 - Installs the plyvel Python bindings correctly
+
 
 If you encounter issues, force a complete rebuild:
 ```bash
 ./scripts/install_leveldb.sh --rebuild
 ```
 
-> The Homebrew-installed LevelDB is built without RTTI (Run-Time Type Information) 
-> symbols that the plyvel Python bindings require. This causes import errors like:
-> ```
+> The Homebrew-installed LevelDB is built without RTTI (Run-Time Type Information)
+> symbols that the plyvel Python bindings require.
+> This causes import errors like:
+>
+> ```text
 > ImportError: symbol not found in flat namespace '__ZTIN7leveldb10ComparatorE'
 > ```
-> 
+>
 > The solution is to rebuild LevelDB from source with RTTI enabled. The `
 > install_leveldb.sh` script automates this, but you can do it manually if needed.
 
@@ -75,20 +79,24 @@ pip3 install -r requirements.txt
 pip3 install -e .
 ```
 
-**Note:** The `leveldb_env.sh` script sets the necessary compiler flags for building packages that depend on LevelDB.
+**Note:** The `leveldb_env.sh` script sets the necessary compiler
+flags for building packages that depend on LevelDB.
 
 ### Step 6: Build Native Dependencies
 
-Run the native dependencies installer to rebuild QRL's native extensions for your Python version:
+Run the native dependencies installer to rebuild QRL's
+native extensions for your Python version:
 ```bash
 ./scripts/install_mac_deps.sh
 ```
 
 This script:
+
 - Detects your Python version and architecture
 - Rebuilds pyqrllib, pyqryptonight, and pyqrandomx from source
-- Ensures all native modules are correctly linked to your Python installation
+- Ensures all native modules are correctly linked
 - Verifies the installation with tests
+
 
 ### Step 7: Start QRL
 
@@ -121,11 +129,13 @@ pip3 install plyvel>=1.5.0
 ### Issue: RTTI symbol errors when importing plyvel
 
 **Error message:**
-```
+
+```text
 ImportError: symbol not found in flat namespace '__ZTIN7leveldb10ComparatorE'
 ```
 
-**Solution:** This means LevelDB was built without RTTI support. Run the installation script to fix:
+**Solution:** LevelDB was built without RTTI support.
+Run the installation script to fix:
 ```bash
 ./scripts/install_leveldb.sh --rebuild
 ```
@@ -134,7 +144,8 @@ This will rebuild LevelDB from source with RTTI enabled and reinstall plyvel.
 
 ### Issue: Segmentation fault when running QRL
 
-**Common cause:** Native Python extensions (pyqrllib, pyqryptonight, pyqrandomx) were built for a different Python version than the one you're currently using.
+**Common cause:** Native Python extensions (pyqrllib, pyqryptonight,
+pyqrandomx) were built for a different Python version.
 
 **Solution:** Rebuild the native dependencies:
 ```bash
@@ -290,15 +301,16 @@ The QRL repository includes three helper scripts in the `scripts/` directory:
 
 ### Environment Variables Persistence
 
-If you frequently build Python packages that depend on LevelDB, you can make the environment variables permanent:
+If you frequently build Python packages that depend on LevelDB,
+you can make the environment variables permanent:
 
-**Option 1: Source the helper script (recommended)**
+#### Option 1: Source the helper script (recommended)
 ```bash
 # Add to ~/.zshrc or ~/.bash_profile
 source /path/to/QRL/scripts/leveldb_env.sh
 ```
 
-**Option 2: Manually add environment variables**
+#### Option 2: Manually add environment variables
 
 **For zsh:**
 ```bash
@@ -323,7 +335,8 @@ source ~/.zshrc  # or source ~/.bash_profile
 
 ### Intel vs Apple Silicon
 
-The scripts automatically detect your architecture, but if you need to manually specify paths:
+The scripts automatically detect your architecture, but if you
+need to manually specify paths:
 
 - **Apple Silicon (M1/M2/M3/M4):** `/opt/homebrew/opt/leveldb`
 - **Intel Macs:** `/usr/local/opt/leveldb`

@@ -104,6 +104,7 @@ build_leveldb_with_rtti() {
 
     # Replace the RTTI-disabling code with RTTI-enabling code
     if grep -q "set(CMAKE_CXX_FLAGS \"\${CMAKE_CXX_FLAGS} -fno-rtti\")" "$cmake_file"; then
+        # shellcheck disable=SC2016
         sed -i.bak \
             -e 's/# Disable RTTI\./# Enable RTTI (required for plyvel Python bindings)./' \
             -e 's/string(REGEX REPLACE "-frtti" "" CMAKE_CXX_FLAGS "\${CMAKE_CXX_FLAGS}")/string(REGEX REPLACE "-fno-rtti" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")/' \
@@ -398,7 +399,7 @@ print('  ✓ plyvel version:', plyvel.__version__)
     local plyvel_so=$("$python_exec" -c "import os, plyvel; print(os.path.join(os.path.dirname(plyvel.__file__), '_plyvel.cpython-*-darwin.so'))" 2>/dev/null || echo "")
 
     # Expand glob pattern
-    plyvel_so=$(echo $plyvel_so)
+    plyvel_so=$(echo "$plyvel_so")
 
     if [[ -f "$plyvel_so" ]]; then
         print_info "Checking plyvel library linkage..."
@@ -575,9 +576,7 @@ main() {
     echo ""
 
     # Check for RTTI symbols in LevelDB
-    local needs_rtti_rebuild=false
     if ! check_leveldb_rtti "$leveldb_path"; then
-        needs_rtti_rebuild=true
         print_warning "LevelDB needs to be rebuilt with RTTI support"
     fi
     echo ""
