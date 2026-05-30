@@ -27,6 +27,7 @@ class PaginatedBitfield(PaginatedData):
 
     @staticmethod
     def ots_key_reuse(ots_bitfield, ots_key_index) -> bool:
+        ots_key_index = ots_key_index % config.dev.ots_tracking_per_page
         offset = ots_key_index >> 3
         relative = ots_key_index % 8
         bitfield = bytearray(ots_bitfield[offset])
