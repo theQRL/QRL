@@ -49,6 +49,30 @@ class TestPaginatedBitfield(TestCase):
 
     @patch('qrl.core.config.DevConfig.ots_tracking_per_page', new_callable=PropertyMock, return_value=1024)
     @patch('qrl.core.config.DevConfig.ots_bitfield_size', new_callable=PropertyMock)
+    def test_load_bitfield_and_ots_key_reuse_after_first_page(self,
+                                                              mock_ots_bitfield_size,
+                                                              mock_ots_tracking_per_page):
+        with set_qrl_dir('no_data'):
+            state = State()
+            mock_ots_bitfield_size.return_value = ceil(config.dev.ots_tracking_per_page / 8)
+
+            alice_xmss = get_alice_xmss(12)
+            address = alice_xmss.address
+            paginated_bitfield = PaginatedBitfield(True, state._db)
+            ots_key_index = config.dev.ots_tracking_per_page + 1
+
+            self.assertFalse(paginated_bitfield.load_bitfield_and_ots_key_reuse(address,
+                                                                                ots_key_index))
+
+            addresses_state = {
+                address: OptimizedAddressState.get_default(address)
+            }
+            paginated_bitfield.set_ots_key(addresses_state, address, ots_key_index)
+            self.assertTrue(paginated_bitfield.load_bitfield_and_ots_key_reuse(address,
+                                                                               ots_key_index))
+
+    @patch('qrl.core.config.DevConfig.ots_tracking_per_page', new_callable=PropertyMock, return_value=1024)
+    @patch('qrl.core.config.DevConfig.ots_bitfield_size', new_callable=PropertyMock)
     def test_ots_key_reuse(self, mock_ots_bitfield_size, mock_ots_tracking_per_page):
         """
         Randomly using OTS key
