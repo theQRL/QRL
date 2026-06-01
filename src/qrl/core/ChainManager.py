@@ -789,6 +789,21 @@ class ChainManager:
                 if not self._apply_state_changes(block, batch):
                     return False
 
+                # Re-persist the block after applying it. _apply_state_changes()
+                # mutates apply-time transaction fields on the in-memory block
+                # object (e.g. MultiSigVote.prev_tx_hash, which is derived from
+                # VoteStats during application and is not part of the signed tx
+                # data). On the canonical-tip path these mutations are already
+                # captured because _try_branch_add_block() applies before it
+                # calls put_block(). A side branch, however, is persisted before
+                # it is applied, so without re-persisting here the stored block
+                # bytes stay stale. A later reorg or restart that rolls this
+                # block back loads the stale bytes and feeds an inconsistent
+                # prev_tx_hash into VoteStats.revert_vote_stats(), corrupting
+                # vote history. Writing the normalized block back keeps storage
+                # consistent with applied state.
+                Block.put_block(self._state, block, batch)
+
                 self._update_chainstate(block, batch)
 
                 logger.debug('Apply block #%d - [batch %d | %s]', block.block_number, i, hash_path[i])

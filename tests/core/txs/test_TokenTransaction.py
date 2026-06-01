@@ -72,6 +72,37 @@ class TestTokenTransaction(TestCase):
                                     fee=-1,
                                     xmss_pk=self.alice.pk)
 
+    def test_create_duplicate_initial_balance_overflow_fails(self, m_logger):
+        # Two initial_balances entries for the SAME address, each individually a
+        # valid uint64, but whose aggregate exceeds uint64. apply() merges
+        # duplicate recipients, so without an aggregate bound this would pass
+        # validation and then overflow the protobuf uint64 TokenBalance.balance
+        # during state application. Validation must reject it up front.
+        max_u64 = 2 ** 64 - 1
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=max_u64),
+                            qrl_pb2.AddressAmount(address=self.alice.address, amount=1)]
+        with self.assertRaises(ValueError):
+            self.make_tx(decimals=0, initial_balances=initial_balances)
+
+    def test_create_initial_balance_sum_overflow_distinct_addresses_fails(self, m_logger):
+        # The bound is on the total supply, not just on duplicate addresses:
+        # supply must fit in uint64 so that no balance can overflow across the
+        # token's lifetime (creation and conserved transfers).
+        half = 2 ** 63
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=half),
+                            qrl_pb2.AddressAmount(address=self.bob.address, amount=half)]
+        with self.assertRaises(ValueError):
+            self.make_tx(decimals=0, initial_balances=initial_balances)
+
+    def test_create_initial_balance_sum_equals_max_uint64_allowed(self, m_logger):
+        # Boundary: a total supply of exactly uint64 max must still be accepted
+        # (guards against a regression to a `>=` off-by-one).
+        max_u64 = 2 ** 64 - 1
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=max_u64 - 1),
+                            qrl_pb2.AddressAmount(address=self.alice.address, amount=1)]
+        tx = self.make_tx(decimals=0, initial_balances=initial_balances)
+        self.assertIsNotNone(tx)
+
     def test_to_json(self, m_logger):
         initial_balances = list()
         initial_balances.append(qrl_pb2.AddressAmount(address=self.alice.address,

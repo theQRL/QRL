@@ -510,6 +510,154 @@ class TestChainManagerReal(TestCase):
     @set_default_balance_size()
     @set_hard_fork_block_number()
     @patch('qrl.core.misc.ntp.getTime')
+    def test_add_chain_repersists_multisig_vote_prev_tx_hash(self, time_mock):
+        """
+        Regression test for multisig vote rollback corruption after a side-branch reorg.
+
+        MultiSigVote.prev_tx_hash is derived from VoteStats during apply() and is NOT
+        part of the signed transaction data. A side-branch block is persisted before it
+        is applied; when it later becomes canonical via add_chain(), apply() normalizes
+        prev_tx_hash only on the in-memory block. add_chain() must re-persist the block
+        so the stored bytes match applied state, otherwise a later rollback/restart loads
+        a stale prev_tx_hash and corrupts VoteStats.
+
+        This drives the real add_chain() -> _apply_state_changes() -> MultiSigVote.apply()
+        path and asserts the block persisted in the DB carries the normalized prev_tx_hash.
+        """
+        with patch.object(DifficultyTracker, 'get', return_value=ask_difficulty_tracker('2', config.dev)):
+            self.chain_manager.load(self.genesis_block)
+
+            extended_seed = "010300cebc4e25553afa0aab899f7838e59e18a48852fa9dfd5" \
+                            "ae78278c371902aa9e6e9c1fa8a196d2dba0cbfd2f2d212d16c"
+            random_xmss = XMSS.from_extended_seed(hstr2bin(extended_seed))
+            alice_xmss = get_alice_xmss(4)
+            bob_xmss = get_bob_xmss(4)
+            multi_sig_create = MultiSigCreate.create(signatories=[alice_xmss.address,
+                                                                  bob_xmss.address],
+                                                     weights=[4, 6],
+                                                     threshold=5,
+                                                     fee=0,
+                                                     xmss_pk=alice_xmss.pk)
+            multi_sig_create.sign(alice_xmss)
+            multi_sig_create.pbdata.nonce = 1
+            multi_sig_address = MultiSigAddressState.generate_multi_sig_address(multi_sig_create.txhash)
+
+            transfer_transaction = TransferTransaction.create(addrs_to=[multi_sig_address],
+                                                              amounts=[40 * int(config.dev.shor_per_quanta)],
+                                                              message_data=None,
+                                                              fee=1 * config.dev.shor_per_quanta,
+                                                              xmss_pk=bob_xmss.pk)
+            transfer_transaction._data.nonce = 1
+            transfer_transaction.sign(bob_xmss)
+
+            multi_sig_spend = MultiSigSpend.create(multi_sig_address=multi_sig_address,
+                                                   addrs_to=[random_xmss.address, alice_xmss.address],
+                                                   amounts=[10, 5],
+                                                   expiry_block_number=100,
+                                                   fee=0,
+                                                   xmss_pk=alice_xmss.pk)
+            multi_sig_spend.sign(alice_xmss)
+            multi_sig_spend.pbdata.nonce = 2
+
+            multi_sig_vote1 = MultiSigVote.create(shared_key=multi_sig_spend.txhash,
+                                                  unvote=False,
+                                                  fee=0,
+                                                  xmss_pk=alice_xmss.pk)
+            multi_sig_vote1.sign(alice_xmss)
+            multi_sig_vote1.pbdata.nonce = 3
+            time_mock.return_value = 1615270948  # Very high to get an easy difficulty
+
+            # Blocks 1-4 reuse the proven setup (and mining nonces) from test_add_block2
+            # to reach a real state where VoteStats records alice's vote1.
+            seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(1))
+            block_1 = Block.create(dev_config=config.dev, block_number=1,
+                                   prev_headerhash=self.genesis_block.headerhash,
+                                   prev_timestamp=self.genesis_block.timestamp,
+                                   transactions=[multi_sig_create], miner_address=alice_xmss.address,
+                                   seed_height=seed_block.block_number, seed_hash=seed_block.headerhash)
+            block_1.set_nonces(config.dev, 129, 0)
+            self.assertTrue(block_1.validate(self.chain_manager, {}))
+            self.assertTrue(self.chain_manager.add_block(block_1))
+
+            seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(2))
+            block_2 = Block.create(dev_config=config.dev, block_number=2,
+                                   prev_headerhash=block_1.headerhash, prev_timestamp=block_1.timestamp,
+                                   transactions=[transfer_transaction], miner_address=alice_xmss.address,
+                                   seed_height=seed_block.block_number, seed_hash=seed_block.headerhash)
+            block_2.set_nonces(config.dev, 129, 0)
+            self.assertTrue(block_2.validate(self.chain_manager, {}))
+            self.assertTrue(self.chain_manager.add_block(block_2))
+
+            seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(3))
+            block_3 = Block.create(dev_config=config.dev, block_number=3,
+                                   prev_headerhash=block_2.headerhash, prev_timestamp=block_2.timestamp,
+                                   transactions=[multi_sig_spend], miner_address=alice_xmss.address,
+                                   seed_height=seed_block.block_number, seed_hash=seed_block.headerhash)
+            block_3.set_nonces(config.dev, 0, 0)
+            self.assertTrue(block_3.validate(self.chain_manager, {}))
+            self.assertTrue(self.chain_manager.add_block(block_3))
+
+            seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(4))
+            block_4 = Block.create(dev_config=config.dev, block_number=4,
+                                   prev_headerhash=block_3.headerhash, prev_timestamp=block_3.timestamp,
+                                   transactions=[multi_sig_vote1], miner_address=alice_xmss.address,
+                                   seed_height=seed_block.block_number, seed_hash=seed_block.headerhash)
+            block_4.set_nonces(config.dev, 0, 0)
+            self.assertTrue(block_4.validate(self.chain_manager, {}))
+            self.assertTrue(self.chain_manager.add_block(block_4))
+            self.assertEqual(self.chain_manager.last_block, block_4)
+
+            # VoteStats now records alice's vote1 as her current vote.
+            vote_stats = self.chain_manager.get_vote_stats(multi_sig_spend.txhash)
+            self.assertEqual(vote_stats.get_vote_tx_hash_by_signatory_address(alice_xmss.address),
+                             multi_sig_vote1.txhash)
+
+            # Alice now casts an unvote. Applied against the post-block_4 state, its
+            # derived prev_tx_hash MUST normalize to vote1's txhash.
+            multi_sig_unvote = MultiSigVote.create(shared_key=multi_sig_spend.txhash,
+                                                   unvote=True,
+                                                   fee=0,
+                                                   xmss_pk=alice_xmss.pk)
+            multi_sig_unvote.sign(alice_xmss)
+            multi_sig_unvote.pbdata.nonce = 4
+
+            seed_block = self.chain_manager.get_block_by_number(self._qn.get_seed_height(5))
+            side_block = Block.create(dev_config=config.dev, block_number=5,
+                                      prev_headerhash=block_4.headerhash, prev_timestamp=block_4.timestamp,
+                                      transactions=[multi_sig_unvote], miner_address=alice_xmss.address,
+                                      seed_height=seed_block.block_number, seed_hash=seed_block.headerhash)
+            side_block.set_nonces(config.dev, 0, 0)
+
+            # Simulate a side-branch block persisted with a stale/attacker-chosen
+            # prev_tx_hash. prev_tx_hash is not part of the txhash or signature, so this
+            # does not change the block's headerhash and the block stays otherwise valid.
+            # transactions[0] is the coinbase; the multisig vote is transactions[1].
+            stale_prev_tx_hash = b'\xab' * 32
+            side_block._data.transactions[1].multi_sig_vote.prev_tx_hash = stale_prev_tx_hash
+            Block.put_block(self.state, side_block, None)
+            self.state.write_batch(self.state.batch)
+
+            # Sanity: storage holds the stale value before the side branch is applied.
+            stored_before = Block.get_block(self.state, side_block.headerhash)
+            self.assertEqual(stored_before.transactions[1].multi_sig_vote.prev_tx_hash, stale_prev_tx_hash)
+
+            # Apply the already-persisted side branch as canonical (the path fork
+            # recovery uses). self._last_block is block_4, the fork point.
+            fork_state = qrlstateinfo_pb2.ForkState(fork_point_headerhash=block_4.headerhash)
+            self.assertTrue(self.chain_manager.add_chain([side_block.headerhash], fork_state))
+
+            # The block persisted in the DB must now carry the normalized prev_tx_hash
+            # (vote1's txhash), not the stale value. Without the re-persist in add_chain(),
+            # the stored bytes would still be `stale_prev_tx_hash`.
+            stored_after = Block.get_block(self.state, side_block.headerhash)
+            self.assertEqual(stored_after.transactions[1].multi_sig_vote.prev_tx_hash,
+                             multi_sig_vote1.txhash)
+            self.assertNotEqual(stored_after.transactions[1].multi_sig_vote.prev_tx_hash,
+                                stale_prev_tx_hash)
+
+    @set_default_balance_size()
+    @set_hard_fork_block_number()
+    @patch('qrl.core.misc.ntp.getTime')
     def test_add_block3(self, time_mock):
         """
         Features Tested
