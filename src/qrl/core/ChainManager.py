@@ -1213,6 +1213,13 @@ class ChainManager:
             elif MultiSigAddressState.address_is_valid(address):
                 multi_sig_address_state = MultiSigAddressState.get_multi_sig_address_state_by_address(self._state._db,
                                                                                                       address)
+                # A syntactically valid multi-sig address (0x11 prefix, valid checksum) need not
+                # exist in the DB - e.g. a transfer whose addr_to is a crafted nonexistent multi-sig
+                # address. Reject cleanly here instead of dereferencing None on .signatories below
+                # (consistent with the `return None, False` rejections elsewhere in this method).
+                # This lets the transaction fail validation gracefully rather than raising.
+                if multi_sig_address_state is None:
+                    return None, False
                 addresses_state[address] = multi_sig_address_state
 
                 # Load Address State of signatories as it needs to be processed by MultiSigSpend Txn

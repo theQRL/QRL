@@ -658,6 +658,44 @@ class TestChainManagerReal(TestCase):
     @set_default_balance_size()
     @set_hard_fork_block_number()
     @patch('qrl.core.misc.ntp.getTime')
+    def test_validate_all_rejects_transfer_to_nonexistent_multisig_address(self, time_mock):
+        """
+        Regression test: a transfer to a syntactically valid but nonexistent multi-sig
+        address must be rejected cleanly by validation, not crash state loading.
+
+        get_state_mainchain() loads the recipient's MultiSigAddressState (None when the
+        address does not exist) and previously dereferenced None.signatories, raising
+        AttributeError inside validate_all() before TransferTransaction._validate_extended()
+        could reject the missing recipient. The guard makes validate_all() return False.
+        """
+        with patch.object(DifficultyTracker, 'get', return_value=ask_difficulty_tracker('2', config.dev)):
+            self.chain_manager.load(self.genesis_block)
+            time_mock.return_value = 1615270948
+
+            alice_xmss = get_alice_xmss(4)
+
+            # A crafted multi-sig address (0x11 prefix, valid checksum) that was never
+            # created on-chain, so it has no MultiSigAddressState in the DB.
+            nonexistent_multisig_address = MultiSigAddressState.generate_multi_sig_address(b'nonexistent-multisig-creation-tx')
+            self.assertTrue(MultiSigAddressState.address_is_valid(nonexistent_multisig_address))
+            self.assertFalse(OptimizedAddressState.address_is_valid(nonexistent_multisig_address))
+
+            transfer = TransferTransaction.create(addrs_to=[nonexistent_multisig_address],
+                                                  amounts=[1],
+                                                  message_data=None,
+                                                  fee=0,
+                                                  xmss_pk=alice_xmss.pk)
+            transfer.sign(alice_xmss)
+            transfer.pbdata.nonce = 1
+
+            # Must reject cleanly (return False) rather than raising AttributeError
+            # from None.signatories inside get_state_mainchain().
+            result = self.chain_manager.validate_all(transfer, check_nonce=False)
+            self.assertFalse(result)
+
+    @set_default_balance_size()
+    @set_hard_fork_block_number()
+    @patch('qrl.core.misc.ntp.getTime')
     def test_add_block3(self, time_mock):
         """
         Features Tested
