@@ -789,6 +789,21 @@ class ChainManager:
                 if not self._apply_state_changes(block, batch):
                     return False
 
+                # Re-persist the block after applying it. _apply_state_changes()
+                # mutates apply-time transaction fields on the in-memory block
+                # object (e.g. MultiSigVote.prev_tx_hash, which is derived from
+                # VoteStats during application and is not part of the signed tx
+                # data). On the canonical-tip path these mutations are already
+                # captured because _try_branch_add_block() applies before it
+                # calls put_block(). A side branch, however, is persisted before
+                # it is applied, so without re-persisting here the stored block
+                # bytes stay stale. A later reorg or restart that rolls this
+                # block back loads the stale bytes and feeds an inconsistent
+                # prev_tx_hash into VoteStats.revert_vote_stats(), corrupting
+                # vote history. Writing the normalized block back keeps storage
+                # consistent with applied state.
+                Block.put_block(self._state, block, batch)
+
                 self._update_chainstate(block, batch)
 
                 logger.debug('Apply block #%d - [batch %d | %s]', block.block_number, i, hash_path[i])
@@ -1198,6 +1213,13 @@ class ChainManager:
             elif MultiSigAddressState.address_is_valid(address):
                 multi_sig_address_state = MultiSigAddressState.get_multi_sig_address_state_by_address(self._state._db,
                                                                                                       address)
+                # A syntactically valid multi-sig address (0x11 prefix, valid checksum) need not
+                # exist in the DB - e.g. a transfer whose addr_to is a crafted nonexistent multi-sig
+                # address. Reject cleanly here instead of dereferencing None on .signatories below
+                # (consistent with the `return None, False` rejections elsewhere in this method).
+                # This lets the transaction fail validation gracefully rather than raising.
+                if multi_sig_address_state is None:
+                    return None, False
                 addresses_state[address] = multi_sig_address_state
 
                 # Load Address State of signatories as it needs to be processed by MultiSigSpend Txn

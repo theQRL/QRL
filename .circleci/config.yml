@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
@@ -129,7 +129,6 @@ jobs:
       - run: twine upload -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
 
 workflows:
-  version: 2
   build_all:
     jobs:
       - build:
