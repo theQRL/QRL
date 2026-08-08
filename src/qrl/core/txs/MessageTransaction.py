@@ -27,10 +27,7 @@ class MessageTransaction(Transaction):
 
     def get_data_bytes(self):
         """Return the byte string that is hashed and signed for this transaction."""
-        return self.master_addr + \
-               self.fee.to_bytes(8, byteorder='big', signed=False) + \
-               self.message_hash + \
-               self.addr_to
+        return self.master_addr + self.fee.to_bytes(8, byteorder='big', signed=False) + self.message_hash + self.addr_to
 
     @staticmethod
     def create(message_hash: bytes, addr_to: Union[bytes, None], fee: int, xmss_pk: bytes, master_addr: bytes = None):
