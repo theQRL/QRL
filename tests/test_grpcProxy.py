@@ -22,6 +22,7 @@ ots_counter fallback -- the regime every payment slave actually uses. Heights
 deliberately falls back to ots_counter and the two representations differ by
 design; that is out of scope (and impractical for payment slaves).
 """
+from contextlib import suppress
 from unittest import TestCase
 
 from mock import Mock, patch
@@ -42,10 +43,8 @@ class TestGetUnusedOTSIndexEquivalence(TestCase):
     def setUp(self):
         self.dst_dir, self.prev_val = setup_qrl_dir_without_ctx('no_data')
         self.state = State()
-        try:
-            del GenesisBlock.instance  # Removing Singleton instance
-        except Exception:  # noqa
-            pass
+        with suppress(AttributeError):
+            del GenesisBlock.instance  # reset the singleton for this test's qrl_dir
         GenesisBlock()
         self.chain_manager = ChainManager(self.state)
 
@@ -60,7 +59,8 @@ class TestGetUnusedOTSIndexEquivalence(TestCase):
         paginated_bitfield.put_addresses_bitfield(None)
         OptimizedAddressState.put_optimized_addresses_state(self.state, addresses_state)
 
-    def _legacy_first_unused(self, addr_state, height, start):
+    @staticmethod
+    def _legacy_first_unused(addr_state, height, start):
         # Exactly what the removed grpcProxy.set_unused_ots_key scan did.
         for i in range(start, 2 ** height):
             if not addr_state.ots_key_reuse(i):

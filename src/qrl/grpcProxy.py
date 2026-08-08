@@ -56,8 +56,10 @@ def valid_payment_permission(public_stub, master_address, payment_xmss, json_sla
 
 
 def get_unused_payment_xmss(public_stub):
-    """Return a payment slave XMSS with an unused OTS key, rotating through the
-    configured slave seeds and registering the slave on the master if needed."""
+    """
+    Return a payment slave XMSS with an unused OTS key, rotating through the
+    configured slave seeds and registering the slave on the master if needed.
+    """
     global payment_slaves
     global payment_xmss
 
