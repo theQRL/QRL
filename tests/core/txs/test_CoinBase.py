@@ -15,7 +15,7 @@ from qrl.core.BlockHeader import BlockHeader
 from qrl.core.txs.CoinBase import CoinBase
 from qrl.crypto.misc import sha256
 from tests.core.txs.testdata import test_json_CoinBase
-from tests.misc.helper import get_alice_xmss, set_qrl_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_qrl_dir
 
 logger.initialize_default()
 
@@ -222,3 +222,64 @@ class TestCoinBase(TestCase):
 
         self.assertGreater(tx.size, tx.max_size_limit)
         self.assertFalse(tx._validate_custom())
+
+    # Regression: coinbase transaction_hash must be bound to the coinbase body.
+    def test_validate_custom_accepts_honest_coinbase(self, m_logger):
+        """A coinbase whose transaction_hash equals get_data_hash() is accepted."""
+        tx = CoinBase.create(config.dev, self.amount, self.alice.address,
+                             self.mock_blockheader.block_number)
+        self.assertEqual(tx.txhash, tx.get_data_hash())
+        self.assertTrue(tx._validate_custom())
+
+    def test_validate_custom_rejects_tampered_addr_to(self, m_logger):
+        """Changing the body after the hash is stored is rejected: transaction_hash
+        no longer equals get_data_hash()."""
+        tx = CoinBase.create(config.dev, self.amount, self.alice.address,
+                             self.mock_blockheader.block_number)
+        self.assertTrue(tx._validate_custom())
+
+        stale_hash = tx.txhash
+        tx._data.coinbase.addr_to = get_bob_xmss().address   # change the body, leave transaction_hash as-is
+        self.assertEqual(stale_hash, tx.txhash)
+        self.assertNotEqual(tx.txhash, tx.get_data_hash())
+
+        self.assertFalse(tx._validate_custom())
+
+    def test_validate_custom_rejects_chosen_transaction_hash(self, m_logger):
+        """A transaction_hash that does not equal get_data_hash() is rejected."""
+        tx = CoinBase.create(config.dev, self.amount, self.alice.address,
+                             self.mock_blockheader.block_number)
+        tx._data.transaction_hash = b'not-the-body-hash'
+        self.assertNotEqual(tx.txhash, tx.get_data_hash())
+
+        self.assertFalse(tx._validate_custom())
+
+    def test_validate_extended_rejects_tampered_addr_to(self, m_logger):
+        """The binding check also rejects through _validate_extended, the coinbase
+        validation entry point."""
+        bob = get_bob_xmss()
+        tx = CoinBase.create(config.dev, self.amount, self.alice.address,
+                             self.mock_blockheader.block_number)
+        tx._data.master_addr = config.dev.coinbase_address
+        tx._data.coinbase.addr_to = bob.address              # change the body, leave transaction_hash as-is
+
+        addresses_state = {
+            config.dev.coinbase_address: OptimizedAddressState.get_default(config.dev.coinbase_address),
+            bob.address: OptimizedAddressState.get_default(bob.address),
+        }
+        addresses_state[config.dev.coinbase_address].pbdata.balance = 1000000
+
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=self.mock_blockheader.block_number,
+                                         total_coin_supply=100,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+
+        self.assertFalse(tx._validate_extended(state_container))
