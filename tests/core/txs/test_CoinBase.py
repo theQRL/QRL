@@ -232,8 +232,7 @@ class TestCoinBase(TestCase):
         self.assertTrue(tx._validate_custom())
 
     def test_validate_custom_rejects_tampered_addr_to(self, m_logger):
-        """Changing the body after the hash is stored is rejected: transaction_hash
-        no longer equals get_data_hash()."""
+        """Reject tampered body when transaction_hash no longer equals get_data_hash()."""
         tx = CoinBase.create(config.dev, self.amount, self.alice.address,
                              self.mock_blockheader.block_number)
         self.assertTrue(tx._validate_custom())
@@ -255,8 +254,7 @@ class TestCoinBase(TestCase):
         self.assertFalse(tx._validate_custom())
 
     def test_validate_extended_rejects_tampered_addr_to(self, m_logger):
-        """The binding check also rejects through _validate_extended, the coinbase
-        validation entry point."""
+        """Reject tampered body through _validate_extended, the coinbase validation entry point."""
         bob = get_bob_xmss()
         tx = CoinBase.create(config.dev, self.amount, self.alice.address,
                              self.mock_blockheader.block_number)
