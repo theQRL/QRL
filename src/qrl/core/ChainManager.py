@@ -1,6 +1,11 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+"""ChainManager: owns the chain's state.
+
+Adding and validating blocks, fork detection and recovery, and applying/reverting
+transaction state changes against the state DB.
+"""
 import sys
 import threading
 from collections import OrderedDict
@@ -627,6 +632,10 @@ class ChainManager:
                 self._state.put_state_version()
 
     def _update_chainstate(self, block: Block, batch):
+        """
+        Make `block` the new chain tip: update the last-block/height pointers,
+        remove its transactions from the pool, and write transaction metadata.
+        """
         self._last_block = block
         self._update_block_number_mapping(block, batch)
         self.tx_pool.remove_tx_in_block_from_pool(block)
@@ -789,6 +798,21 @@ class ChainManager:
                 if not self._apply_state_changes(block, batch):
                     return False
 
+                # Re-persist the block after applying it. _apply_state_changes()
+                # mutates apply-time transaction fields on the in-memory block
+                # object (e.g. MultiSigVote.prev_tx_hash, which is derived from
+                # VoteStats during application and is not part of the signed tx
+                # data). On the canonical-tip path these mutations are already
+                # captured because _try_branch_add_block() applies before it
+                # calls put_block(). A side branch, however, is persisted before
+                # it is applied, so without re-persisting here the stored block
+                # bytes stay stale. A later reorg or restart that rolls this
+                # block back loads the stale bytes and feeds an inconsistent
+                # prev_tx_hash into VoteStats.revert_vote_stats(), corrupting
+                # vote history. Writing the normalized block back keeps storage
+                # consistent with applied state.
+                Block.put_block(self._state, block, batch)
+
                 self._update_chainstate(block, batch)
 
                 logger.debug('Apply block #%d - [batch %d | %s]', block.block_number, i, hash_path[i])
@@ -799,6 +823,14 @@ class ChainManager:
             return True
 
     def _fork_recovery(self, block: Block, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
+        """
+        Switch the main chain to the branch ending at `block` when it wins.
+
+        Finds the fork point, rolls the state back to it, and replays the new
+        branch; if replay fails it restores the old chain. Fork progress is
+        persisted in `fork_state` so an interrupted recovery can resume. Returns
+        True on a successful switch, False if it bailed (e.g. beyond re-org limit).
+        """
         logger.info("Triggered Fork Recovery")
         # This condition only becomes true, when fork recovery was interrupted
         if fork_state.fork_point_headerhash:
@@ -843,6 +875,7 @@ class ChainManager:
         return True
 
     def _add_block(self, block, check_stale=True) -> bool:
+        """Enforce the block-size limit, then attempt to add the block to a branch."""
         dev_config = self.get_config_by_block_number(block.block_number)
         self.trigger_miner = False
 
@@ -854,6 +887,12 @@ class ChainManager:
         return self._try_branch_add_block(block, dev_config, check_stale)
 
     def add_block(self, block: Block, check_stale=True) -> bool:
+        """
+        Add a block to the chain (thread-safe entry point).
+
+        Skips blocks below the re-org limit or already known, then delegates to
+        _add_block. Returns True only if the block was added.
+        """
         with self.lock:
             if block.block_number <= self.re_org_limit:
                 logger.debug('Skipping block #%s as beyond re-org limit', block.block_number)
@@ -1031,6 +1070,11 @@ class ChainManager:
                                       votes_stats)
 
     def _apply_state_changes(self, block, batch) -> bool:
+        """
+        Validate and apply every transaction in `block` to the state, updating
+        balances and paginated indexes. Rejects a second coinbase (except the
+        historical block 2078158). Returns False if any transaction is invalid.
+        """
         state_container = self.new_state_container(set(),
                                                    block.block_number,
                                                    True,
@@ -1198,6 +1242,13 @@ class ChainManager:
             elif MultiSigAddressState.address_is_valid(address):
                 multi_sig_address_state = MultiSigAddressState.get_multi_sig_address_state_by_address(self._state._db,
                                                                                                       address)
+                # A syntactically valid multi-sig address (0x11 prefix, valid checksum) need not
+                # exist in the DB - e.g. a transfer whose addr_to is a crafted nonexistent multi-sig
+                # address. Reject cleanly here instead of dereferencing None on .signatories below
+                # (consistent with the `return None, False` rejections elsewhere in this method).
+                # This lets the transaction fail validation gracefully rather than raising.
+                if multi_sig_address_state is None:
+                    return None, False
                 addresses_state[address] = multi_sig_address_state
 
                 # Load Address State of signatories as it needs to be processed by MultiSigSpend Txn
@@ -1294,6 +1345,10 @@ class ChainManager:
         return data_point
 
     def get_unused_ots_index2(self, address, start_ots_index=0):
+        """
+        Convenience wrapper for get_unused_ots_index that reads bitfield pages
+        straight from the state DB (no pre-loaded caches).
+        """
         return self.get_unused_ots_index(addresses_bitfield=dict(),
                                          addresses_state=dict(),
                                          address=address,

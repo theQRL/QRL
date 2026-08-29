@@ -43,6 +43,7 @@ class CoinBase(Transaction):
         transaction._data.coinbase.addr_to = miner_address
         transaction._data.coinbase.amount = amount
         transaction._data.nonce = block_number + 1
+        # Coinbase stores get_data_hash() directly as its transaction_hash.
         transaction._data.transaction_hash = transaction.get_data_hash()
 
         transaction.validate_or_raise(verify_signature=False)
@@ -73,6 +74,12 @@ class CoinBase(Transaction):
 
         if self.fee != 0:
             logger.warning('Fee for coinbase transaction should be 0')
+            return False
+
+        if self.txhash != self.get_data_hash():
+            logger.warning('Invalid coinbase transaction hash')
+            logger.warning('Expected %s', bin2hstr(self.get_data_hash()))
+            logger.warning('Found    %s', bin2hstr(self.txhash))
             return False
 
         return True

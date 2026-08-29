@@ -41,16 +41,17 @@ class TransferTransaction(Transaction):
         return self._data.transfer.message_data
 
     def get_data_bytes(self):
-        tmptxhash = (self.master_addr +
-                     self.fee.to_bytes(8, byteorder='big', signed=False) +
-                     self.message_data)
+        """Return the byte string that is hashed and signed for this transaction."""
+        data_bytes = (self.master_addr +
+                      self.fee.to_bytes(8, byteorder='big', signed=False) +
+                      self.message_data)
 
         for index in range(0, len(self.addrs_to)):
-            tmptxhash = (tmptxhash +
-                         self.addrs_to[index] +
-                         self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            data_bytes = (data_bytes +
+                          self.addrs_to[index] +
+                          self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
-        return tmptxhash
+        return data_bytes
 
     @staticmethod
     def create(addrs_to: list, amounts: list, message_data: Union[bytes, None], fee: int, xmss_pk, master_addr: bytes = None):
@@ -82,8 +83,7 @@ class TransferTransaction(Transaction):
 
         for amount in self.amounts:
             if amount == 0:
-                logger.warning('Amount cannot be 0 - %s', self.amounts)
-                logger.warning('Invalid TransferTransaction')
+                logger.warning('[TransferTransaction] Amount cannot be 0 - %s', self.amounts)
                 return False
 
         if self.fee < 0:
@@ -154,6 +154,7 @@ class TransferTransaction(Transaction):
     def apply(self,
               state: State,
               state_container: StateContainer) -> bool:
+        """Debit the sender (total amount + fee) and credit each recipient."""
         address_state = state_container.addresses_state[self.addr_from]
         address_state.update_balance(state_container, self.total_amount + self.fee, subtract=True)
         state_container.paginated_tx_hash.insert(address_state, self.txhash)
@@ -173,6 +174,7 @@ class TransferTransaction(Transaction):
     def revert(self,
                state: State,
                state_container: StateContainer) -> bool:
+        """Undo apply(): re-credit the sender and debit each recipient."""
         address_state = state_container.addresses_state[self.addr_from]
         address_state.update_balance(state_container,
                                      self.total_amount + self.fee)

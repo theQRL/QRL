@@ -7,7 +7,6 @@ import simplejson as json
 import grpc
 from google.protobuf.json_format import MessageToJson
 from qrl.core import config
-from qrl.core.AddressState import AddressState
 from qrl.crypto.xmss import XMSS
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
@@ -27,45 +26,49 @@ def read_slaves(slaves_filename):
         return slave_data
 
 
-def get_addr_state(addr: bytes) -> AddressState:
-    stub = get_public_stub()
-    response = stub.GetAddressState(request=qrl_pb2.GetAddressStateReq(address=addr))
-    return AddressState(response.state)
-
-
-def set_unused_ots_key(xmss, addr_state, start=0):
-    for i in range(start, 2 ** xmss.height):
-        if not addr_state.ots_key_reuse(i):
-            xmss.set_ots_index(i)
-            return True
+def set_unused_ots_key(public_stub, xmss, start=0):
+    # Ask the node for the next unused OTS index via the paginated GetOTS endpoint
+    # instead of pulling the whole (unpaginated) address state and scanning the
+    # bitfield client-side. page_count=0 means no bitfield pages are returned;
+    # only next_unused_ots_index is computed (server-side, above `start`).
+    response = public_stub.GetOTS(request=qrl_pb2.GetOTSReq(address=xmss.address,
+                                                            page_from=0,
+                                                            page_count=0,
+                                                            unused_ots_index_from=start))
+    if response.unused_ots_index_found:
+        xmss.set_ots_index(response.next_unused_ots_index)
+        return True
     return False
 
 
-def valid_payment_permission(public_stub, master_address_state, payment_xmss, json_slave_txn):
-    access_type = master_address_state.get_slave_permission(payment_xmss.pk)
-
-    if access_type == -1:
-        tx = Transaction.from_json(json_slave_txn)
-        public_stub.PushTransaction(request=qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata))
-        return None
-
-    if access_type == 0:
+def valid_payment_permission(public_stub, master_address, payment_xmss, json_slave_txn):
+    # IsSlave is an O(1) keyed lookup; result=True means the slave is registered
+    # on the master with access type 0 (allowed to spend). Anything else means it
+    # is not yet a valid spending slave, so push the slave-registration txn.
+    response = public_stub.IsSlave(request=qrl_pb2.IsSlaveReq(master_address=master_address,
+                                                              slave_pk=payment_xmss.pk))
+    if response.result:
         return True
 
-    return False
+    tx = Transaction.from_json(json_slave_txn)
+    public_stub.PushTransaction(request=qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata))
+    return None
 
 
 def get_unused_payment_xmss(public_stub):
+    """Return a payment slave XMSS with an unused OTS key.
+
+    Rotates through the configured slave seeds and registers the slave on the
+    master if needed.
+    """
     global payment_slaves
     global payment_xmss
 
     master_address = payment_slaves[0]
-    master_address_state = get_addr_state(master_address)
 
     if payment_xmss:
-        addr_state = get_addr_state(payment_xmss.address)
-        if set_unused_ots_key(payment_xmss, addr_state, payment_xmss.ots_index):
-            if valid_payment_permission(public_stub, master_address_state, payment_xmss, payment_slaves[2]):
+        if set_unused_ots_key(public_stub, payment_xmss, payment_xmss.ots_index):
+            if valid_payment_permission(public_stub, master_address, payment_xmss, payment_slaves[2]):
                 return payment_xmss
         else:
             payment_xmss = None
@@ -74,8 +77,7 @@ def get_unused_payment_xmss(public_stub):
         unused_ots_found = False
         for slave_seed in payment_slaves[1]:
             xmss = XMSS.from_extended_seed(slave_seed)
-            addr_state = get_addr_state(xmss.address)
-            if set_unused_ots_key(xmss, addr_state):  # Unused ots_key_found
+            if set_unused_ots_key(public_stub, xmss):  # Unused ots_key_found
                 payment_xmss = xmss
                 unused_ots_found = True
                 break
@@ -83,7 +85,7 @@ def get_unused_payment_xmss(public_stub):
         if not unused_ots_found:  # Unused ots_key_found
             return None
 
-    if not valid_payment_permission(public_stub, master_address_state, payment_xmss, payment_slaves[2]):
+    if not valid_payment_permission(public_stub, master_address, payment_xmss, payment_slaves[2]):
         return None
 
     return payment_xmss
