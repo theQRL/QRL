@@ -1,8 +1,7 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-"""
-Safety guard for the grpcProxy migration from GetAddressState to GetOTS/IsSlave.
+"""Safety guard for the grpcProxy migration from GetAddressState to GetOTS/IsSlave.
 
 grpcProxy.set_unused_ots_key now asks the node for the next unused OTS index via
 GetOTS -> qrlnode.get_ots -> ChainManager.get_unused_ots_index2, instead of
