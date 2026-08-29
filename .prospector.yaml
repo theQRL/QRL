@@ -1,0 +1,11 @@
+# Prospector profile, used by Codacy's Prospector_pydocstyle analysis.
+#
+# pydocstyle ships D212 and D213 as mutually exclusive alternatives:
+#   D212 - multi-line docstring summary should start at the first line
+#   D213 - multi-line docstring summary should start at the second line
+# Codacy's default profile enables both, so every multi-line docstring reports
+# one of them whichever layout it uses. We follow D212, so D213 is disabled.
+pydocstyle:
+  run: true
+  disable:
+    - D213
