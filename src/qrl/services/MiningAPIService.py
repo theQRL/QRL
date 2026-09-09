@@ -43,6 +43,13 @@ class MiningAPIService(MiningAPIServicer):
 
         blockheader, block_metadata = self.qrlnode.get_blockheader_and_metadata(request.height)
 
+        # get_blockheader_and_metadata returns (None, None) for a height that
+        # is not on the chain. Mirror GetBlockMiningCompatible / GetBlockToMine
+        # and return a blank response rather than raising AttributeError (which
+        # the client only sees as an opaque UNKNOWN status).
+        if blockheader is None or block_metadata is None:
+            return response
+
         response.difficulty = int(bin2hstr(block_metadata.block_difficulty), 16)
         response.height = blockheader.block_number
         response.timestamp = blockheader.timestamp

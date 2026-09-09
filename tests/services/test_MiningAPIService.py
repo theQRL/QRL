@@ -81,6 +81,18 @@ class TestMiningAPI(TestCase):
         self.assertEqual(180, answer.depth)
         self.assertEqual(20, answer.height)
 
+        # A height that is not on the chain -> (None, None). The response must
+        # be blank *and* the RPC must not error: without the guard this raised
+        # AttributeError, which GrpcExceptionWrapper turned into an UNKNOWN
+        # status plus a logged traceback on every poll.
+        self.qrlnode.get_blockheader_and_metadata = MagicMock(return_value=[None, None])
+        context = Mock()
+        answer = self.service.GetLastBlockHeader(request=req, context=context)
+        self.assertEqual(0, answer.height)
+        self.assertEqual(0, answer.difficulty)
+        self.assertEqual(0, answer.depth)
+        context.set_code.assert_not_called()
+
     def test_GetBlockToMine(self):
         blocktemplate_blob = b'blob'
         difficulty = 100
