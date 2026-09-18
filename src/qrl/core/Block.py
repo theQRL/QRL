@@ -1,9 +1,10 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-"""
-Block: the on-chain block structure — assembly (create), consensus validation
-(validate), and helpers for persisting and reading blocks from the state DB.
+"""Block: the on-chain block structure.
+
+Assembly (create), consensus validation (validate), and helpers for persisting
+and reading blocks from the state DB.
 """
 from collections import OrderedDict
 from statistics import median
@@ -127,12 +128,12 @@ class Block(object):
                miner_address: bytes,
                seed_height: Optional[int],
                seed_hash: Optional[bytes]):
-        """
-        Assemble a new block: prepend the coinbase (block reward + summed
-        transaction fees) to the given transactions, build the transaction merkle
-        root, and create the matching header with mining nonces zeroed.
-        """
+        """Assemble a new block.
 
+        Prepend the coinbase (block reward + summed transaction fees) to the given
+        transactions, build the transaction merkle root, and create the matching
+        header with mining nonces zeroed.
+        """
         block = Block()
 
         # Process transactions
