@@ -32,7 +32,7 @@ class Indexer:
         return True
 
     def remove(self, batch=None):
-        for key in self._data.items():
+        for key in self._data:
             self._db.delete(self.generate_key(key), batch)
 
     def generate_key(self, keys) -> bytes:

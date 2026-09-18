@@ -74,6 +74,25 @@ class TestWalletVer0(TestCase):
             wallet_reloaded = Wallet()
             self.assertEqual(wallet_reloaded.version, 1)
 
+    def test_decrypt_ver0_then_save_without_manual_version_bump(self):
+        # github.com/theQRL/QRL#1592: `qrl wallet_decrypt` on a ver0 wallet
+        # decrypts fine but save() then rejected it as "still version 0".
+        # decrypt() must migrate the version marker on its own.
+        with set_qrl_dir("wallet_secure_ver0"):
+            wallet = Wallet()
+            self.assertEqual(wallet.version, 0)
+
+            wallet.decrypt('test1234')
+            self.assertEqual(wallet.version, 1)
+
+            wallet.save()
+
+            wallet_reloaded = Wallet()
+            self.assertEqual(wallet_reloaded.version, 1)
+            self.assertFalse(wallet_reloaded.encrypted)
+            self.assertEqual(wallet_reloaded.address_items[0].qaddress,
+                             'Q010400d9f1efe5b272e042dcc8ef690f0e90ca8b0b6edba0d26f81e7aff12a6754b21788169f7f')
+
     def test_read_wallet_secure_ver0_saves_wallet_ver1_encrypted(self):
         with set_qrl_dir("wallet_secure_ver0"):
             wallet = Wallet()
