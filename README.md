@@ -1,10 +1,12 @@
+> [!NOTE]
+> This code relates to version 1.x of QRL, the world's first open-source PQ blockchain, which has been securing digital assets since December 2016.
+> The next generation of QRL, version 2.0, is in development and has its own repositories. See [this discussion page](https://github.com/orgs/theQRL/discussions/2).
 
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/theQRL/qrllib/master/LICENSE)
 [![PyPI version](https://badge.fury.io/py/qrl.svg)](https://badge.fury.io/py/qrl)
 [![CircleCI](https://circleci.com/gh/theQRL/QRL.svg?style=shield)](https://circleci.com/gh/theQRL/QRL)
 [![CircleCI](https://img.shields.io/circleci/project/github/theQRL/integration_tests/master.svg?label=integration)](https://circleci.com/gh/theQRL/integration_tests)
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/d1d2abd66d7546c0aac551b7abb8d87e)](https://www.codacy.com/gh/theQRL/QRL/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=theQRL/QRL&amp;utm_campaign=Badge_Grade)
-[![codebeat badge](https://codebeat.co/badges/5748b416-7398-4d08-8b49-e4285ef9a82d)](https://codebeat.co/projects/github-com-theqrl-qrl-master)
 [![Snyk Vulnerability Analysis](https://snyk.io/test/github/theQRL/QRL/badge.svg)](https://snyk.io/test/github/theQRL/QRL)
 
 
