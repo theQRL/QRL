@@ -311,6 +311,13 @@ class Wallet:
         if not self.verify_wallet():
             raise WalletDecryptionError("Decrypted wallet is not valid. Likely due to invalid password")
 
+        # A fully decrypted wallet holds version 1 AddressItems regardless of
+        # the on-disk format it came from (decrypt_item_ver0 also decrypts the
+        # qaddress, which is what a ver0 wallet encrypts and ver1 does not), so
+        # advance the marker. Without this, save() rejects a just-decrypted
+        # ver0 wallet as "still version 0" (github.com/theQRL/QRL#1592).
+        self.version = 1
+
     def encrypt(self, key: str):
         if self.encrypted_partially:
             raise WalletEncryptionError("Please decrypt all addresses before adding a new one to the wallet."
