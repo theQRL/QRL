@@ -496,6 +496,22 @@ class TestCLI(TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn('a fake pushTransactionResp', result.output.strip())
 
+        # message_data is optional: omitting it must not fall back to an
+        # interactive prompt (github.com/theQRL/QRL#1733). CliRunner feeds no
+        # stdin, so if the option still prompted this invoke would not return
+        # cleanly with exit_code 0.
+        result = self.runner.invoke(qrl_cli, [
+            "tx_transfer",
+            "--src=0",
+            "--master=",
+            "--dsts={}".format(qaddr_1),
+            "--amounts=1",
+            "--fee=0",
+            "--ots_key_index=0"
+        ])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn('a fake pushTransactionResp', result.output.strip())
+
     @mock.patch('qrl.cli.qrl_pb2_grpc.PublicAPIStub', autospec=True)
     def test_tx_transfer_encrypted_wallet(self, mock_stub):
         tx_pbdata_serialized_to_string = b"\n\x02\\n\x1aC\x01\x02\x00\x80\x9dg/U\xb1N\xf2_\x0e~j%\xb2\x15\x05\xa7y\x19\x8f\xc0>\x05`\x90\xe3>\xaa\x9a(\xd3\xc7U\x91\xbab\x90{\xaa^\xadQ\xca\xbf\xd3\xbc\xd9\x93\xf0:D\xca\xd8v\x97\x08\xa8x\x9c-\n4\xd6e:,\n'\x01\x06\x00\x95O\x16\xafx\xe3\x94Y\rc\x7f\x10D\xcd\x9f\xaf<\xc7\xf4\xa2\x93f\xaa\r\x8c\xa3 \xe40\x0bZ\xfe\xb0xy\xbb\x12\x01\x00"  # noqa
