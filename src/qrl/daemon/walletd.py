@@ -97,10 +97,9 @@ class WalletD:
             ptx.coinbase.addr_to = self.address_to_qaddress(tx.coinbase.addr_to)
             ptx.coinbase.amount = tx.coinbase.amount
 
-        elif tx.WhichOneof('transactionType') == 'lattice_public_key':
-            ptx.lattice_public_key.MergeFrom(ptx.lattice_public_key())
-            ptx.lattice_public_key.kyber_pk = bin2hstr(tx.lattice_public_key.kyber_pk)
-            ptx.lattice_public_key.dilithium_pk = bin2hstr(tx.lattice_public_key.dilithium_pk)
+        elif tx.WhichOneof('transactionType') == 'latticePK':
+            ptx.latticePK.kyber_pk = bin2hstr(tx.latticePK.pk1)
+            ptx.latticePK.dilithium_pk = bin2hstr(tx.latticePK.pk2)
 
         elif tx.WhichOneof('transactionType') == 'message':
             ptx.message.message_hash = bin2hstr(tx.message.message_hash)
