@@ -13,6 +13,7 @@ from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
 from tests.core.txs.testdata import test_json_MultiSigSpend
 from qrl.generated.qrl_pb2 import SlaveMetadata
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_random_xmss, set_qrl_dir, set_hard_fork_block_number
+from tests.misc.multisig_expiry import MultiSigExpiryTestCase
 
 logger.initialize_default()
 
@@ -371,3 +372,81 @@ class TestMultiSigSpend(TestCase):
 
         self.assertGreater(tx.size, tx.max_size_limit)
         self.assertFalse(tx._validate_custom())
+
+
+class TestMultiSigSpendExpiry(MultiSigExpiryTestCase):
+    def test_admission_rejects_spends_expiring_by_the_next_block(self):
+        for expiry in (self.tip - 1, self.tip, self.tip + 1):
+            with self.subTest(expiry=expiry):
+                tx = self.make_spend(expiry)
+                self.assertFalse(self.chain_manager.validate_all(tx, check_nonce=False))
+
+    def test_admission_accepts_spend_expiring_after_the_next_block(self):
+        tx = self.make_spend(self.tip + 2)
+        self.assertTrue(self.chain_manager.validate_all(tx, check_nonce=False))
+
+    def test_miner_removes_expiring_spend_and_builds_valid_block(self):
+        expiring = self.make_spend(self.tip + 1, fee=5)
+        valid = self.make_spend(self.tip + 2)
+        self.assertTrue(self.pool.add_tx_to_pool(expiring, self.tip))
+        self.assertTrue(self.pool.add_tx_to_pool(valid, self.tip))
+        valid_size = valid.size
+
+        block = self.mine_next_block()
+
+        self.assertIsNotNone(block)
+        self.assertEqual(block.block_number, self.tip + 1)
+        self.assertEqual([tx.transaction_hash for tx in block.transactions[1:]], [valid.txhash])
+        self.assertEqual(self.pool.get_tx_index_from_pool(expiring.txhash), -1)
+        self.assertEqual(self.pool._transaction_pool_size_in_bytes, valid_size)
+        self.assertTrue(self.chain_manager._apply_state_changes(block, self.state.batch))
+
+    def test_miner_removes_spend_that_expires_while_waiting(self):
+        tx = self.make_spend(self.tip + 2)
+        self.assertTrue(self.chain_manager.validate_all(tx, check_nonce=False))
+        self.assertTrue(self.pool.add_tx_to_pool(tx, self.tip))
+        self.chain_manager._last_block.block_number += 1
+
+        block = self.mine_next_block()
+
+        self.assertIsNotNone(block)
+        self.assertEqual(block.block_number, self.tip + 2)
+        self.assertEqual(len(block.transactions), 1)  # Coinbase only.
+        self.assertEqual(self.pool.transactions, [])
+        self.assertEqual(self.pool._transaction_pool_size_in_bytes, 0)
+        self.assertTrue(self.chain_manager._apply_state_changes(block, self.state.batch))
+
+    def test_stale_cleanup_validates_next_block_and_records_current_tip(self):
+        expiring = self.make_spend(self.tip + 4, fee=5)
+        valid = self.make_spend(self.tip + 5)
+        for tx in (expiring, valid):
+            self.assertTrue(self.chain_manager.validate_all(tx, check_nonce=False))
+            self.assertTrue(self.pool.add_tx_to_pool(tx, self.tip))
+        self.chain_manager._last_block.block_number += 3
+
+        self.check_stale()
+
+        self.assertEqual(self.pool.get_tx_index_from_pool(expiring.txhash), -1)
+        self.assertEqual(len(self.pool.transactions), 1)
+        tx_info = self.pool.transactions[0][1]
+        self.assertEqual(tx_info.transaction.txhash, valid.txhash)
+        self.assertEqual(tx_info.block_number, self.chain_manager.height)
+        self.assertEqual(self.pool._transaction_pool_size_in_bytes, valid.size)
+        self.broadcast.assert_called_once_with(valid)
+
+    def test_stale_cleanup_preserves_age_threshold(self):
+        tx = self.make_spend(self.tip + 3)
+        self.assertTrue(self.chain_manager.validate_all(tx, check_nonce=False))
+        self.assertTrue(self.pool.add_tx_to_pool(tx, self.tip))
+        self.chain_manager._last_block.block_number += 2
+
+        self.check_stale()
+
+        self.assertEqual(len(self.pool.transactions), 1)
+        self.assertEqual(self.pool.transactions[0][1].block_number, self.tip)
+        self.broadcast.assert_not_called()
+
+        self.chain_manager._last_block.block_number += 1
+        self.check_stale()
+        self.assertEqual(self.pool.transactions, [])
+        self.broadcast.assert_not_called()
