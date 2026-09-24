@@ -126,7 +126,7 @@ jobs:
       - run: git submodule update --init --recursive
       - run: python3 setup.py build sdist
       - run: pip install twine
-      - run: twine upload -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
+      - run: twine upload --skip-existing -u $PYPI_USERNAME -p $PYPI_PASSWORD dist/*
 
 workflows:
   build_all:
