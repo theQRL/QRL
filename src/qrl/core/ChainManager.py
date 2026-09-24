@@ -244,7 +244,7 @@ class ChainManager:
         with self.lock:
             addresses_set = set()
             tx.set_affected_address(addresses_set)
-            state_container = self.new_state_container(addresses_set, self.height, True, None)
+            state_container = self.new_state_container(addresses_set, self.height + 1, True, None)
             if state_container is None:
                 return False
             if not self.update_state_container(tx, state_container):
@@ -932,8 +932,7 @@ class ChainManager:
             dev_config=dev_config)
 
         block_cumulative_difficulty = StringToUInt256(str(
-            int(UInt256ToString(block_difficulty)) +
-            int(UInt256ToString(parent_cumulative_difficulty))))
+            int(UInt256ToString(block_difficulty)) + int(UInt256ToString(parent_cumulative_difficulty))))
 
         block_metadata.set_block_difficulty(block_difficulty)
         block_metadata.set_cumulative_difficulty(block_cumulative_difficulty)
