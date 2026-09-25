@@ -157,7 +157,8 @@ class TransactionPool:
         while i < len(self.transaction_pool):
             tx_info = self.transaction_pool[i][1]
             if tx_info.is_stale(current_block_number):
-                if not tx_info.validate(new_state_container, update_state_container, current_block_number):
+                # Validate for the next block while tracking age at the current tip.
+                if not tx_info.validate(new_state_container, update_state_container, current_block_number + 1):
                     logger.warning('Txn validation failed for tx in tx_pool')
                     if self.remove_tx_from_pool(tx_info.transaction, False):
                         something_removed = True

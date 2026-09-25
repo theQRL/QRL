@@ -112,6 +112,14 @@ class TokenTransaction(Transaction):
                 logger.warning('Address %s | Amount %s', initial_balance.address, initial_balance.amount)
                 return False
 
+        # The total token supply is fixed at creation and conserved across transfers,
+        # so no address's uint64 token balance can ever overflow as long as the total
+        # supply itself fits in uint64.
+        if sum_of_initial_balances > 2 ** 64 - 1:
+            logger.warning('Sum of initial balances exceeds maximum uint64')
+            logger.warning('Sum of initial balances %s', sum_of_initial_balances)
+            return False
+
         allowed_decimals = self.calc_allowed_decimals(sum_of_initial_balances // 10 ** self.decimals)
 
         if self.decimals > allowed_decimals:
