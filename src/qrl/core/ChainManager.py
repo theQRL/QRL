@@ -1001,7 +1001,19 @@ class ChainManager:
                                tx: Transaction,
                                state_container: StateContainer) -> bool:
         address_set = set()
-        tx.set_affected_address(address_set)
+        try:
+            tx.set_affected_address(address_set)
+        except ValueError:
+            # set_affected_address reaches Transaction.addr_from, which derives an
+            # address from the public key. qrllib >= 1.3.0 raises on a malformed
+            # descriptor where it used to return a garbage address; that address
+            # then failed the state lookup and the block was rejected. Reject it
+            # here instead, so the outcome is unchanged but arrives as a clean
+            # False rather than an exception escaping through add_block - where
+            # nothing catches it, the peer is not banned and the download monitor
+            # is not cancelled.
+            logger.warning('Rejecting transaction: public key has no derivable address')
+            return False
         tokens = Indexer(b'token', self._state._db)
         slaves = Indexer(b'slave', self._state._db)
         lattice_pk = Indexer(b'lattice_pk', self._state._db)

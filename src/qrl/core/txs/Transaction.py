@@ -241,7 +241,14 @@ class Transaction(object, metaclass=ABCMeta):
                 tx_type = self.pbdata.WhichOneof('transactionType')
                 addr_from_pk = None
                 if tx_type != 'coinbase':
-                    addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+                    try:
+                        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+                    except ValueError:
+                        # Malformed descriptor (qrllib >= 1.3.0 raises). Such a key
+                        # cannot derive a banned address, so leave addr_from_pk as
+                        # None and let the checks below run; the signature check in
+                        # validate() rejects the transaction regardless.
+                        addr_from_pk = None
 
                 if addr_from_pk == banned_address or self.master_addr == banned_address:
                     logger.warning("Banned QRL Address found in master_addr or pk")
@@ -296,7 +303,22 @@ class Transaction(object, metaclass=ABCMeta):
 
     # TODO: will need state_container
     def _coinbase_filter(self):
-        if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
+        try:
+            addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        except ValueError:
+            # qrllib >= 1.3.0 raises on a malformed descriptor (an all-zero PK
+            # gives height 0) where it used to return an address. A PK with no
+            # derivable address cannot be the coinbase address, so carry on and
+            # let normal validation reject the transaction, rather than letting
+            # a crypto-level error escape from here.
+            #
+            # Note this comparison cannot match in any case: coinbase_address is
+            # 32 bytes and getAddress() returns 39. The master_addr check below
+            # is the one that does the work, and must still run - returning
+            # early here would let a transaction with a malformed PK and
+            # master_addr set to the coinbase address bypass the filter.
+            addr_from_pk = None
+        if config.dev.coinbase_address in [addr_from_pk, self.master_addr]:
             raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
 
     def _get_allowed_access_types(self):
