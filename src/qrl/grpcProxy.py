@@ -60,7 +60,6 @@ def get_unused_payment_xmss(public_stub):
     Return a payment slave XMSS with an unused OTS key, rotating through the
     configured slave seeds and registering the slave on the master if needed.
     """
-    global payment_slaves
     global payment_xmss
 
     master_address = payment_slaves[0]
