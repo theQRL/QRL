@@ -29,11 +29,15 @@ def setup_package():
     _cmdclass = versioneer.get_cmdclass()
     if 'test' in _cmdclass:
         del _cmdclass['test']
+    # No install_requires here: a value passed to setup() REPLACES the
+    # install_requires in setup.cfg rather than adding to it, so declaring
+    # protobuf and grpcio-tools here silently dropped the other 24
+    # dependencies from the built package's metadata. Both are already
+    # declared in setup.cfg, which is the single source of truth.
     setup(setup_requires=[] + sphinx,
           entry_points=entry_points,
           version=versioneer.get_version(),
-          cmdclass=_cmdclass,
-          install_requires=['protobuf>=6.31.1,<7.0.0', 'grpcio-tools'])
+          cmdclass=_cmdclass)
 
 
 if __name__ == "__main__":

@@ -696,7 +696,7 @@ def tx_unbase64(tx_json_str):
 @click.option('--master', type=str, default='', help='master QRL address')
 @click.option('--dsts', type=str, prompt=True, help='List of destination addresses')
 @click.option('--amounts', type=str, prompt=True, help='List of amounts to transfer (Quanta)')
-@click.option('--message_data', type=str, prompt=True, help='Message (Optional)')
+@click.option('--message_data', type=str, default='', help='Message (Optional)')
 @click.option('--fee', type=Decimal, default=0.0, prompt=True, help='fee in Quanta')
 @click.option('--ots_key_index', default=1, help='OTS key Index (1..XMSS num signatures)')
 @click.pass_context

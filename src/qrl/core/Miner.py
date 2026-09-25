@@ -140,7 +140,7 @@ class Miner:
 
         transactions = []
         state_container = self._chain_manager.new_state_container(set(),
-                                                                  last_block.block_number,
+                                                                  last_block.block_number + 1,
                                                                   True,
                                                                   None)
         for tx_set in t_pool2:

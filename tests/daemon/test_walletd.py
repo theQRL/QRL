@@ -44,6 +44,27 @@ class TestWalletD(TestCase):
             address = walletd.qaddress_to_address(qaddress)
             self.assertEqual(qaddress[1:], bin2hstr(address))
 
+    def test_to_plain_transaction_lattice(self):
+        # The oneof case is 'latticePK' (not 'lattice_public_key'), and the
+        # source pubkeys live in latticePK.pk1/pk2. The previous branch never
+        # matched, so a lattice tx came back with an empty latticePK field.
+        with set_qrl_dir("wallet_ver1"):
+            walletd = WalletD()
+            alice_xmss = get_alice_xmss()
+
+            pk1, pk2, pk3 = b'\xaa' * 5, b'\xbb' * 7, b'\xcc' * 3
+            tx = qrl_pb2.Transaction()
+            tx.public_key = alice_xmss.pk
+            tx.latticePK.pk1 = pk1
+            tx.latticePK.pk2 = pk2
+            tx.latticePK.pk3 = pk3
+
+            ptx = walletd.to_plain_transaction(tx)
+
+            self.assertEqual(ptx.WhichOneof('transactionType'), 'latticePK')
+            self.assertEqual(ptx.latticePK.kyber_pk, bin2hstr(pk1))
+            self.assertEqual(ptx.latticePK.dilithium_pk, bin2hstr(pk2))
+
     def test_authenticate(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
