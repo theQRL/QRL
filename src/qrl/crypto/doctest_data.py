@@ -8,8 +8,8 @@ def binvec2hstr(data):
     return [bin2hstr(b) for b in data]
 
 
-xmss_test_eseed1 = bytes([0x10, 0x02, 0x00] + [0] * 48)
-xmss_test_eseed2 = bytes([0x10, 0x02, 0x00] + [1] * 48)
+xmss_test_eseed1 = bytes([0x00, 0x02, 0x00] + [0] * 48)
+xmss_test_eseed2 = bytes([0x00, 0x02, 0x00] + [1] * 48)
 
 new_keys_expected = ('000000000000000000000000000000000000000000000000',
                      '\x83\xa9\x1aMzV\n\xbdA\xea\x95\xf4\x12\xcd\xe9\x8e\xda\x03v\x9dr\xb5u[\xb7\xc4\xabt3\xe750 ?\xa6p\xa4\xc6\xd4\xf2\xadZ\xc0\xf8\xf0\xce0\xa7',
