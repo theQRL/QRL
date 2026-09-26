@@ -42,14 +42,14 @@ class TransferTransaction(Transaction):
 
     def get_data_bytes(self):
         """Return the byte string that is hashed and signed for this transaction."""
-        data_bytes = (self.master_addr +
-                      self.fee.to_bytes(8, byteorder='big', signed=False) +
-                      self.message_data)
+        data_bytes = (self.master_addr
+                      + self.fee.to_bytes(8, byteorder='big', signed=False)
+                      + self.message_data)
 
         for index in range(0, len(self.addrs_to)):
-            data_bytes = (data_bytes +
-                          self.addrs_to[index] +
-                          self.amounts[index].to_bytes(8, byteorder='big', signed=False))
+            data_bytes = (data_bytes
+                          + self.addrs_to[index]
+                          + self.amounts[index].to_bytes(8, byteorder='big', signed=False))
 
         return data_bytes
 
