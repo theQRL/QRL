@@ -4,9 +4,43 @@
 
 from math import ceil, log
 
+import hashlib
 import itertools
 
 from pyqrllib.pyqrllib import sha2_256, bin2hstr, hstr2bin, sha2_256_n  # noqa
+
+ADDRESS_DESCRIPTOR_SIZE = 3
+ADDRESS_HASH_SIZE = 32
+ADDRESS_CHECKSUM_SIZE = 4
+ADDRESS_SIZE = ADDRESS_DESCRIPTOR_SIZE + ADDRESS_HASH_SIZE + ADDRESS_CHECKSUM_SIZE
+ADDRESS_FORMAT_SHA256_2X = 0
+
+
+def address_is_well_formed(address: bytes) -> bool:
+    """
+    Consensus rule for address validity: 39 bytes, address-format nibble
+    SHA256_2X, and the last 4 bytes equal to the tail of SHA2-256 over the
+    first 35. Nothing else in the descriptor (hash function, signature type,
+    height, reserved byte) is checked.
+
+    This is the rule qrllib v1.2.4 applied when mainnet was built. It is kept
+    here rather than delegated to QRLHelper.addressIsValid so that a qrllib
+    upgrade cannot change consensus: qrllib 1.2.8-1.3.1 tightened that check
+    and rejected addresses already on chain (theQRL/QRL#1816).
+
+    >>> address_is_well_formed(bytes(hstr2bin('0c0d00e3acde5fa627b3c0f2d723108c265f16b9667a19d811b3c99ac329028ec8abf52fc5cca6')))
+    True
+    >>> address_is_well_formed(bytes(hstr2bin('0c0d00e3acde5fa627b3c0f2d723108c265f16b9667a19d811b3c99ac329028ec8abf52fc5cc00')))
+    False
+    >>> address_is_well_formed(b'')
+    False
+    """
+    if not isinstance(address, (bytes, bytearray)) or len(address) != ADDRESS_SIZE:
+        return False
+    if address[1] >> 4 != ADDRESS_FORMAT_SHA256_2X:
+        return False
+    payload = address[:ADDRESS_DESCRIPTOR_SIZE + ADDRESS_HASH_SIZE]
+    return hashlib.sha256(payload).digest()[-ADDRESS_CHECKSUM_SIZE:] == address[-ADDRESS_CHECKSUM_SIZE:]
 
 
 def sha256(message: bytes) -> bytes:

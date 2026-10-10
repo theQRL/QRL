@@ -168,6 +168,13 @@ def get_some_address(idx=0) -> bytes:
     return xmss.address
 
 
+# Token holder paid by token tx 7e94193f...22f1 in mainnet block 1796388. Its
+# descriptor byte 0 is 0x0c (hash function 0xC). qrllib 1.2.8-1.3.1 rejected it,
+# stalling every fresh sync at that block (theQRL/QRL#1816).
+MAINNET_UNKNOWN_HASH_FN_ADDRESS = bytes(hstr2bin('0c0d00e3acde5fa627b3c0f2d723108c265f16b9'
+                                                 '667a19d811b3c99ac329028ec8abf52fc5cca6'))
+
+
 def get_alice_xmss(xmss_height=6) -> XMSS:
     seed = bytes([i for i in range(48)])
     return XMSS(XmssFast(seed, xmss_height))
