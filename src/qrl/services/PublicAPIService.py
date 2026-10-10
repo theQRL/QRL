@@ -14,6 +14,7 @@ from qrl.core.AddressState import AddressState
 from qrl.core.misc import logger, ntp
 from qrl.core.qrlnode import QRLNode
 from qrl.core.txs.Transaction import Transaction, CODEMAP
+from qrl.crypto.misc import address_is_well_formed
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
@@ -136,7 +137,7 @@ class PublicAPIService(PublicAPIServicer):
     @GrpcExceptionWrapper(qrl_pb2.ParseAddressResp)
     def ParseAddress(self, request: qrl_pb2.ParseAddressReq, context) -> qrl_pb2.ParseAddressResp:
         response = qrl_pb2.ParseAddressResp()
-        response.is_valid = QRLHelper.addressIsValid(request.address)
+        response.is_valid = address_is_well_formed(request.address)
         descriptor = QRLDescriptor.fromBytes(request.address[:3])
         hf_dict = {0: 'SHA2-256', 1: 'SHAKE-128', 2: 'SHAKE-256', 3: 'RESERVED'}
         ss_dict = {0: 'XMSS', 1: 'XMSS-MT'}

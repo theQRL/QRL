@@ -39,7 +39,7 @@ mock>=5.0.0,<6.0.0  # Updated version (or use unittest.mock from stdlib)
 daemonize>=2.5.0,<3.0.0  # Updated version
 
 # QRL-specific packages. Pinned: unpinned git refs track a moving branch.
-pyqrllib==1.3.1
+pyqrllib==1.3.2
 pyqryptonight @ git+https://github.com/theQRL/qryptonight.git@52a791042c08a589dad73e0ee09d6189de9505af
 pyqrandomx @ git+https://github.com/theQRL/qrandomx.git@179e5696bcb605237c2843aabb07777cc680533c
 
