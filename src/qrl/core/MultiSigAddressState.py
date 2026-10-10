@@ -2,9 +2,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from pyqrllib.pyqrllib import QRLHelper, hstr2bin, sha2_256
+from pyqrllib.pyqrllib import hstr2bin, sha2_256
 
 from collections import namedtuple
+from qrl.crypto.misc import address_is_well_formed
 from qrl.core.misc import logger
 from qrl.core.State import State
 from qrl.core.TransactionMetadata import TransactionMetadata
@@ -137,7 +138,7 @@ class MultiSigAddressState(object):
             return False
 
         # Warning: Never pass this validation True for Coinbase Address
-        if not QRLHelper.addressIsValid(address):
+        if not address_is_well_formed(address):
             return False
 
         return True

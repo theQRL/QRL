@@ -2,9 +2,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
-from pyqrllib.pyqrllib import QRLHelper, bin2hstr
+from pyqrllib.pyqrllib import bin2hstr
 from collections import namedtuple
 
+from qrl.crypto.misc import address_is_well_formed
 from qrl.core import config
 from qrl.core.State import State
 from qrl.generated import qrl_pb2
@@ -237,7 +238,7 @@ class OptimizedAddressState(object):
     @staticmethod
     def address_is_valid(address: bytes) -> bool:
         # Warning: Never pass this validation True for Coinbase Address
-        if not QRLHelper.addressIsValid(address):
+        if not address_is_well_formed(address):
             return False
         if address[0:1] == b'\x11':
             return False
