@@ -32,7 +32,8 @@ from qrl.core.txs.multisig.MultiSigCreate import MultiSigCreate
 from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
 from qrl.core.txs.multisig.MultiSigVote import MultiSigVote
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_default_balance_size, set_hard_fork_block_number, \
-    set_qrl_dir, setup_qrl_dir_without_ctx, cleanup_qrl_dir, replacement_getTime, get_some_address, gen_blocks
+    set_qrl_dir, setup_qrl_dir_without_ctx, cleanup_qrl_dir, replacement_getTime, get_some_address, gen_blocks, \
+    MAINNET_UNKNOWN_HASH_FN_ADDRESS
 
 alice = get_alice_xmss()
 bob = get_bob_xmss()
@@ -4898,6 +4899,24 @@ class TestChainManager(TestCase):
                 self.assertTrue(success)
                 self.assertEqual(addresses_state[alice_state.address].serialize(),
                                  addresses_state1[alice_state.address].serialize())
+
+    def test_get_state_mainchain_mainnet_unknown_hash_function_address(self):
+        """
+        theQRL/QRL#1816: token tx 7e94193f...22f1 in mainnet block 1796388 pays a
+        holder whose descriptor byte 0 is 0x0c. get_state_mainchain() returned
+        (None, False) for it under qrllib 1.2.8-1.3.1, so fresh nodes rejected the
+        block and stalled. It must load as an ordinary address.
+        """
+        with set_qrl_dir('no_data'):
+            with State() as state:
+                chain_manager = ChainManager(state)
+                alice_xmss = get_alice_xmss()
+                addresses_state, success = chain_manager.get_state_mainchain({alice_xmss.address,
+                                                                              MAINNET_UNKNOWN_HASH_FN_ADDRESS})
+
+                self.assertTrue(success)
+                self.assertIn(MAINNET_UNKNOWN_HASH_FN_ADDRESS, addresses_state)
+                self.assertIsInstance(addresses_state[MAINNET_UNKNOWN_HASH_FN_ADDRESS], OptimizedAddressState)
 
     def test_get_unused_ots_index(self):
         with set_qrl_dir('no_data'):

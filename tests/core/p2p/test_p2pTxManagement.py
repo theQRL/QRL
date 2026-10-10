@@ -201,11 +201,16 @@ class TestP2PTxManagement(TestCase):
         self.tx_manager = P2PTxManagement()
         self.tx_manager.new_channel(channel)
 
+        # Build a well-formed tx, then give it a malformed PK the way a peer
+        # could. SlaveTransaction.create() validates, and pyqrllib >= 1.3
+        # rejects a height-0 descriptor there, so it cannot build this tx.
+        alice_xmss = get_alice_xmss()
         tx = SlaveTransaction.create(
-            slave_pks=[],
-            access_types=[],
+            slave_pks=[alice_xmss.pk],
+            access_types=[0],
             fee=1,
-            xmss_pk=bytes(67))
+            xmss_pk=alice_xmss.pk)
+        tx._data.public_key = bytes(67)
 
         event = qrllegacy_pb2.LegacyMessage(func_name=qrllegacy_pb2.LegacyMessage.TX,
                                             txData=tx.pbdata)
