@@ -14,7 +14,8 @@ from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.Transaction import Transaction
 from qrl.generated import qrl_pb2
 from tests.core.txs.testdata import test_json_Token, test_signature_Token
-from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir
+from tests.misc.helper import get_alice_xmss, get_bob_xmss, get_slave_xmss, set_qrl_dir, \
+    MAINNET_UNKNOWN_HASH_FN_ADDRESS
 
 logger.initialize_default()
 
@@ -326,6 +327,35 @@ class TestTokenTransaction(TestCase):
         #     m_i_balances.return_value = [-1, -1]
         #     with self.assertRaises(ValueError):
         #         tx.validate_or_raise()
+
+    @patch('qrl.core.txs.Transaction.Transaction.validate_slave', return_value=True)
+    def test_validate_extended_mainnet_unknown_hash_function_holder(self, m_validate_slave, m_logger):
+        """
+        theQRL/QRL#1816: mirrors token tx 7e94193f...22f1 (mainnet block 1796388),
+        whose initial_balances pay a holder with descriptor byte 0x0c. That holder
+        must pass the initial_balances address check.
+        """
+        alice_address_state = OptimizedAddressState.get_default(self.alice.address)
+        alice_address_state.pbdata.balance = 100
+
+        initial_balances = [qrl_pb2.AddressAmount(address=self.alice.address, amount=150000000000000000),
+                            qrl_pb2.AddressAmount(address=MAINNET_UNKNOWN_HASH_FN_ADDRESS, amount=150000000000000000)]
+        tx = self.make_tx(symbol=b'QRL', name=b'QUANTA', decimals=10, initial_balances=initial_balances)
+        tx.sign(self.alice)
+
+        state_container = StateContainer(addresses_state={alice_address_state.address: alice_address_state},
+                                         tokens=Indexer(b'token', None),
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+        self.assertTrue(tx._validate_extended(state_container))
 
     def test_affected_address(self, m_logger):
         tx = TokenTransaction.create(**self.params)

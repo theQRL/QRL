@@ -11,7 +11,8 @@ from qrl.core.State import State
 from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.PaginatedBitfield import PaginatedBitfield
 from qrl.core.AddressState import AddressState
-from tests.misc.helper import get_alice_xmss, get_slave_xmss, set_qrl_dir
+from qrl.core.MultiSigAddressState import MultiSigAddressState
+from tests.misc.helper import get_alice_xmss, get_slave_xmss, set_qrl_dir, MAINNET_UNKNOWN_HASH_FN_ADDRESS
 
 logger.initialize_default()
 
@@ -46,6 +47,16 @@ class TestOptimizedAddressState(TestCase):
 
         address_state = OptimizedAddressState.get_optimized_address_state(self.state, alice_address)
         self.assertTrue(isinstance(address_state.address, bytes))
+
+    def test_address_is_valid_mainnet_unknown_hash_function(self):
+        # theQRL/QRL#1816: an on-chain token holder with descriptor byte 0x0c
+        # must stay a valid (non multi-sig) address.
+        self.assertTrue(OptimizedAddressState.address_is_valid(MAINNET_UNKNOWN_HASH_FN_ADDRESS))
+        self.assertFalse(MultiSigAddressState.address_is_valid(MAINNET_UNKNOWN_HASH_FN_ADDRESS))
+
+        corrupted = bytearray(MAINNET_UNKNOWN_HASH_FN_ADDRESS)
+        corrupted[-1] ^= 0xFF
+        self.assertFalse(OptimizedAddressState.address_is_valid(bytes(corrupted)))
 
     def test_get_optimized_address_state2(self):
         alice_xmss = get_alice_xmss()
