@@ -93,7 +93,8 @@ class TestRequestUnusedOTSIndexOverGrpc(TestCase):
         node = object.__new__(QRLNode)
         node._chain_manager = self.chain_manager
 
-        self.server = grpc.server(ThreadPoolExecutor(max_workers=1))
+        self.executor = ThreadPoolExecutor(max_workers=1)
+        self.server = grpc.server(self.executor)
         qrl_pb2_grpc.add_PublicAPIServicer_to_server(PublicAPIService(node), self.server)
         port = self.server.add_insecure_port('127.0.0.1:0')
         self.server.start()
@@ -102,7 +103,8 @@ class TestRequestUnusedOTSIndexOverGrpc(TestCase):
 
     def tearDown(self):
         self.channel.close()
-        self.server.stop(0)
+        self.server.stop(0).wait()
+        self.executor.shutdown(wait=True)  # --threadleak in CI's test_leaks_other job
         cleanup_qrl_dir(self.dst_dir, self.prev_val)
 
     def test_scan_limit_is_resumed_not_reported_as_exhausted(self):
