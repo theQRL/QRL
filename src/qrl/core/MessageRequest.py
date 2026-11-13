@@ -12,6 +12,7 @@ class MessageRequest:
         self.peers_connection_list = []
         self.already_requested_peers = []
         self.params = None
+        self.params_by_peer = {}
         self.is_duplicate = False
 
     def add_peer(self, msg_type, peer, params=None):
@@ -19,12 +20,14 @@ class MessageRequest:
         if peer not in self.peers_connection_list:
             self.peers_connection_list.append(peer)
         self.params = params
+        self.params_by_peer[peer] = params
 
     def remove_peer(self, peer):
         if peer in self.peers_connection_list:
             self.peers_connection_list.remove(peer)
         if peer in self.already_requested_peers:
             self.already_requested_peers.remove(peer)
+        self.params_by_peer.pop(peer, None)
 
     def total_peers(self) -> int:
         return len(self.peers_connection_list)

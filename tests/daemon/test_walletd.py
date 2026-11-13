@@ -1,12 +1,15 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
+import os
+import stat
 from unittest import TestCase
 
-from mock import Mock
+from mock import Mock, patch
 from pyqrllib.pyqrllib import bin2hstr, hstr2bin
 
-from qrl.daemon.walletd import WalletD
+from qrl.daemon.walletd import WalletD, run
+from qrl.core import config
 from qrl.generated import qrl_pb2
 from qrl.core.AddressState import AddressState
 from qrl.core.txs.TransferTransaction import TransferTransaction
@@ -32,10 +35,47 @@ class TestWalletD(TestCase):
                         "jaguar span rinse salty pulsar violet fare"
         super(TestWalletD, self).__init__(*args, **kwargs)
 
+    @staticmethod
+    def stub_get_ots(walletd, next_index=0):
+        walletd._public_stub.GetOTS = Mock(
+            return_value=qrl_pb2.GetOTSResp(next_unused_ots_index=next_index,
+                                            unused_ots_index_found=True))
+
     def test_init(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
             self.assertIsNotNone(walletd)
+
+    def test_run_writes_private_api_token_and_uses_interceptor(self):
+        with set_qrl_dir("wallet_ver1"), \
+                patch('qrl.daemon.walletd.logger'), \
+                patch('qrl.daemon.walletd.grpc.server') as server_factory, \
+                patch('qrl.daemon.walletd.add_WalletAPIServicer_to_server'), \
+                patch('qrl.daemon.walletd.sleep', side_effect=RuntimeError('stop test server')):
+            server_factory.return_value.add_insecure_port.return_value = 19010
+            run()
+
+            token_path = os.path.join(config.user.wallet_dir, 'wallet_api.token')
+            with open(token_path, 'r') as token_file:
+                token = token_file.read()
+            self.assertGreaterEqual(len(token), 32)
+            self.assertEqual(stat.S_IMODE(os.stat(token_path).st_mode), 0o600)
+            interceptor = server_factory.call_args.kwargs['interceptors'][0]
+            self.assertEqual(interceptor._token, token)
+            server_factory.return_value.start.assert_called_once_with()
+            server_factory.return_value.stop.assert_called_once_with(0)
+
+    def test_run_rejects_non_loopback_wallet_api(self):
+        with set_qrl_dir("wallet_ver1"), \
+                patch.object(config.user, 'wallet_api_host', '0.0.0.0'), \
+                patch('qrl.daemon.walletd.logger'), \
+                patch('qrl.daemon.walletd.grpc.server') as server_factory, \
+                patch('qrl.daemon.walletd.add_WalletAPIServicer_to_server'), \
+                patch('qrl.daemon.walletd.sleep', side_effect=RuntimeError('stop test server')):
+            server_factory.return_value.add_insecure_port.return_value = 19010
+            with self.assertRaisesRegex(ValueError, 'loopback'):
+                run()
+            server_factory.assert_not_called()
 
     def test_qaddress_to_address(self):
         with set_qrl_dir("wallet_ver1"):
@@ -119,6 +159,14 @@ class TestWalletD(TestCase):
             walletd = WalletD()
             m = MockFunction()
             walletd.get_address_state = m.get
+
+            def get_ots(request):
+                state = m.get('Q' + bin2hstr(request.address))
+                next_index = state.get_unused_ots_index(request.unused_ots_index_from)
+                return qrl_pb2.GetOTSResp(next_unused_ots_index=next_index or 0,
+                                          unused_ots_index_found=next_index is not None)
+
+            walletd._public_stub.GetOTS = Mock(side_effect=get_ots)
 
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
@@ -511,6 +559,7 @@ class TestWalletD(TestCase):
     def test_relay_transfer_txn_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            self.stub_get_ots(walletd)
 
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
@@ -537,6 +586,7 @@ class TestWalletD(TestCase):
     def test_relay_transfer_txn2_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            self.stub_get_ots(walletd)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -629,6 +679,7 @@ class TestWalletD(TestCase):
     def test_relay_message_txn_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            self.stub_get_ots(walletd)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -681,6 +732,7 @@ class TestWalletD(TestCase):
     def test_relay_message_txn2_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            self.stub_get_ots(walletd)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -741,6 +793,7 @@ class TestWalletD(TestCase):
     def test_relay_token_txn_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            self.stub_get_ots(walletd)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
             qaddress = walletd.add_new_address_with_slaves(height=8)
@@ -817,6 +870,7 @@ class TestWalletD(TestCase):
     def test_relay_token_txn2_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            self.stub_get_ots(walletd)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -953,6 +1007,7 @@ class TestWalletD(TestCase):
     def test_relay_transfer_token_txn_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            self.stub_get_ots(walletd)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -1031,6 +1086,7 @@ class TestWalletD(TestCase):
     def test_relay_slave_txn_by_slave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            self.stub_get_ots(walletd)
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 

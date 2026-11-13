@@ -6,11 +6,24 @@ from unittest import TestCase
 
 from pyqrllib.pyqrllib import str2bin
 from qrl.core import config
+from qrl.core.Block import Block
 from qrl.core.misc import logger
 from qrl.core.messagereceipt import MessageReceipt
+from qrl.generated import qrl_pb2, qrllegacy_pb2
 from qrl.generated.qrllegacy_pb2 import LegacyMessage
 
 logger.initialize_default()
+
+
+def make_block(block_number=11, prev_headerhash=b'parent', public_key=b'', headerhash=b'block'):
+    pbdata = qrl_pb2.Block()
+    pbdata.header.hash_header = headerhash
+    pbdata.header.block_number = block_number
+    pbdata.header.hash_header_prev = prev_headerhash
+    coinbase = pbdata.transactions.add()
+    coinbase.coinbase.SetInParent()
+    coinbase.public_key = public_key
+    return Block(pbdata)
 
 
 class TestMessageReceipt(TestCase):
@@ -192,6 +205,50 @@ class TestMessageReceipt(TestCase):
 
         mr.register(msg_type, msg_hash, msg_obj)
         self.assertTrue(mr.contains(msg_hash, msg_type))
+
+    def test_requested_block_matches_its_own_peer_announcement(self):
+        mr = MessageReceipt()
+        block = make_block()
+        first_peer = object()
+        second_peer = object()
+        first_announcement = qrllegacy_pb2.MRData(hash=block.headerhash,
+                                                    type=LegacyMessage.BK,
+                                                    block_number=block.block_number,
+                                                    prev_headerhash=block.prev_headerhash)
+        second_announcement = qrllegacy_pb2.MRData(hash=block.headerhash,
+                                                     type=LegacyMessage.BK,
+                                                     block_number=block.block_number + 1,
+                                                     prev_headerhash=block.prev_headerhash)
+        mr.add_peer(block.headerhash, LegacyMessage.BK, first_peer, first_announcement)
+        mr.add_peer(block.headerhash, LegacyMessage.BK, second_peer, second_announcement)
+        mr.add_peer(block.headerhash, LegacyMessage.TX, object(),
+                    qrllegacy_pb2.MRData(hash=block.headerhash, type=LegacyMessage.TX))
+
+        self.assertTrue(mr.isRequested(block.headerhash, first_peer, block))
+        self.assertFalse(mr.isRequested(block.headerhash, second_peer, block))
+        self.assertTrue(mr.isRequested(block.headerhash, first_peer, block))
+        self.assertFalse(mr.isRequested(block.headerhash, object(), block))
+
+    def test_requested_block_rejects_mismatched_or_missing_fields(self):
+        cases = [make_block(block_number=12),
+                 make_block(prev_headerhash=b'other'),
+                 make_block(public_key=b'other'),
+                 make_block(headerhash=b'other')]
+        empty_block = make_block()
+        empty_block.pbdata.ClearField('transactions')
+        cases.append(empty_block)
+
+        for block in cases:
+            with self.subTest(block=block.pbdata):
+                mr = MessageReceipt()
+                peer = object()
+                announcement = qrllegacy_pb2.MRData(hash=b'block',
+                                                       type=LegacyMessage.BK,
+                                                       block_number=11,
+                                                       prev_headerhash=b'parent')
+                mr.add_peer(b'block', LegacyMessage.BK, peer, announcement)
+                self.assertFalse(mr.isRequested(b'block', peer, block))
+                self.assertIsNone(mr.get_msg_request(b'block'))
 
     def test_register_overflow(self):
         mr = MessageReceipt()

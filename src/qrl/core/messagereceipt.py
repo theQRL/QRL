@@ -9,7 +9,6 @@ from typing import Optional
 from qrl.core import config
 from qrl.core.Message import Message
 from qrl.core.RequestedHash import RequestedHash
-from qrl.core.txs.CoinBase import CoinBase
 from qrl.generated import qrllegacy_pb2
 from qrl.generated.qrllegacy_pb2 import LegacyMessage
 
@@ -139,37 +138,32 @@ class MessageReceipt(object):
 
     def isRequested(self, msg_hash: bytes, peer, block=None):
         message_request = self._requested_hash.get_msg_request(msg_hash)
-        if message_request:
-            if peer in message_request.peers_connection_list:
-                return True
-
-        if block:
-            if self.block_params(msg_hash, block):
+        if message_request and peer in message_request.peers_connection_list:
+            if block is None or self.block_params(msg_hash, block, peer):
                 return True
 
         self.remove_hash(msg_hash, peer)
         return False
 
-    def block_params(self, msg_hash: bytes, block):
+    def block_params(self, msg_hash: bytes, block, peer):
         message_receipt = self._requested_hash.get_msg_request(msg_hash)
         if message_receipt is None:
             return False
 
-        params = message_receipt.params
-        coinbase_tx = CoinBase.from_pbdata(block.transactions[0])
-        if coinbase_tx.addr_from != params.stake_selector:
+        params = message_receipt.params_by_peer.get(peer)
+        if params is None or params.type != LegacyMessage.BK or params.hash != msg_hash:
             return False
 
-        if block.block_number != params.block_number:
+        if block.headerhash != msg_hash or not block.transactions:
             return False
 
-        if block.prev_headerhash != params.prev_headerhash:
+        coinbase = block.transactions[0]
+        if coinbase.WhichOneof('transactionType') != 'coinbase':
             return False
 
-        if block.reveal_hash != params.reveal_hash:
-            return False
-
-        return True
+        return (coinbase.public_key == params.stake_selector and
+                block.block_number == params.block_number and
+                block.prev_headerhash == params.prev_headerhash)
 
     def deregister(self, msg_hash: bytes, msg_type):
         if msg_hash in self._hash_msg:

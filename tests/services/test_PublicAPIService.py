@@ -58,6 +58,24 @@ class TestPublicAPI(TestCase):
         self.assertEqual(23, node_state.info.num_connections)
         # self.assertEqual("testnet", node_state.info.network_id)  # FIXME
 
+    def test_push_transaction_does_not_return_internal_traceback(self):
+        service = PublicAPIService(Mock())
+        context = Mock(spec=ServicerContext, peer=Mock(return_value='ipv4:127.0.0.1:12345'))
+        request = qrl_pb2.PushTransactionReq()
+        secret = 'private server path /var/qrl/secrets'
+
+        with patch('qrl.services.PublicAPIService.Transaction.from_pbdata',
+                   side_effect=RuntimeError(secret)), \
+                patch('qrl.services.PublicAPIService.logger.exception') as log_exception:
+            response = service.PushTransaction(request, context)
+
+        self.assertEqual(qrl_pb2.PushTransactionResp.ERROR, response.error_code)
+        self.assertEqual('internal transaction processing error', response.error_description)
+        self.assertNotIn(secret, response.error_description)
+        self.assertNotIn('Traceback', response.error_description)
+        context.set_code.assert_not_called()
+        log_exception.assert_called_once()
+
     def test_getKnownPeers(self):
         p2p_factory = Mock(spec=P2PFactory)
         p2p_factory.sync_state = SyncState()

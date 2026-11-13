@@ -411,6 +411,9 @@ class QRLNode:
         if not OptimizedAddressState.address_is_valid(address):
             return None, None, None
 
+        if page_count > config.dev.max_get_ots_pages:
+            raise ValueError('GetOTS page count exceeds limit of {}'.format(config.dev.max_get_ots_pages))
+
         max_bitfield = 2 ** OptimizedAddressState.get_height_from_address(address)
         max_pages = (max_bitfield // config.dev.ots_tracking_per_page) + 1
         page_from = min(page_from, max_pages)
@@ -421,7 +424,8 @@ class QRLNode:
             bitfield = self._chain_manager.get_bitfield(address, page)
             bitfields.append(qrl_pb2.OTSBitfieldByPage(ots_bitfield=bitfield, page_number=page))
 
-        unused_ots_index = self._chain_manager.get_unused_ots_index2(address, unused_ots_index_from)
+        unused_ots_index = self._chain_manager.get_unused_ots_index2(
+            address, unused_ots_index_from, max_scan_keys=config.dev.max_get_ots_scan_keys)
         unused_ots_index_found = unused_ots_index is not None
 
         return bitfields, unused_ots_index, unused_ots_index_found

@@ -17,6 +17,19 @@ class PaginatedBitfield(PaginatedData):
     def generate_bitfield_key(self, address, page):
         return self.name + b'_' + address + b'_' + page.to_bytes(8, byteorder='big', signed=False)
 
+    def get_last_stored_page(self, address) -> int:
+        """
+        Returns the highest bitfield page stored for address, or 0 if none is stored.
+        Pages are only written when an OTS key is used on chain, so this is bounded by
+        real usage rather than by the height encoded in the address descriptor.
+        """
+        prefix = self.name + b'_' + address + b'_'
+        key_length = len(prefix) + 8
+        for key in self.db.db.iterator(prefix=prefix, reverse=True, include_value=False):
+            if len(key) == key_length:
+                return int.from_bytes(key[len(prefix):], byteorder='big', signed=False)
+        return 0
+
     def load_bitfield_and_ots_key_reuse(self, address, ots_key_index) -> bool:
         page = (ots_key_index // config.dev.ots_tracking_per_page) + 1
         key = self.generate_bitfield_key(address, page)

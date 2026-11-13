@@ -7,6 +7,8 @@ import simplejson as json
 import grpc
 from google.protobuf.json_format import MessageToJson
 from qrl.core import config
+from qrl.core.wallet_file import write_private_file
+from qrl.services.grpcHelper import request_unused_ots_index
 from qrl.crypto.xmss import XMSS
 from qrl.core.txs.Transaction import Transaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
@@ -22,8 +24,33 @@ app = Flask(__name__)
 def read_slaves(slaves_filename):
     with open(slaves_filename, 'r') as f:
         slave_data = json.load(f)
+        if not isinstance(slave_data, list) or len(slave_data) not in (3, 4):
+            raise ValueError('Invalid payment slaves file')
+        if len(slave_data) == 3:
+            slave_data.append({})
+        if not isinstance(slave_data[3], dict) or any(
+                not isinstance(address, str) or type(index) is not int or index < 0
+                for address, index in slave_data[3].items()):
+            raise ValueError('Invalid payment OTS indices')
         slave_data[0] = bytes(hstr2bin(slave_data[0]))
         return slave_data
+
+
+def persist_payment_ots_index(xmss):
+    address = bin2hstr(xmss.address)
+    indices = dict(payment_slaves[3])
+    if xmss.ots_index <= indices.get(address, -1):
+        raise ValueError('Payment OTS index did not advance')
+    indices[address] = xmss.ots_index
+    path = config.user.mining_pool_payment_wallet_path
+    data = [bin2hstr(payment_slaves[0]), payment_slaves[1], payment_slaves[2], indices]
+    write_private_file(path, json.dumps(data).encode('ascii'))
+    directory_fd = os.open(os.path.dirname(os.path.abspath(path)), os.O_RDONLY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
+    payment_slaves[3] = indices
 
 
 def set_unused_ots_key(public_stub, xmss, start=0):
@@ -31,14 +58,12 @@ def set_unused_ots_key(public_stub, xmss, start=0):
     # instead of pulling the whole (unpaginated) address state and scanning the
     # bitfield client-side. page_count=0 means no bitfield pages are returned;
     # only next_unused_ots_index is computed (server-side, above `start`).
-    response = public_stub.GetOTS(request=qrl_pb2.GetOTSReq(address=xmss.address,
-                                                            page_from=0,
-                                                            page_count=0,
-                                                            unused_ots_index_from=start))
-    if response.unused_ots_index_found:
-        xmss.set_ots_index(response.next_unused_ots_index)
-        return True
-    return False
+    # A bounded-scan retry index from the node is followed, not treated as exhaustion.
+    ots_index = request_unused_ots_index(public_stub, xmss.address, start)
+    if ots_index is None:
+        return False
+    xmss.set_ots_index(ots_index)
+    return True
 
 
 def valid_payment_permission(public_stub, master_address, payment_xmss, json_slave_txn):
@@ -67,7 +92,9 @@ def get_unused_payment_xmss(public_stub):
     master_address = payment_slaves[0]
 
     if payment_xmss:
-        if set_unused_ots_key(public_stub, payment_xmss, payment_xmss.ots_index):
+        start = max(payment_xmss.ots_index,
+                    payment_slaves[3].get(bin2hstr(payment_xmss.address), 0))
+        if set_unused_ots_key(public_stub, payment_xmss, start):
             if valid_payment_permission(public_stub, master_address, payment_xmss, payment_slaves[2]):
                 return payment_xmss
         else:
@@ -77,7 +104,8 @@ def get_unused_payment_xmss(public_stub):
         unused_ots_found = False
         for slave_seed in payment_slaves[1]:
             xmss = XMSS.from_extended_seed(slave_seed)
-            if set_unused_ots_key(public_stub, xmss):  # Unused ots_key_found
+            start = payment_slaves[3].get(bin2hstr(xmss.address), 0)
+            if set_unused_ots_key(public_stub, xmss, start):  # Unused ots_key_found
                 payment_xmss = xmss
                 unused_ots_found = True
                 break
@@ -120,12 +148,10 @@ def api_proxy(api_method_name):
 
 
 def get_mining_stub():
-    global mining_stub
     return mining_stub
 
 
 def get_public_stub():
-    global public_stub
     return public_stub
 
 
@@ -233,6 +259,7 @@ def transfer(destinations, fee, mixin, unlock_time):
                                     master_addr=payment_slaves[0])
 
     tx.sign(xmss)
+    persist_payment_ots_index(xmss)
 
     response = stub.PushTransaction(request=qrl_pb2.PushTransactionReq(transaction_signed=tx.pbdata))
 
