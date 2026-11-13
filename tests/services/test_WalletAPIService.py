@@ -167,6 +167,8 @@ class TestWalletAPI(TestCase):
     def test_relayTransferTxnBySlave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            walletd._public_stub.GetOTS = Mock(return_value=qrl_pb2.GetOTSResp(
+                next_unused_ots_index=5, unused_ots_index_found=True))
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -224,6 +226,8 @@ class TestWalletAPI(TestCase):
     def test_relayMessageTxnBySlave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            walletd._public_stub.GetOTS = Mock(return_value=qrl_pb2.GetOTSResp(
+                next_unused_ots_index=5, unused_ots_index_found=True))
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -288,6 +292,8 @@ class TestWalletAPI(TestCase):
     def test_relayTokenTxnBySlave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            walletd._public_stub.GetOTS = Mock(return_value=qrl_pb2.GetOTSResp(
+                next_unused_ots_index=5, unused_ots_index_found=True))
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -358,6 +364,8 @@ class TestWalletAPI(TestCase):
     def test_relayTransferTokenTxnBySlave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            walletd._public_stub.GetOTS = Mock(return_value=qrl_pb2.GetOTSResp(
+                next_unused_ots_index=5, unused_ots_index_found=True))
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 
@@ -423,6 +431,8 @@ class TestWalletAPI(TestCase):
     def test_relaySlaveTxnBySlave(self):
         with set_qrl_dir("wallet_ver1"):
             walletd = WalletD()
+            walletd._public_stub.GetOTS = Mock(return_value=qrl_pb2.GetOTSResp(
+                next_unused_ots_index=5, unused_ots_index_found=True))
             walletd._public_stub.PushTransaction = Mock(
                 return_value=qrl_pb2.PushTransactionResp(error_code=qrl_pb2.PushTransactionResp.SUBMITTED))
 

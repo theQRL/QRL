@@ -4,8 +4,10 @@
 from concurrent.futures import ThreadPoolExecutor
 
 import argparse
+import ipaddress
 import os
 import logging
+import secrets
 import grpc
 from typing import Optional
 from time import sleep
@@ -14,10 +16,13 @@ from daemonize import Daemonize
 from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr, QRLHelper
 
 from qrl.core import config
+from qrl.core.wallet_file import ensure_private_dir, write_private_file
 from qrl.core.AddressState import AddressState
 from qrl.daemon.helper import logger
 from qrl.daemon.helper.DaemonHelper import WalletDecryptionError, Wallet, UNRESERVED_OTS_INDEX_START
 from qrl.services.WalletAPIService import WalletAPIService
+from qrl.services.grpcHelper import request_unused_ots_index
+from qrl.services.wallet_auth import WalletAuthInterceptor
 from qrl.generated import qrl_pb2, qrl_pb2_grpc, qrlwallet_pb2
 from qrl.generated.qrlwallet_pb2_grpc import add_WalletAPIServicer_to_server
 from qrl.core.txs.TransferTransaction import TransferTransaction
@@ -34,6 +39,7 @@ pid = os.path.join(config.user.wallet_dir, 'qrl_walletd.pid')
 
 class WalletD:
     def __init__(self):
+        ensure_private_dir(config.user.wallet_dir)
         self._wallet_path = os.path.join(config.user.wallet_dir, 'walletd.json')
         self._public_stub = qrl_pb2_grpc.PublicAPIStub(grpc.insecure_channel(config.user.public_api_server))
         self._wallet = None
@@ -340,9 +346,7 @@ class WalletD:
             return None
 
         slave_index = len(item.slaves[group_index]) - 1
-        slave_address_state = self.get_address_state(slave.qaddress)
-
-        ots_index = slave_address_state.get_unused_ots_index(slave.index)
+        ots_index = self.get_unused_ots_index(self.qaddress_to_address(slave.qaddress), slave.index)
 
         if ots_index is None:  # noqa
             self._wallet.set_slave_ots_index(index,
@@ -368,12 +372,7 @@ class WalletD:
         return resp.result
 
     def get_unused_ots_index(self, address: bytes, unused_ots_index_from: int) -> Optional[int]:
-        request = qrl_pb2.GetOTSReq(address=address,
-                                    unused_ots_index_from=unused_ots_index_from)
-        resp = self._public_stub.GetOTS(request=request)
-        if not resp.unused_ots_index_found:
-            return None
-        return resp.next_unused_ots_index
+        return request_unused_ots_index(self._public_stub, address, unused_ots_index_from)
 
     def get_slave(self, master_qaddress):
         index, item = self._wallet.get_address_item(master_qaddress)
@@ -395,10 +394,9 @@ class WalletD:
                 target_address_item = item.slaves[-2][-1]
                 group_index = -2
 
-            address_state = self.get_address_state(qaddress)
-            ots_index = address_state.get_unused_ots_index()
+            ots_index = self.get_unused_ots_index(self.qaddress_to_address(qaddress), 0)
 
-            if ots_index >= UNRESERVED_OTS_INDEX_START:
+            if ots_index is None or ots_index >= UNRESERVED_OTS_INDEX_START:
                 raise Exception('Fatal Error!!! No reserved OTS index found')
 
             if self._passphrase:
@@ -440,12 +438,10 @@ class WalletD:
                 if self._passphrase:
                     slave = self._wallet.decrypt_address_item(slave, self._passphrase)
 
-                slave_address_state = self.get_address_state(slave.qaddress)
-
                 if slave_index + 1 == len(last_slaves) and slave.index > 2 ** slave.height - 100:
 
-                    ots_index = slave_address_state.get_unused_ots_index(0)
-                    if ots_index >= UNRESERVED_OTS_INDEX_START:
+                    ots_index = self.get_unused_ots_index(self.qaddress_to_address(slave.qaddress), 0)
+                    if ots_index is None or ots_index >= UNRESERVED_OTS_INDEX_START:
                         raise Exception("Fatal Error, no unused reserved OTS index")
 
                     curr_slave_xmss = self._wallet.get_xmss_by_item(slave, ots_index)
@@ -466,7 +462,7 @@ class WalletD:
                                                    index,
                                                    enable_save=False)
 
-                ots_index = slave_address_state.get_unused_ots_index(slave.index)
+                ots_index = self.get_unused_ots_index(self.qaddress_to_address(slave.qaddress), slave.index)
 
                 if ots_index is None:  # noqa
                     self._wallet.set_slave_ots_index(index,
@@ -602,9 +598,7 @@ class WalletD:
         return addr_item.slaves
 
     def verify_ots(self, signer_address, xmss, user_ots_index):
-        addr_state = self.get_address_state(signer_address)
-
-        verified_ots_index = self.get_unused_ots_index(addr_state.address, xmss.ots_index)
+        verified_ots_index = self.get_unused_ots_index(self.qaddress_to_address(signer_address), xmss.ots_index)
 
         if verified_ots_index is None:  # noqa
             raise Exception("No Unused OTS key found")
@@ -961,6 +955,40 @@ class WalletD:
         return self._public_stub.GetNodeState(qrl_pb2.GetNodeStateReq())
 
 
+def _start_wallet_api(walletd):
+    host = config.user.wallet_api_host
+    # Resolve localhost without DNS so the validated address is the bound address.
+    if host == 'localhost':
+        host = '127.0.0.1'
+    try:
+        address = ipaddress.ip_address(host.strip('[]'))
+    except ValueError:
+        raise ValueError('Wallet API host must be a loopback IP address or localhost') from None
+    if not address.is_loopback:
+        raise ValueError('Wallet API requires a loopback address; use a local tunnel for remote access')
+    host = '[{}]'.format(address) if address.version == 6 else str(address)
+
+    ensure_private_dir(config.user.wallet_dir)
+    token = secrets.token_urlsafe(32)
+    wallet_server = grpc.server(ThreadPoolExecutor(max_workers=config.user.wallet_api_threads),
+                                maximum_concurrent_rpcs=config.user.wallet_api_max_concurrent_rpc,
+                                interceptors=(WalletAuthInterceptor(token),))
+    try:
+        add_WalletAPIServicer_to_server(WalletAPIService(walletd), wallet_server)
+        bound_port = wallet_server.add_insecure_port("{0}:{1}".format(host, config.user.wallet_api_port))
+        if not bound_port:
+            raise RuntimeError('Could not bind wallet API')
+        token_path = os.path.join(config.user.wallet_dir, 'wallet_api.token')
+        write_private_file(token_path, token.encode('ascii'))
+        wallet_server.start()
+    except Exception:
+        wallet_server.stop(0)
+        raise
+
+    logger.info('WalletAPIService Started; token file: %s', token_path)
+    return wallet_server, bound_port
+
+
 def run():
     logger.initialize_default(force_console_output=True).setLevel(logging.INFO)
     file_handler = logger.log_to_file()
@@ -972,15 +1000,7 @@ def run():
     logger.set_unhandled_exception_handler()
 
     walletd = WalletD()  # noqa
-    wallet_server = grpc.server(ThreadPoolExecutor(max_workers=config.user.wallet_api_threads),
-                                maximum_concurrent_rpcs=config.user.wallet_api_max_concurrent_rpc)
-    add_WalletAPIServicer_to_server(WalletAPIService(walletd), wallet_server)
-
-    wallet_server.add_insecure_port("{0}:{1}".format(config.user.wallet_api_host,
-                                                     config.user.wallet_api_port))
-    wallet_server.start()
-
-    logger.info("WalletAPIService Started")
+    wallet_server, _ = _start_wallet_api(walletd)
 
     try:
         while True:

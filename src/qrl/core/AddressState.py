@@ -163,7 +163,7 @@ class AddressState(object):
         return address_state
 
     def ots_key_reuse(self, ots_key_index):
-        if ots_key_index < config.dev.max_ots_tracking_index:
+        if ots_key_index >> 3 < self._tracked_ots_bytes():
             offset = ots_key_index >> 3
             relative = ots_key_index % 8
             bitfield = bytearray(self.ots_bitfield[offset])
@@ -177,8 +177,15 @@ class AddressState(object):
 
         return False
 
+    def _tracked_ots_bytes(self):
+        # A node sends a bitfield longer than one page when it has stored pages
+        # past the first one; every byte it sends is tracked.
+        if len(self.ots_bitfield) > config.dev.ots_bitfield_size:
+            return len(self.ots_bitfield)
+        return min(len(self.ots_bitfield), config.dev.max_ots_tracking_index // 8)
+
     def set_ots_key(self, ots_key_index):
-        if ots_key_index < config.dev.max_ots_tracking_index:
+        if ots_key_index >> 3 < self._tracked_ots_bytes():
             offset = ots_key_index >> 3
             relative = ots_key_index % 8
             bitfield = bytearray(self._data.ots_bitfield[offset])
@@ -187,7 +194,7 @@ class AddressState(object):
             self._data.ots_counter = ots_key_index
 
     def unset_ots_key(self, ots_key_index, chain_manager):
-        if ots_key_index < config.dev.max_ots_tracking_index:
+        if ots_key_index >> 3 < self._tracked_ots_bytes():
             offset = ots_key_index >> 3
             relative = ots_key_index % 8
             bitfield = bytearray(self._data.ots_bitfield[offset])
@@ -197,7 +204,7 @@ class AddressState(object):
             # Expected transaction hash has been removed before unsetting ots key for that same transaction
             for tx_hash in self.transaction_hashes[-1::-1]:
                 tx, _ = chain_manager.get_tx_metadata(tx_hash)
-                if tx.ots_key >= config.dev.max_ots_tracking_index:
+                if tx.ots_key >> 3 >= self._tracked_ots_bytes():
                     self._data.ots_counter = tx.ots_key
                     break
 
@@ -209,7 +216,8 @@ class AddressState(object):
         """
         ots_key_count = (2 ** self.height)
 
-        for i in range(start_ots_index // 8, min(ots_key_count, config.dev.max_ots_tracking_index) // 8):
+        tracked_bytes = self._tracked_ots_bytes()
+        for i in range(start_ots_index // 8, min(ots_key_count // 8, tracked_bytes)):
             if self.ots_bitfield[i][0] < 255:
                 offset = 8 * i
                 bitfield = bytearray(self.ots_bitfield[i])
@@ -217,6 +225,15 @@ class AddressState(object):
                     if ((bitfield[0] >> relative) & 1) != 1:
                         if offset + relative >= start_ots_index:
                             return offset + relative
+
+        if tracked_bytes * 8 >= ots_key_count:
+            return None
+
+        if len(self.ots_bitfield) > config.dev.ots_bitfield_size:
+            # The node leaves out pages with no used keys, so every index past
+            # the bitfield is unused.
+            next_index = max(tracked_bytes * 8, start_ots_index)
+            return next_index if next_index < ots_key_count else None
 
         if ots_key_count >= config.dev.max_ots_tracking_index:
             if self.ots_counter + 1 < ots_key_count:

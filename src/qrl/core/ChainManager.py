@@ -120,17 +120,8 @@ class ChainManager:
         tokens = OrderedDict()
         slave_pks_access_type = OrderedDict()
 
-        max_bitfield_page = ceil((2 ** optimized_address_state.height) / config.dev.ots_tracking_per_page)
         if not exclude_ots_bitfield:
-            ots_bitfield = [b'\x00'] * max(1024, int(ceil((2 ** optimized_address_state.height) / 8)))
-            for page in range(1, max_bitfield_page + 1):
-                offset = (page - 1) * config.dev.ots_tracking_per_page
-                page_data = self.get_bitfield(address, page)
-                for data in page_data:
-                    if offset >= len(ots_bitfield):
-                        break
-                    ots_bitfield[offset] = data
-                    offset += 1
+            ots_bitfield = self.get_legacy_ots_bitfield(address, optimized_address_state.height)
 
         if not exclude_transaction_hashes:
             max_transaction_hash_page = ceil(optimized_address_state.transaction_hash_count() / config.dev.data_per_page)
@@ -180,6 +171,38 @@ class ChainManager:
     def get_multi_sig_address_state(self, address: bytes) -> MultiSigAddressState:
         with self.lock:
             return MultiSigAddressState.get_multi_sig_address_state_by_address(self._state._db, address)
+
+    def get_last_bitfield_page(self, address: bytes) -> int:
+        with self.lock:
+            p = PaginatedBitfield(False, self._state._db)
+            return p.get_last_stored_page(address)
+
+    def get_legacy_ots_bitfield(self, address: bytes, height: int) -> list:
+        """
+        Builds the flat OTS bitfield used by the legacy AddressState API.
+
+        The size comes from the bitfield pages stored for the address, never from
+        2 ** height. The height is read from the address descriptor, so a crafted
+        height-30 address would otherwise allocate ~1 GiB per request (QRL-3-5).
+        Pages after the last stored page hold no used keys and are left out;
+        AddressState.get_unused_ots_index treats indexes past the end as unused.
+        """
+        page_size = config.dev.ots_bitfield_size
+        max_page = ceil((1 << height) / config.dev.ots_tracking_per_page)
+        # Hold the lock across discovery and reads so a page stored in between
+        # cannot be left out of the snapshot.
+        with self.lock:
+            last_page = min(max_page, max(1, self.get_last_bitfield_page(address)))
+            if last_page * page_size > config.dev.max_legacy_ots_bitfield_bytes:
+                raise ValueError('OTS bitfield exceeds legacy API limit; use GetOTS')
+
+            ots_bitfield = []
+            for page in range(1, last_page + 1):
+                # Page n covers bytes (n - 1) * page_size onwards (#42).
+                page_data = list(self.get_bitfield(address, page)[:page_size])
+                page_data.extend([b'\x00'] * (page_size - len(page_data)))
+                ots_bitfield.extend(page_data)
+        return ots_bitfield
 
     def get_bitfield(self, address: bytes, page: int):
         with self.lock:
@@ -1343,7 +1366,7 @@ class ChainManager:
 
         return data_point
 
-    def get_unused_ots_index2(self, address, start_ots_index=0):
+    def get_unused_ots_index2(self, address, start_ots_index=0, max_scan_keys=None):
         """
         Convenience wrapper for get_unused_ots_index that reads bitfield pages
         straight from the state DB (no pre-loaded caches).
@@ -1352,16 +1375,20 @@ class ChainManager:
                                          addresses_state=dict(),
                                          address=address,
                                          paginated_bitfield=PaginatedBitfield(False, self._state._db),
-                                         start_ots_index=start_ots_index)
+                                         start_ots_index=start_ots_index,
+                                         max_scan_keys=max_scan_keys)
 
     def get_unused_ots_index(self,
                              addresses_bitfield: dict,
                              addresses_state: dict,
                              address,
                              paginated_bitfield: PaginatedBitfield,
-                             start_ots_index=0):
+                             start_ots_index=0,
+                             max_scan_keys=None):
         """
         Finds the unused ots index above the given start_ots_index.
+        max_scan_keys bounds the work for API callers; reaching it raises
+        ValueError rather than reporting the keys as exhausted.
         """
         if address not in addresses_state:
             addresses_state[address] = self.get_optimized_address_state(address)
@@ -1373,7 +1400,8 @@ class ChainManager:
         if address_state.ots_bitfield_used_page == max_page:
             return None
 
-        for curr_ots in range(start_ots_index, ots_key_count):
+        scan_end = ots_key_count if max_scan_keys is None else min(ots_key_count, start_ots_index + max_scan_keys)
+        for curr_ots in range(start_ots_index, scan_end):
             page = (curr_ots // config.dev.ots_tracking_per_page) + 1
             key = paginated_bitfield.generate_bitfield_key(address, page)
             if key not in addresses_bitfield:
@@ -1389,4 +1417,6 @@ class ChainManager:
                         if ots_offset + relative >= start_ots_index:
                             return ots_offset + relative
 
+        if scan_end < ots_key_count:
+            raise ValueError('OTS scan limit reached; retry from index {}'.format(scan_end))
         return None

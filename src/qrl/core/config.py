@@ -239,6 +239,10 @@ class DevConfig(object):
         self.cache_frequency = 1000
 
         self.message_q_size = 300
+        # API-only bounds for OTS bitfield queries (QRL-3-5). These never affect consensus.
+        self.max_legacy_ots_bitfield_bytes = 1024 * 1024
+        self.max_get_ots_pages = 32
+        self.max_get_ots_scan_keys = 65536
         self.message_receipt_timeout = 10  # request timeout for full message
         self.message_buffer_size = 16 * 1024 * 1024  # 16 MB
         self.max_peer_list_per_peer = 100

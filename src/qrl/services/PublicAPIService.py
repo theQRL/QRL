@@ -1,7 +1,6 @@
 # coding=utf-8
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-import traceback
 from collections import OrderedDict
 import os
 from statistics import variance, mean
@@ -219,8 +218,8 @@ class PublicAPIService(PublicAPIServicer):
                 answer.error_code = qrl_pb2.PushTransactionResp.VALIDATION_FAILED
 
         except Exception as e:
-            error_str = traceback.format_exception(None, e, e.__traceback__)
-            answer.error_description = str(''.join(error_str))
+            logger.exception(e)
+            answer.error_description = 'internal transaction processing error'
             answer.error_code = qrl_pb2.PushTransactionResp.ERROR
 
         return answer
