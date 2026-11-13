@@ -36,7 +36,7 @@ class TestWalletAPIStartup(TestCase):
         with grpc.insecure_channel('127.0.0.1:{}'.format(port)) as channel:
             stub = qrlwallet_pb2_grpc.WalletAPIStub(channel)
             response = stub.GetWalletInfo(qrlwallet_pb2.GetWalletInfoReq(),
-                                         metadata=((TOKEN_HEADER, token),), timeout=5)
+                                          metadata=((TOKEN_HEADER, token),), timeout=5)
         self.assertEqual(response.version, 1)
 
     def test_startup_replaces_token_and_enforces_private_permissions(self):

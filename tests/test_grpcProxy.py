@@ -258,6 +258,6 @@ class TestGrpcProxyPaymentOTSPersistence(TestCase):
         self._transfer()
 
         self.assertEqual([64, 0], [call.kwargs['request'].unused_ots_index_from
-                                  for call in self.stub.GetOTS.call_args_list])
+                                   for call in self.stub.GetOTS.call_args_list])
         with open(self.path) as infile:
             self.assertEqual({self.address: 64, next_address: 1}, json.load(infile)[3])

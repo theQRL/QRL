@@ -212,13 +212,13 @@ class TestMessageReceipt(TestCase):
         first_peer = object()
         second_peer = object()
         first_announcement = qrllegacy_pb2.MRData(hash=block.headerhash,
-                                                    type=LegacyMessage.BK,
-                                                    block_number=block.block_number,
-                                                    prev_headerhash=block.prev_headerhash)
+                                                  type=LegacyMessage.BK,
+                                                  block_number=block.block_number,
+                                                  prev_headerhash=block.prev_headerhash)
         second_announcement = qrllegacy_pb2.MRData(hash=block.headerhash,
-                                                     type=LegacyMessage.BK,
-                                                     block_number=block.block_number + 1,
-                                                     prev_headerhash=block.prev_headerhash)
+                                                   type=LegacyMessage.BK,
+                                                   block_number=block.block_number + 1,
+                                                   prev_headerhash=block.prev_headerhash)
         mr.add_peer(block.headerhash, LegacyMessage.BK, first_peer, first_announcement)
         mr.add_peer(block.headerhash, LegacyMessage.BK, second_peer, second_announcement)
         mr.add_peer(block.headerhash, LegacyMessage.TX, object(),
@@ -243,9 +243,9 @@ class TestMessageReceipt(TestCase):
                 mr = MessageReceipt()
                 peer = object()
                 announcement = qrllegacy_pb2.MRData(hash=b'block',
-                                                       type=LegacyMessage.BK,
-                                                       block_number=11,
-                                                       prev_headerhash=b'parent')
+                                                    type=LegacyMessage.BK,
+                                                    block_number=11,
+                                                    prev_headerhash=b'parent')
                 mr.add_peer(b'block', LegacyMessage.BK, peer, announcement)
                 self.assertFalse(mr.isRequested(b'block', peer, block))
                 self.assertIsNone(mr.get_msg_request(b'block'))
