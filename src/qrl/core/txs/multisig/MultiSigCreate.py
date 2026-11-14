@@ -1,4 +1,4 @@
-from pyqrllib.pyqrllib import QRLHelper, bin2hstr
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.State import State
 from qrl.core.StateContainer import StateContainer
@@ -6,7 +6,7 @@ from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.MultiSigAddressState import MultiSigAddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
-from qrl.crypto.misc import sha256
+from qrl.crypto.misc import sha256, address_from_extended_pk
 
 
 class MultiSigCreate(Transaction):
@@ -159,7 +159,7 @@ class MultiSigCreate(Transaction):
         state_container.addresses_state[multi_sig_address_state.address] = multi_sig_address_state
         state_container.paginated_tx_hash.insert(multi_sig_address_state, self.txhash)
 
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         for index in range(0, len(self.signatories)):
             signatory = self.signatories[index]
             address_state = state_container.addresses_state[signatory]
@@ -179,7 +179,7 @@ class MultiSigCreate(Transaction):
         multi_sig_address = MultiSigAddressState.generate_multi_sig_address(self.txhash)
         MultiSigAddressState.remove_multi_sig_address_state(state, multi_sig_address, state_container.batch)
 
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         for index in range(0, len(self.signatories)):
             signatory = self.signatories[index]
             address_state = state_container.addresses_state[signatory]

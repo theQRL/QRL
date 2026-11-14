@@ -6,7 +6,7 @@ from abc import ABCMeta, abstractmethod
 from math import log, floor
 
 from google.protobuf.json_format import MessageToJson, Parse
-from pyqrllib.pyqrllib import bin2hstr, QRLHelper, XmssFast
+from pyqrllib.pyqrllib import bin2hstr, XmssFast
 
 from qrl.core import config
 from qrl.core.State import State
@@ -14,7 +14,7 @@ from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.StateContainer import StateContainer
 from qrl.core.misc import logger
 from qrl.core.txs import build_tx as main_build_tx
-from qrl.crypto.misc import sha256
+from qrl.crypto.misc import sha256, address_from_extended_pk, extended_pk_for_verification
 from qrl.generated import qrl_pb2
 
 CODEMAP = {
@@ -89,7 +89,7 @@ class Transaction(object, metaclass=ABCMeta):
         if self.master_addr:
             return self.master_addr
 
-        return bytes(QRLHelper.getAddress(self.PK))
+        return address_from_extended_pk(self.PK)
 
     @property
     def ots_key(self):
@@ -132,7 +132,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     @staticmethod
     def get_slave(tx):
-        addr_from_pk = bytes(QRLHelper.getAddress(tx.PK))
+        addr_from_pk = address_from_extended_pk(tx.PK)
         if addr_from_pk != tx.addr_from:
             return addr_from_pk
         return None
@@ -174,7 +174,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     def set_affected_address(self, addresses_set: set):
         addresses_set.add(self.addr_from)
-        addresses_set.add(bytes(QRLHelper.getAddress(self.PK)))
+        addresses_set.add(address_from_extended_pk(self.PK))
 
     @abstractmethod
     def _validate_custom(self) -> bool:
@@ -241,7 +241,7 @@ class Transaction(object, metaclass=ABCMeta):
                 tx_type = self.pbdata.WhichOneof('transactionType')
                 addr_from_pk = None
                 if tx_type != 'coinbase':
-                    addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+                    addr_from_pk = address_from_extended_pk(self.PK)
 
                 if addr_from_pk == banned_address or self.master_addr == banned_address:
                     logger.warning("Banned QRL Address found in master_addr or pk")
@@ -272,7 +272,7 @@ class Transaction(object, metaclass=ABCMeta):
         if not self._validate_extended(state_container):
             return False
 
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         addr_from_pk_state = state_container.addresses_state[addr_from_pk]
 
         expected_nonce = addr_from_pk_state.nonce + 1
@@ -296,7 +296,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     # TODO: will need state_container
     def _coinbase_filter(self):
-        if config.dev.coinbase_address in [bytes(QRLHelper.getAddress(self.PK)), self.master_addr]:
+        if config.dev.coinbase_address in [address_from_extended_pk(self.PK), self.master_addr]:
             raise ValueError('Coinbase Address only allowed to do Coinbase Transaction')
 
     def _get_allowed_access_types(self):
@@ -332,13 +332,13 @@ class Transaction(object, metaclass=ABCMeta):
 
             if not XmssFast.verify(self.get_data_hash(),
                                    self.signature,
-                                   self.PK):
+                                   extended_pk_for_verification(self.PK)):
                 raise ValueError("Invalid xmss signature")
 
         return True
 
     def validate_slave(self, state_container: StateContainer) -> bool:
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
 
         master_address = self._get_master_address()
         allowed_access_types = self._get_allowed_access_types()
@@ -380,7 +380,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     def _apply_state_changes_for_PK(self,
                                     state_container: StateContainer) -> bool:
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         address_state = state_container.addresses_state[addr_from_pk]
         if self.addr_from != addr_from_pk:
             state_container.paginated_tx_hash.insert(address_state, self.txhash)
@@ -391,7 +391,7 @@ class Transaction(object, metaclass=ABCMeta):
 
     def _revert_state_changes_for_PK(self,
                                      state_container: StateContainer) -> bool:
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         address_state = state_container.addresses_state[addr_from_pk]
         if self.addr_from != addr_from_pk:
             state_container.paginated_tx_hash.remove(address_state, self.txhash)
