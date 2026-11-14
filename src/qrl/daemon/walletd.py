@@ -11,7 +11,7 @@ from typing import Optional
 from time import sleep
 from daemonize import Daemonize
 
-from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr, QRLHelper
+from pyqrllib.pyqrllib import hstr2bin, mnemonic2bin, bin2hstr
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
@@ -25,6 +25,7 @@ from qrl.core.txs.MessageTransaction import MessageTransaction
 from qrl.core.txs.SlaveTransaction import SlaveTransaction
 from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
+from qrl.crypto.misc import address_from_extended_pk
 from qrl.crypto.xmss import XMSS
 
 CONNECTION_TIMEOUT = 30
@@ -955,7 +956,7 @@ class WalletD:
         return self.to_plain_blocks(response.block)
 
     def get_address_from_pk(self, pk: str) -> str:
-        return self.address_to_qaddress(QRLHelper.getAddress(bytes(hstr2bin(pk))))
+        return self.address_to_qaddress(address_from_extended_pk(bytes(hstr2bin(pk))))
 
     def get_node_info(self):
         return self._public_stub.GetNodeState(qrl_pb2.GetNodeStateReq())

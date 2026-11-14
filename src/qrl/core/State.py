@@ -183,6 +183,17 @@ class State:
     def delete_fork_state(self, batch=None):
         self._db.delete(b'fork_state', batch)
 
+    def quarantine_fork_state(self, fork_state: qrlstateinfo_pb2.ForkState):
+        """
+        Set aside the journal of a fork recovery that could not be completed.
+
+        The journal is copied under a separate key, where nothing reads it
+        back, and the live key is removed so the recovery is not attempted
+        again on the next start.
+        """
+        self._db.put_raw(b'fork_state_quarantine', fork_state.SerializeToString())
+        self._db.delete(b'fork_state')
+
     @staticmethod
     def generate_token_key(address, token_txhash) -> bytes:
         return b'token_' + address + b'_' + token_txhash

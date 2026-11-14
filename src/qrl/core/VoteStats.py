@@ -1,4 +1,4 @@
-from pyqrllib.pyqrllib import bin2hstr, QRLHelper
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.generated import qrl_pb2
 from qrl.core.misc import logger
@@ -6,6 +6,7 @@ from qrl.core.StateContainer import StateContainer
 from qrl.core.PaginatedData import PaginatedData
 from qrl.core.txs.multisig.MultiSigVote import MultiSigVote
 from qrl.core.State import State
+from qrl.crypto.misc import address_from_extended_pk
 
 
 class VoteStats:
@@ -201,7 +202,7 @@ class VoteStats:
                                                                multi_sig_spend.total_amount,
                                                                subtract=True)
 
-        addr_from_pk = bytes(QRLHelper.getAddress(multi_sig_spend.PK))
+        addr_from_pk = address_from_extended_pk(multi_sig_spend.PK)
         for index in range(0, len(multi_sig_spend.addrs_to)):
             addr_to = multi_sig_spend.addrs_to[index]
             address_state = addresses_state[addr_to]
@@ -229,7 +230,7 @@ class VoteStats:
             return False
         addresses_state[self.multi_sig_address].update_balance(state_container, multi_sig_spend.total_amount)
 
-        addr_from_pk = bytes(QRLHelper.getAddress(multi_sig_spend.PK))
+        addr_from_pk = address_from_extended_pk(multi_sig_spend.PK)
         for index in range(0, len(multi_sig_spend.addrs_to)):
             addr_to = multi_sig_spend.addrs_to[index]
             address_state = addresses_state[addr_to]

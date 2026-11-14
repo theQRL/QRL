@@ -131,3 +131,27 @@ class TestTxnProcessor(TestCase):
         self.assertEqual([], tx_results)
         self.m_txpool.add_tx_to_pool.assert_not_called()
         self.m_broadcast_tx.assert_not_called()
+
+    def test_txnprocessor_survives_a_transaction_that_raises(self, m_get_slave, m_logger):
+        # A transaction that makes validation raise is dropped; the ones queued behind it are still processed.
+        m_get_slave.return_value = None
+        self.chain_manager.validate_all.side_effect = [ValueError('malformed'), True, True, True]
+
+        self.assertFalse(self.txnprocessor.__next__())
+        self.assertTrue(self.txnprocessor.__next__())
+        self.assertTrue(self.txnprocessor.__next__())
+        self.assertTrue(self.txnprocessor.__next__())
+
+        self.assertEqual(3, self.m_txpool.add_tx_to_pool.call_count)
+        self.assertEqual(3, self.m_broadcast_tx.call_count)
+
+    def test_txnprocessor_survives_pool_or_broadcast_errors(self, m_get_slave, m_logger):
+        m_get_slave.return_value = None
+        self.chain_manager.validate_all.return_value = True
+        self.tx1.validate_transaction_pool.side_effect = KeyError('boom')
+        self.m_broadcast_tx.side_effect = [RuntimeError('boom'), None, None]
+
+        self.assertFalse(self.txnprocessor.__next__())  # tx1: pool validation raises
+        self.assertFalse(self.txnprocessor.__next__())  # tx2: broadcast raises
+        self.assertTrue(self.txnprocessor.__next__())
+        self.assertTrue(self.txnprocessor.__next__())

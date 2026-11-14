@@ -1,4 +1,4 @@
-from pyqrllib.pyqrllib import bin2hstr, QRLHelper
+from pyqrllib.pyqrllib import bin2hstr
 
 from qrl.core.State import State
 from qrl.core.StateContainer import StateContainer
@@ -6,6 +6,7 @@ from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
 from qrl.generated.qrl_pb2 import TokenBalance
+from qrl.crypto.misc import address_from_extended_pk
 
 
 class TokenTransaction(Transaction):
@@ -184,7 +185,7 @@ class TokenTransaction(Transaction):
     def apply(self,
               state: State,
               state_container: StateContainer) -> bool:
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         owner_processed = False
         addr_from_processed = False
         addr_from_pk_processed = False
@@ -236,7 +237,7 @@ class TokenTransaction(Transaction):
     def revert(self,
                state: State,
                state_container: StateContainer) -> bool:
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         owner_processed = False
         addr_from_processed = False
         addr_from_pk_processed = False
