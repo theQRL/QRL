@@ -1283,7 +1283,32 @@ class ChainManager:
         if state_container is None:
             return False
 
-        # Processing Rest of the Transaction
+        if not self._revert_non_coinbase_transactions(block, state_container):
+            return False
+
+        # Reverting CoinBase Txn
+        coinbase_tx.revert(self._state, state_container)
+
+        # Invalid if slave_key doesnt exists in state
+        for address_slave_pk in state_container.slaves.data:
+            address, slave_pk = address_slave_pk
+            access_type = self.get_slave_pk_access_type(address, slave_pk)
+            if access_type is None:
+                logger.warning("Failed No Access Type Found")
+                return False
+
+        # This should be done before put_addresses_state, paginated_tx_hash &
+        # after vote_txn as it make changes on the balance and add more txn hash that
+        # needed to be removed, as well as total weight is checked before
+        # reverting the multi sig execution.
+        if not VoteStats.revert_all(self._state, state_container):
+            logger.warning("Failed to Revert Vote Stats")
+            return False
+
+        return self._persist_reverted_state(state_container, batch)
+
+    def _revert_non_coinbase_transactions(self, block, state_container: StateContainer) -> bool:
+        """Revert non-coinbase transactions in reverse order."""
         len_transactions = len(block.transactions)
         for tx_idx in range(len_transactions - 1, 0, -1):
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
@@ -1310,25 +1335,10 @@ class ChainManager:
             if not tx.revert(self._state, state_container):
                 return False
 
-        # Reverting CoinBase Txn
-        coinbase_tx.revert(self._state, state_container)
+        return True
 
-        # Invalid if slave_key doesnt exists in state
-        for address_slave_pk in state_container.slaves.data:
-            address, slave_pk = address_slave_pk
-            access_type = self.get_slave_pk_access_type(address, slave_pk)
-            if access_type is None:
-                logger.warning("Failed No Access Type Found")
-                return False
-
-        # This should be done before put_addresses_state, paginated_tx_hash &
-        # after vote_txn as it make changes on the balance and add more txn hash that
-        # needed to be removed, as well as total weight is checked before
-        # reverting the multi sig execution.
-        if not VoteStats.revert_all(self._state, state_container):
-            logger.warning("Failed to Revert Vote Stats")
-            return False
-
+    def _persist_reverted_state(self, state_container: StateContainer, batch) -> bool:
+        """Persist reverted indexes before saving address counters."""
         if not state_container.paginated_tx_hash.put_paginated_data(batch):
             logger.warning("Failed Revert Addresses Transaction Hashes")
             return False

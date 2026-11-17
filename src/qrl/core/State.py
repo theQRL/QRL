@@ -184,8 +184,7 @@ class State:
         self._db.delete(b'fork_state', batch)
 
     def quarantine_fork_state(self, fork_state: qrlstateinfo_pb2.ForkState):
-        """
-        Set aside the journal of a fork recovery that could not be completed.
+        """Set aside the journal of a fork recovery that could not be completed.
 
         The journal is copied under a separate key, where nothing reads it
         back, and the live key is removed so the recovery is not attempted

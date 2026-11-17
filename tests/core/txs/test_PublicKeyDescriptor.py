@@ -15,7 +15,8 @@ logger.initialize_default()
 
 
 class TestPublicKeyDescriptor(TestCase):
-    """
+    """Test historical acceptance of non-canonical XMSS descriptors.
+
     The signature-type nibble and the third descriptor byte of an XMSS public
     key were never checked on mainnet. A transaction whose public key sets
     them is valid, and is sent from the address that key hashes to.
@@ -116,4 +117,4 @@ class TestPublicKeyDescriptor(TestCase):
 
         self.assertFalse(tx.validate())
         with self.assertRaises(ValueError):
-            tx.addr_from
+            _ = tx.addr_from
