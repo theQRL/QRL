@@ -890,10 +890,12 @@ class ChainManager:
             logger.error("Fork Recovery: the previous main chain could not be fully restored")
             logger.exception(e)
         finally:
+            tip_reloaded = False
             try:
                 # Whatever happened above, the tip in memory must be the stored one
                 # before anything builds on it.
                 self._reload_last_block()
+                tip_reloaded = True
             except Exception as e:
                 logger.error("Fork Recovery: the stored tip could not be reloaded")
                 logger.exception(e)
@@ -902,13 +904,14 @@ class ChainManager:
             except Exception as e:
                 logger.error("Fork Recovery: the journal could not be quarantined")
                 logger.exception(e)
-            self.trigger_miner = True
+            self.trigger_miner = tip_reloaded
 
     def _reload_last_block(self):
-        """Set the in-memory tip to the block at the stored main chain height."""
+        """Reload the stored chain tip, raising if its block is missing."""
         last_block = Block.get_block_by_number(self._state, self._state.get_mainchain_height())
-        if last_block is not None:
-            self._last_block = last_block
+        if last_block is None:
+            raise ValueError('Stored main chain tip block is missing')
+        self._last_block = last_block
 
     def _restore_old_mainchain(self, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
         """

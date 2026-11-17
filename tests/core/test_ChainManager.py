@@ -5471,17 +5471,31 @@ class TestChainManager(TestCase):
     def test_fork_recovery_quarantines_journal_even_if_final_reload_raises(self):
         self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('recovery failed'))
         self.chain_manager._reload_last_block = Mock(side_effect=[None, RuntimeError('reload failed')])
+        self.chain_manager.trigger_miner = True
         fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator')
 
         self.assertFalse(self.chain_manager._fork_recovery(None, fork_state))
 
         self.assertEqual(2, self.chain_manager._reload_last_block.call_count)
         self.state.quarantine_fork_state.assert_called_once_with(fork_state)
-        self.assertTrue(self.chain_manager.trigger_miner)
+        self.assertFalse(self.chain_manager.trigger_miner)
 
     def test_fork_recovery_contains_quarantine_error_after_reload_errors(self):
         self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('recovery failed'))
         self.chain_manager._reload_last_block = Mock(side_effect=RuntimeError('reload failed'))
+        self.state.quarantine_fork_state.side_effect = RuntimeError('quarantine failed')
+        self.chain_manager.trigger_miner = True
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator')
+
+        self.assertFalse(self.chain_manager._fork_recovery(None, fork_state))
+
+        self.assertEqual(2, self.chain_manager._reload_last_block.call_count)
+        self.state.quarantine_fork_state.assert_called_once_with(fork_state)
+        self.assertFalse(self.chain_manager.trigger_miner)
+
+    def test_fork_recovery_triggers_miner_after_final_reload_even_if_quarantine_fails(self):
+        self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('recovery failed'))
+        self.chain_manager._reload_last_block = Mock(side_effect=[RuntimeError('initial reload failed'), None])
         self.state.quarantine_fork_state.side_effect = RuntimeError('quarantine failed')
         fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator')
 
@@ -5490,6 +5504,19 @@ class TestChainManager(TestCase):
         self.assertEqual(2, self.chain_manager._reload_last_block.call_count)
         self.state.quarantine_fork_state.assert_called_once_with(fork_state)
         self.assertTrue(self.chain_manager.trigger_miner)
+
+    def test_fork_recovery_does_not_trigger_miner_when_stored_tip_is_missing(self):
+        self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('recovery failed'))
+        self.chain_manager.trigger_miner = True
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator')
+        original_tip = self.chain_manager.last_block
+
+        with patch.object(Block, 'get_block_by_number', return_value=None):
+            self.assertFalse(self.chain_manager._fork_recovery(None, fork_state))
+
+        self.assertEqual(self.chain_manager.last_block, original_tip)
+        self.state.quarantine_fork_state.assert_called_once_with(fork_state)
+        self.assertFalse(self.chain_manager.trigger_miner)
 
     def test_remove_block_from_mainchain_keeps_dev_config_when_undo_fails(self):
         # The block that activated the current dev config cannot be undone:
