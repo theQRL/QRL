@@ -4737,6 +4737,92 @@ class TestChainManagerReal(TestCase):
         self.assertEqual(restarted.last_block, block_2)
 
     @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_quarantines_when_replay_and_restoration_return_false(self):
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block(2, block_1_alt, bob.address)
+        block_3_alt = create_block(3, block_2_alt, bob.address)
+
+        self.chain_manager.load(self.genesis_block)
+        for block in (block_1, block_2, block_1_alt, block_2_alt):
+            self.assertTrue(self.chain_manager.add_block(block))
+
+        apply_state_changes = self.chain_manager._apply_state_changes_or_raise
+        revert_state_changes = self.chain_manager._revert_state_changes_or_raise
+
+        def reject_block_2_alt(block, batch):
+            if block.headerhash == block_2_alt.headerhash:
+                raise ValueError('branch application failure')
+            return apply_state_changes(block, batch)
+
+        def refuse_to_revert_block_1_alt(block, batch):
+            if block.headerhash == block_1_alt.headerhash:
+                raise ValueError('branch reversion failure')
+            return revert_state_changes(block, batch)
+
+        # Both exception barriers return False. No exception escapes to the
+        # outer recovery handler, so failed restoration must explicitly abandon.
+        with patch.object(self.chain_manager, '_apply_state_changes_or_raise', side_effect=reject_block_2_alt), \
+                patch.object(self.chain_manager, '_revert_state_changes_or_raise',
+                             side_effect=refuse_to_revert_block_1_alt):
+            self.assertFalse(self.chain_manager.add_block(block_3_alt))
+
+        self.assertEqual(self.chain_manager.last_block, block_1_alt)
+        self.assertEqual(1, self.state.get_mainchain_height())
+        self.assertEqual(self.chain_manager.get_block_by_number(1), block_1_alt)
+        self.assertIsNone(self.chain_manager.get_block_by_number(2))
+        self.assertIsNone(self.state.get_fork_state())
+        self.assertIsNotNone(self.state._db.get_raw(b'fork_state_quarantine'))
+        self.assertTrue(self.chain_manager.trigger_miner)
+
+        # Quarantine must persist: subsequent loads do not retry this recovery.
+        for _ in range(2):
+            restarted = ChainManager(self.state)
+            with patch.object(restarted, '_fork_recovery', wraps=restarted._fork_recovery) as recover:
+                restarted.load(self.genesis_block)
+                recover.assert_not_called()
+            self.assertEqual(restarted.last_block, block_1_alt)
+            self.assertIsNone(self.state.get_fork_state())
+
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_does_not_abandon_when_old_chain_restoration_succeeds(self):
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block(2, block_1_alt, bob.address)
+        block_3_alt = create_block(3, block_2_alt, bob.address)
+
+        self.chain_manager.load(self.genesis_block)
+        for block in (block_1, block_2, block_1_alt, block_2_alt):
+            self.assertTrue(self.chain_manager.add_block(block))
+
+        apply_state_changes = self.chain_manager._apply_state_changes_or_raise
+
+        def reject_block_2_alt(block, batch):
+            if block.headerhash == block_2_alt.headerhash:
+                raise ValueError('branch application failure')
+            return apply_state_changes(block, batch)
+
+        with patch.object(self.chain_manager, '_apply_state_changes_or_raise', side_effect=reject_block_2_alt), \
+                patch.object(self.chain_manager, '_abandon_fork_recovery',
+                             wraps=self.chain_manager._abandon_fork_recovery) as abandon, \
+                patch.object(self.state, 'quarantine_fork_state', wraps=self.state.quarantine_fork_state) as quarantine:
+            self.assertFalse(self.chain_manager.add_block(block_3_alt))
+            abandon.assert_not_called()
+            quarantine.assert_not_called()
+
+        self.assertEqual(self.chain_manager.last_block, block_2)
+        self.assertEqual(2, self.state.get_mainchain_height())
+        self.assertEqual(self.chain_manager.get_block_by_number(1), block_1)
+        self.assertEqual(self.chain_manager.get_block_by_number(2), block_2)
+        self.assertIsNone(self.state.get_fork_state())
+
+        restarted = ChainManager(self.state)
+        restarted.load(self.genesis_block)
+        self.assertEqual(restarted.last_block, block_2)
+
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
     def test_load_survives_unusable_fork_journal(self):
         # A journal left on disk that cannot be resumed must not stop the node from starting.
         block_1 = create_block(1, self.genesis_block, alice.address)

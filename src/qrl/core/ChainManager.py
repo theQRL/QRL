@@ -982,7 +982,8 @@ class ChainManager:
             logger.warning("Fork Recovery Failed... Recovering back to old mainchain")
             # If above condition is true, then it means, the node failed to add_chain
             # Thus old chain state, must be retrieved
-            self._restore_old_mainchain(fork_state)
+            if not self._restore_old_mainchain(fork_state):
+                self._abandon_fork_recovery(fork_state)
             return False
 
         logger.info("Fork Recovery Finished")
