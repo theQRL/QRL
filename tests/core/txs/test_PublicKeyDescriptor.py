@@ -116,5 +116,4 @@ class TestPublicKeyDescriptor(TestCase):
         tx.update_txhash()
 
         self.assertFalse(tx.validate())
-        with self.assertRaises(ValueError):
-            _ = tx.addr_from
+        self.assertRaises(ValueError, getattr, tx, 'addr_from')
