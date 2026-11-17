@@ -894,6 +894,10 @@ class ChainManager:
                 # Whatever happened above, the tip in memory must be the stored one
                 # before anything builds on it.
                 self._reload_last_block()
+            except Exception as e:
+                logger.error("Fork Recovery: the stored tip could not be reloaded")
+                logger.exception(e)
+            try:
                 self._state.quarantine_fork_state(fork_state)
             except Exception as e:
                 logger.error("Fork Recovery: the journal could not be quarantined")
