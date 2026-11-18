@@ -241,15 +241,26 @@ class ChainManager:
             return self._state.get_token(address, token_txhash)
 
     def validate_all(self, tx: Transaction, check_nonce: bool) -> bool:
+        """
+        Validate a single transaction against the current chain tip.
+
+        A transaction that makes validation raise is treated as invalid, so a
+        malformed transaction can never take down the caller.
+        """
         with self.lock:
-            addresses_set = set()
-            tx.set_affected_address(addresses_set)
-            state_container = self.new_state_container(addresses_set, self.height + 1, True, None)
-            if state_container is None:
+            try:
+                addresses_set = set()
+                tx.set_affected_address(addresses_set)
+                state_container = self.new_state_container(addresses_set, self.height + 1, True, None)
+                if state_container is None:
+                    return False
+                if not self.update_state_container(tx, state_container):
+                    return False
+                return tx.validate_all(state_container, check_nonce)
+            except Exception as e:
+                logger.warning('Transaction validation raised, treating the transaction as invalid')
+                logger.exception(e)
                 return False
-            if not self.update_state_container(tx, state_container):
-                return False
-            return tx.validate_all(state_container, check_nonce)
 
     def validate_tx(self,
                     tx: Transaction,
@@ -696,6 +707,20 @@ class ChainManager:
         return True
 
     def _remove_block_from_mainchain(self, block: Block, latest_block_number: int, batch) -> bool:
+        """
+        Take `block` off the main chain. If it cannot be taken off, by a False
+        result or by an error, the active dev config is left as it was.
+        """
+        active_dev_config = config.dev.pbdata
+        removed = False
+        try:
+            removed = self._remove_block_from_mainchain_unguarded(block, latest_block_number, batch)
+            return removed
+        finally:
+            if not removed:
+                config.dev.update_from_pbdata(active_dev_config)
+
+    def _remove_block_from_mainchain_unguarded(self, block: Block, latest_block_number: int, batch) -> bool:
         # Reverting Dev Config to older state, if any new config
         # was activated after addition of this block number
         if config.dev.activation_block_number == block.block_number:
@@ -759,14 +784,23 @@ class ChainManager:
             hash_path.append(self._last_block.headerhash)
 
             batch = self._state.batch
+            active_dev_config = config.dev.pbdata
             if not self._remove_block_from_mainchain(self._last_block, block.block_number, batch):
                 return hash_path, False
 
-            if fork_state:
-                fork_state.old_mainchain_hash_path.extend([self._last_block.headerhash])
-                self._state.put_fork_state(fork_state, batch)
+            try:
+                if fork_state:
+                    fork_state.old_mainchain_hash_path.extend([self._last_block.headerhash])
+                    self._state.put_fork_state(fork_state, batch)
 
-            self._state.write_batch(batch)
+                self._state.write_batch(batch)
+            except Exception:
+                # The removal was not stored, so the block is still the tip.
+                config.dev.update_from_pbdata(active_dev_config)
+                if fork_state and fork_state.old_mainchain_hash_path and \
+                        fork_state.old_mainchain_hash_path[-1] == self._last_block.headerhash:
+                    del fork_state.old_mainchain_hash_path[-1]
+                raise
 
             self._last_block = Block.get_block(self._state, self._last_block.prev_headerhash)
 
@@ -826,6 +860,98 @@ class ChainManager:
         """
         Switch the main chain to the branch ending at `block` when it wins.
 
+        Any error raised while switching is contained here: the previous main
+        chain is restored as far as possible and the journal is set aside, so
+        a branch that cannot be replayed is not retried on every start.
+        Returns True on a successful switch, False otherwise.
+        """
+        try:
+            return self._run_fork_recovery(block, fork_state)
+        except Exception as e:
+            logger.error("Fork Recovery raised an unexpected error, abandoning it")
+            logger.exception(e)
+            self._abandon_fork_recovery(fork_state)
+            return False
+
+    def _abandon_fork_recovery(self, fork_state: qrlstateinfo_pb2.ForkState):
+        """
+        Leave the node on a consistent chain after a fork recovery failed with
+        an error: bring the in-memory tip back in line with the stored height,
+        put the previous main chain back if any of it was rolled back, and
+        quarantine the journal.
+        """
+        try:
+            self._reload_last_block()
+            if fork_state.old_mainchain_hash_path:
+                logger.warning("Fork Recovery: restoring the previous main chain")
+                if not self._restore_old_mainchain(fork_state):
+                    logger.error("Fork Recovery: the previous main chain could not be fully restored")
+        except Exception as e:
+            logger.error("Fork Recovery: the previous main chain could not be fully restored")
+            logger.exception(e)
+        finally:
+            tip_reloaded = False
+            try:
+                # Whatever happened above, the tip in memory must be the stored one
+                # before anything builds on it.
+                self._reload_last_block()
+                tip_reloaded = True
+            except Exception as e:
+                logger.error("Fork Recovery: the stored tip could not be reloaded")
+                logger.exception(e)
+            try:
+                self._state.quarantine_fork_state(fork_state)
+            except Exception as e:
+                logger.error("Fork Recovery: the journal could not be quarantined")
+                logger.exception(e)
+            self.trigger_miner = tip_reloaded
+
+    def _reload_last_block(self):
+        """Reload the stored chain tip, raising if its block is missing."""
+        last_block = Block.get_block_by_number(self._state, self._state.get_mainchain_height())
+        if last_block is None:
+            raise ValueError('Stored main chain tip block is missing')
+        self._last_block = last_block
+
+    def _restore_old_mainchain(self, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
+        """
+        Put back the main chain blocks that a fork recovery rolled back.
+
+        `fork_state.old_mainchain_hash_path` lists exactly the blocks whose
+        removal was stored, from the old tip downwards, so they are replayed on
+        top of the parent of its last entry. That parent is the fork point
+        when the rollback ran to completion, and a block of the old chain that
+        was never removed when it stopped part way. Nothing is replayed unless
+        the tip is that parent, so old blocks are never applied to a state
+        they do not belong to.
+        """
+        old_hash_path = list(fork_state.old_mainchain_hash_path)
+        if not old_hash_path:
+            self._state.delete_fork_state()
+            return True
+
+        restore_point = fork_state.fork_point_headerhash
+        lowest_removed = Block.get_block(self._state, old_hash_path[-1])
+        if lowest_removed is not None:
+            restore_point = lowest_removed.prev_headerhash
+
+        if restore_point == fork_state.fork_point_headerhash:
+            # Blocks of the new branch may already have been applied: take them off again.
+            _, success = self._rollback(restore_point)
+            if not success:
+                logger.warning("Fork Recovery: could not roll back to the fork point")
+                return False
+
+        if self._last_block.headerhash != restore_point:
+            logger.warning("Fork Recovery: tip is not where the old main chain can be replayed from")
+            return False
+
+        return self.add_chain(old_hash_path[-1::-1], fork_state)
+
+    def _run_fork_recovery(self, block: Block, fork_state: qrlstateinfo_pb2.ForkState) -> bool:
+        """
+        Fork recovery proper, see `_fork_recovery`.
+
         Finds the fork point, rolls the state back to it, and replays the new
         branch; if replay fails it restores the old chain. Fork progress is
         persisted in `fork_state` so an interrupted recovery can resume. Returns
@@ -857,16 +983,14 @@ class ChainManager:
         success = True
         if not rollback_done:
             logger.info("Rolling back")
-            old_hash_path, success = self._rollback(forked_header_hash, fork_state)
-        else:
-            old_hash_path = fork_state.old_mainchain_hash_path
+            _, success = self._rollback(forked_header_hash, fork_state)
 
         if not success or not self.add_chain(hash_path[-1::-1], fork_state):
             logger.warning("Fork Recovery Failed... Recovering back to old mainchain")
             # If above condition is true, then it means, the node failed to add_chain
             # Thus old chain state, must be retrieved
-            self._rollback(forked_header_hash)
-            self.add_chain(old_hash_path[-1::-1], fork_state)  # Restores the old chain state
+            if not self._restore_old_mainchain(fork_state):
+                self._abandon_fork_recovery(fork_state)
             return False
 
         logger.info("Fork Recovery Finished")
@@ -1073,7 +1197,19 @@ class ChainManager:
         Validate and apply every transaction in `block` to the state, updating
         balances and paginated indexes. Rejects a second coinbase (except the
         historical block 2078158). Returns False if any transaction is invalid.
+
+        A transaction that makes validation or application raise is invalid
+        too: the error is logged and False is returned, so every caller
+        (new tip, branch replay) takes its ordinary rejection path.
         """
+        try:
+            return self._apply_state_changes_or_raise(block, batch)
+        except Exception as e:
+            logger.warning('Applying block #%s raised, rejecting the block', getattr(block, 'block_number', None))
+            logger.exception(e)
+            return False
+
+    def _apply_state_changes_or_raise(self, block, batch) -> bool:
         state_container = self.new_state_container(set(),
                                                    block.block_number,
                                                    True,
@@ -1131,6 +1267,18 @@ class ChainManager:
         return True
 
     def revert_state_changes(self, block, batch) -> bool:
+        """
+        Undo the state changes of `block`. Returns False if they cannot be
+        undone, including when undoing them raises.
+        """
+        try:
+            return self._revert_state_changes_or_raise(block, batch)
+        except Exception as e:
+            logger.warning('Reverting block #%s raised', getattr(block, 'block_number', None))
+            logger.exception(e)
+            return False
+
+    def _revert_state_changes_or_raise(self, block, batch) -> bool:
         address_set = set()
 
         coinbase_tx = Transaction.from_pbdata(block.transactions[0])
@@ -1142,7 +1290,32 @@ class ChainManager:
         if state_container is None:
             return False
 
-        # Processing Rest of the Transaction
+        if not self._revert_non_coinbase_transactions(block, state_container):
+            return False
+
+        # Reverting CoinBase Txn
+        coinbase_tx.revert(self._state, state_container)
+
+        # Invalid if slave_key doesnt exists in state
+        for address_slave_pk in state_container.slaves.data:
+            address, slave_pk = address_slave_pk
+            access_type = self.get_slave_pk_access_type(address, slave_pk)
+            if access_type is None:
+                logger.warning("Failed No Access Type Found")
+                return False
+
+        # This should be done before put_addresses_state, paginated_tx_hash &
+        # after vote_txn as it make changes on the balance and add more txn hash that
+        # needed to be removed, as well as total weight is checked before
+        # reverting the multi sig execution.
+        if not VoteStats.revert_all(self._state, state_container):
+            logger.warning("Failed to Revert Vote Stats")
+            return False
+
+        return self._persist_reverted_state(state_container, batch)
+
+    def _revert_non_coinbase_transactions(self, block, state_container: StateContainer) -> bool:
+        """Revert non-coinbase transactions in reverse order."""
         len_transactions = len(block.transactions)
         for tx_idx in range(len_transactions - 1, 0, -1):
             tx = Transaction.from_pbdata(block.transactions[tx_idx])
@@ -1169,25 +1342,10 @@ class ChainManager:
             if not tx.revert(self._state, state_container):
                 return False
 
-        # Reverting CoinBase Txn
-        coinbase_tx.revert(self._state, state_container)
+        return True
 
-        # Invalid if slave_key doesnt exists in state
-        for address_slave_pk in state_container.slaves.data:
-            address, slave_pk = address_slave_pk
-            access_type = self.get_slave_pk_access_type(address, slave_pk)
-            if access_type is None:
-                logger.warning("Failed No Access Type Found")
-                return False
-
-        # This should be done before put_addresses_state, paginated_tx_hash &
-        # after vote_txn as it make changes on the balance and add more txn hash that
-        # needed to be removed, as well as total weight is checked before
-        # reverting the multi sig execution.
-        if not VoteStats.revert_all(self._state, state_container):
-            logger.warning("Failed to Revert Vote Stats")
-            return False
-
+    def _persist_reverted_state(self, state_container: StateContainer, batch) -> bool:
+        """Persist reverted indexes before saving address counters."""
         if not state_container.paginated_tx_hash.put_paginated_data(batch):
             logger.warning("Failed Revert Addresses Transaction Hashes")
             return False

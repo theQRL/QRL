@@ -7,14 +7,14 @@ import os
 from statistics import variance, mean
 import threading
 
-from pyqrllib.pyqrllib import hstr2bin, QRLHelper, QRLDescriptor
+from pyqrllib.pyqrllib import hstr2bin, QRLDescriptor
 
 from qrl.core import config
 from qrl.core.AddressState import AddressState
 from qrl.core.misc import logger, ntp
 from qrl.core.qrlnode import QRLNode
 from qrl.core.txs.Transaction import Transaction, CODEMAP
-from qrl.crypto.misc import address_is_well_formed
+from qrl.crypto.misc import address_is_well_formed, address_from_extended_pk
 from qrl.crypto.xmss import XMSS
 from qrl.generated import qrl_pb2
 from qrl.generated.qrl_pb2_grpc import PublicAPIServicer
@@ -71,7 +71,7 @@ class PublicAPIService(PublicAPIServicer):
 
     @GrpcExceptionWrapper(qrl_pb2.GetAddressFromPKResp)
     def GetAddressFromPK(self, request: qrl_pb2.GetAddressFromPKReq, context) -> qrl_pb2.GetAddressFromPKResp:
-        return qrl_pb2.GetAddressFromPKResp(address=bytes(QRLHelper.getAddress(request.pk)))
+        return qrl_pb2.GetAddressFromPKResp(address=address_from_extended_pk(request.pk))
 
     @GrpcExceptionWrapper(qrl_pb2.GetPeersStatResp)
     def GetPeersStat(self, request: qrl_pb2.GetPeersStatReq, context) -> qrl_pb2.GetPeersStatResp:

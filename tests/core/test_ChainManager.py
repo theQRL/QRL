@@ -33,7 +33,8 @@ from qrl.core.txs.multisig.MultiSigSpend import MultiSigSpend
 from qrl.core.txs.multisig.MultiSigVote import MultiSigVote
 from tests.misc.helper import get_alice_xmss, get_bob_xmss, set_default_balance_size, set_hard_fork_block_number, \
     set_qrl_dir, setup_qrl_dir_without_ctx, cleanup_qrl_dir, replacement_getTime, get_some_address, gen_blocks, \
-    MAINNET_UNKNOWN_HASH_FN_ADDRESS
+    MAINNET_UNKNOWN_HASH_FN_ADDRESS, with_pk_descriptor
+from qrl.crypto.misc import address_from_extended_pk
 
 alice = get_alice_xmss()
 bob = get_bob_xmss()
@@ -52,6 +53,17 @@ def create_block(block_number, previous_block, miner_address):
                         prev_headerhash=previous_block.headerhash,
                         prev_timestamp=previous_block.timestamp,
                         transactions=[],
+                        miner_address=miner_address,
+                        seed_height=None,
+                        seed_hash=None)
+
+
+def create_block_with(block_number, previous_block, miner_address, transactions):
+    return Block.create(dev_config=config.dev,
+                        block_number=block_number,
+                        prev_headerhash=previous_block.headerhash,
+                        prev_timestamp=previous_block.timestamp,
+                        transactions=transactions,
                         miner_address=miner_address,
                         seed_height=None,
                         seed_hash=None)
@@ -4559,6 +4571,391 @@ class TestChainManagerReal(TestCase):
             self.assertTrue(self.chain_manager.update_state_container(multi_sig_vote1, state_container))
             self.assertTrue(self.chain_manager.update_state_container(multi_sig_vote2, state_container))
 
+    def _transfer_from(self, xmss, pk, nonce=1, amount=10, fee=1):
+        tx = TransferTransaction.create(addrs_to=[alice.address],
+                                        amounts=[amount],
+                                        message_data=None,
+                                        fee=fee,
+                                        xmss_pk=pk)
+        tx._data.nonce = nonce
+        tx.sign(xmss)
+        return tx
+
+    @set_default_balance_size()
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_reorg_across_block_with_non_canonical_pk_descriptor(self):
+        """
+        A transfer whose public key sets the signature-type nibble and the
+        third descriptor byte is accepted, can be rolled back when another
+        branch wins, and can be replayed when its own branch wins again.
+        """
+        signer = get_bob_xmss(4)
+        pk = with_pk_descriptor(signer.pk, signature_type=5, reserved=7)
+        sender = address_from_extended_pk(pk)
+        self.assertNotEqual(signer.address, sender)
+        tx = self._transfer_from(signer, pk)
+        default_balance = config.dev.default_account_balance
+
+        self.chain_manager.load(self.genesis_block)
+
+        block_1 = create_block_with(1, self.genesis_block, alice.address, [tx])
+        self.assertTrue(self.chain_manager.add_block(block_1))
+        self.assertEqual(self.chain_manager.last_block, block_1)
+        sender_state = self.chain_manager.get_optimized_address_state(sender)
+        self.assertEqual(default_balance - 11, sender_state.balance)
+        self.assertEqual(1, sender_state.nonce)
+        # The canonical address of the same key is a different account and is untouched.
+        self.assertEqual(default_balance, self.chain_manager.get_optimized_address_state(signer.address).balance)
+
+        # A longer branch without the transfer: block_1 is rolled back.
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block(2, block_1_alt, bob.address)
+        self.assertTrue(self.chain_manager.add_block(block_1_alt))
+        self.assertEqual(self.chain_manager.last_block, block_1)
+        self.assertTrue(self.chain_manager.add_block(block_2_alt))
+        self.assertEqual(self.chain_manager.last_block, block_2_alt)
+        sender_state = self.chain_manager.get_optimized_address_state(sender)
+        self.assertEqual(default_balance, sender_state.balance)
+        self.assertEqual(0, sender_state.nonce)
+        self.assertIsNone(self.state.get_fork_state())
+
+        # The first branch grows longer again: block_1 is replayed from storage.
+        block_2 = create_block(2, block_1, alice.address)
+        block_3 = create_block(3, block_2, alice.address)
+        self.assertTrue(self.chain_manager.add_block(block_2))
+        self.assertEqual(self.chain_manager.last_block, block_2_alt)
+        self.assertTrue(self.chain_manager.add_block(block_3))
+        self.assertEqual(self.chain_manager.last_block, block_3)
+        sender_state = self.chain_manager.get_optimized_address_state(sender)
+        self.assertEqual(default_balance - 11, sender_state.balance)
+        self.assertEqual(1, sender_state.nonce)
+        self.assertIsNone(self.state.get_fork_state())
+
+        # A restart finds nothing left to recover.
+        restarted = ChainManager(self.state)
+        restarted.load(self.genesis_block)
+        self.assertEqual(restarted.last_block, block_3)
+
+    @set_default_balance_size()
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_block_with_malformed_public_key_is_rejected_cleanly(self):
+        # A transaction that makes block application raise is an invalid
+        # block like any other: add_block() returns False and nothing changes.
+        # A key of its own: the shared module-level keys must not have their OTS index moved.
+        signer = get_bob_xmss(4)
+        tx = self._transfer_from(signer, signer.pk)
+        tx._data.public_key = b''
+        tx.update_txhash()
+
+        self.chain_manager.load(self.genesis_block)
+        block_1 = create_block_with(1, self.genesis_block, alice.address, [tx])
+
+        self.assertFalse(self.chain_manager.add_block(block_1))
+        self.assertEqual(self.chain_manager.last_block, self.genesis_block)
+        self.assertIsNone(Block.get_block(self.state, block_1.headerhash))
+
+    @set_default_balance_size()
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_keeps_old_chain_when_branch_replay_raises(self):
+        """
+        A side branch is stored without its transactions being applied. If one
+        of its blocks raises when the branch is finally replayed, the node
+        must return to the chain it was on and must start normally afterwards.
+        """
+        # A key of its own: the shared module-level keys must not have their OTS index moved.
+        signer = get_bob_xmss(4)
+        tx = self._transfer_from(signer, signer.pk)
+        tx._data.public_key = b''
+        tx.update_txhash()
+
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block_with(2, block_1_alt, bob.address, [tx])
+        block_3_alt = create_block(3, block_2_alt, bob.address)
+
+        self.chain_manager.load(self.genesis_block)
+        self.assertTrue(self.chain_manager.add_block(block_1))
+        self.assertTrue(self.chain_manager.add_block(block_2))
+        self.assertTrue(self.chain_manager.add_block(block_1_alt))
+        self.assertTrue(self.chain_manager.add_block(block_2_alt))  # stored only: not heavier yet
+        self.assertEqual(self.chain_manager.last_block, block_2)
+
+        # Heavier branch: fork recovery starts, fails on block_2_alt, and backs out.
+        self.assertFalse(self.chain_manager.add_block(block_3_alt))
+
+        self.assertEqual(self.chain_manager.last_block, block_2)
+        self.assertEqual(self.chain_manager.get_block_by_number(1), block_1)
+        self.assertEqual(self.chain_manager.get_block_by_number(2), block_2)
+        self.assertEqual(2, self.state.get_mainchain_height())
+        self.assertIsNone(self.state.get_fork_state())
+
+        restarted = ChainManager(self.state)
+        restarted.load(self.genesis_block)
+        self.assertEqual(restarted.last_block, block_2)
+
+        # The node still follows a healthy chain afterwards.
+        block_3 = create_block(3, block_2, alice.address)
+        self.assertTrue(restarted.add_block(block_3))
+        self.assertEqual(restarted.last_block, block_3)
+
+    @set_default_balance_size()
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_contains_unexpected_error_while_switching(self):
+        # An error outside transaction processing, part way through the switch,
+        # must also leave the node on its previous chain with no journal behind.
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block(2, block_1_alt, bob.address)
+        block_3_alt = create_block(3, block_2_alt, bob.address)
+
+        self.chain_manager.load(self.genesis_block)
+        for block in (block_1, block_2, block_1_alt, block_2_alt):
+            self.assertTrue(self.chain_manager.add_block(block))
+        self.assertEqual(self.chain_manager.last_block, block_2)
+
+        update_chainstate = self.chain_manager._update_chainstate
+
+        def failing_update_chainstate(block, batch):
+            if block.headerhash == block_2_alt.headerhash:
+                raise RuntimeError('storage failure')
+            return update_chainstate(block, batch)
+
+        with patch.object(self.chain_manager, '_update_chainstate', side_effect=failing_update_chainstate):
+            self.assertFalse(self.chain_manager.add_block(block_3_alt))
+
+        self.assertEqual(self.chain_manager.last_block, block_2)
+        self.assertEqual(self.chain_manager.get_block_by_number(1), block_1)
+        self.assertEqual(self.chain_manager.get_block_by_number(2), block_2)
+        self.assertEqual(2, self.state.get_mainchain_height())
+        self.assertIsNone(self.state.get_fork_state())
+        self.assertIsNotNone(self.state._db.get_raw(b'fork_state_quarantine'))
+
+        restarted = ChainManager(self.state)
+        restarted.load(self.genesis_block)
+        self.assertEqual(restarted.last_block, block_2)
+
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_quarantines_when_replay_and_restoration_return_false(self):
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block(2, block_1_alt, bob.address)
+        block_3_alt = create_block(3, block_2_alt, bob.address)
+
+        self.chain_manager.load(self.genesis_block)
+        for block in (block_1, block_2, block_1_alt, block_2_alt):
+            self.assertTrue(self.chain_manager.add_block(block))
+
+        apply_state_changes = self.chain_manager._apply_state_changes_or_raise
+        revert_state_changes = self.chain_manager._revert_state_changes_or_raise
+
+        def reject_block_2_alt(block, batch):
+            if block.headerhash == block_2_alt.headerhash:
+                raise ValueError('branch application failure')
+            return apply_state_changes(block, batch)
+
+        def refuse_to_revert_block_1_alt(block, batch):
+            if block.headerhash == block_1_alt.headerhash:
+                raise ValueError('branch reversion failure')
+            return revert_state_changes(block, batch)
+
+        # Both exception barriers return False. No exception escapes to the
+        # outer recovery handler, so failed restoration must explicitly abandon.
+        with patch.object(self.chain_manager, '_apply_state_changes_or_raise', side_effect=reject_block_2_alt), \
+                patch.object(self.chain_manager, '_revert_state_changes_or_raise',
+                             side_effect=refuse_to_revert_block_1_alt):
+            self.assertFalse(self.chain_manager.add_block(block_3_alt))
+
+        self.assertEqual(self.chain_manager.last_block, block_1_alt)
+        self.assertEqual(1, self.state.get_mainchain_height())
+        self.assertEqual(self.chain_manager.get_block_by_number(1), block_1_alt)
+        self.assertIsNone(self.chain_manager.get_block_by_number(2))
+        self.assertIsNone(self.state.get_fork_state())
+        self.assertIsNotNone(self.state._db.get_raw(b'fork_state_quarantine'))
+        self.assertTrue(self.chain_manager.trigger_miner)
+
+        # Quarantine must persist: subsequent loads do not retry this recovery.
+        for _ in range(2):
+            restarted = ChainManager(self.state)
+            with patch.object(restarted, '_fork_recovery', wraps=restarted._fork_recovery) as recover:
+                restarted.load(self.genesis_block)
+                recover.assert_not_called()
+            self.assertEqual(restarted.last_block, block_1_alt)
+            self.assertIsNone(self.state.get_fork_state())
+
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_does_not_abandon_when_old_chain_restoration_succeeds(self):
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block(2, block_1_alt, bob.address)
+        block_3_alt = create_block(3, block_2_alt, bob.address)
+
+        self.chain_manager.load(self.genesis_block)
+        for block in (block_1, block_2, block_1_alt, block_2_alt):
+            self.assertTrue(self.chain_manager.add_block(block))
+
+        apply_state_changes = self.chain_manager._apply_state_changes_or_raise
+
+        def reject_block_2_alt(block, batch):
+            if block.headerhash == block_2_alt.headerhash:
+                raise ValueError('branch application failure')
+            return apply_state_changes(block, batch)
+
+        with patch.object(self.chain_manager, '_apply_state_changes_or_raise', side_effect=reject_block_2_alt), \
+                patch.object(self.chain_manager, '_abandon_fork_recovery',
+                             wraps=self.chain_manager._abandon_fork_recovery) as abandon, \
+                patch.object(self.state, 'quarantine_fork_state', wraps=self.state.quarantine_fork_state) as quarantine:
+            self.assertFalse(self.chain_manager.add_block(block_3_alt))
+            abandon.assert_not_called()
+            quarantine.assert_not_called()
+
+        self.assertEqual(self.chain_manager.last_block, block_2)
+        self.assertEqual(2, self.state.get_mainchain_height())
+        self.assertEqual(self.chain_manager.get_block_by_number(1), block_1)
+        self.assertEqual(self.chain_manager.get_block_by_number(2), block_2)
+        self.assertIsNone(self.state.get_fork_state())
+
+        restarted = ChainManager(self.state)
+        restarted.load(self.genesis_block)
+        self.assertEqual(restarted.last_block, block_2)
+
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_load_survives_unusable_fork_journal(self):
+        # A journal left on disk that cannot be resumed must not stop the node from starting.
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        self.chain_manager.load(self.genesis_block)
+        self.assertTrue(self.chain_manager.add_block(block_1))
+
+        self.state.put_fork_state(qrlstateinfo_pb2.ForkState(initiator_headerhash=b'no such block'))
+
+        restarted = ChainManager(self.state)
+        restarted.load(self.genesis_block)
+
+        self.assertEqual(restarted.last_block, block_1)
+        self.assertIsNone(self.state.get_fork_state())
+        self.assertIsNotNone(self.state._db.get_raw(b'fork_state_quarantine'))
+
+        # and it stays gone on the next start
+        ChainManager(self.state).load(self.genesis_block)
+        self.assertIsNone(self.state.get_fork_state())
+
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_restores_partially_rolled_back_chain(self):
+        # The rollback stops with an error part way down the old chain. Only the
+        # blocks that were really removed are put back; the rest stay where they are.
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_3 = create_block(3, block_2, alice.address)
+        alt_chain = [create_block(1, self.genesis_block, bob.address)]
+        for number in (2, 3, 4):
+            alt_chain.append(create_block(number, alt_chain[-1], bob.address))
+
+        self.chain_manager.load(self.genesis_block)
+        for block in (block_1, block_2, block_3) + tuple(alt_chain[:3]):
+            self.assertTrue(self.chain_manager.add_block(block))
+        self.assertEqual(self.chain_manager.last_block, block_3)
+
+        remove_block = self.chain_manager._remove_block_from_mainchain
+        failures = []
+
+        def failing_once_on_block_1(block, latest_block_number, batch):
+            if block.headerhash == block_1.headerhash and not failures:
+                failures.append(block.headerhash)
+                raise RuntimeError('storage failure')
+            return remove_block(block, latest_block_number, batch)
+
+        with patch.object(self.chain_manager, '_remove_block_from_mainchain', side_effect=failing_once_on_block_1):
+            self.assertFalse(self.chain_manager.add_block(alt_chain[3]))
+
+        self.assertEqual([block_1.headerhash], failures)
+        self.assertEqual(self.chain_manager.last_block, block_3)
+        for block in (block_1, block_2, block_3):
+            self.assertEqual(self.chain_manager.get_block_by_number(block.block_number), block)
+        self.assertEqual(3, self.state.get_mainchain_height())
+        self.assertIsNone(self.state.get_fork_state())
+
+        restarted = ChainManager(self.state)
+        restarted.load(self.genesis_block)
+        self.assertEqual(restarted.last_block, block_3)
+
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_does_not_replay_old_chain_on_wrong_tip(self):
+        # A block of the new branch is already applied when the switch fails, and
+        # it cannot be taken off again. The old chain must not be replayed on top of it.
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block(2, block_1_alt, bob.address)
+        block_3_alt = create_block(3, block_2_alt, bob.address)
+
+        self.chain_manager.load(self.genesis_block)
+        for block in (block_1, block_2, block_1_alt, block_2_alt):
+            self.assertTrue(self.chain_manager.add_block(block))
+
+        update_chainstate = self.chain_manager._update_chainstate
+        revert_state_changes = self.chain_manager.revert_state_changes
+
+        def failing_update_chainstate(block, batch):
+            if block.headerhash == block_2_alt.headerhash:
+                raise RuntimeError('storage failure')
+            return update_chainstate(block, batch)
+
+        def revert_refusing_block_1_alt(block, batch):
+            if block.headerhash == block_1_alt.headerhash:
+                return False
+            return revert_state_changes(block, batch)
+
+        with patch.object(self.chain_manager, '_update_chainstate', side_effect=failing_update_chainstate), \
+                patch.object(self.chain_manager, 'revert_state_changes', side_effect=revert_refusing_block_1_alt):
+            self.assertFalse(self.chain_manager.add_block(block_3_alt))
+
+        # The node stays on the last state it stored, with memory and storage in agreement.
+        self.assertEqual(self.chain_manager.last_block, block_1_alt)
+        self.assertEqual(1, self.state.get_mainchain_height())
+        self.assertEqual(self.chain_manager.get_block_by_number(1), block_1_alt)
+        self.assertIsNone(self.chain_manager.get_block_by_number(2))
+        self.assertIsNone(self.state.get_fork_state())
+        self.assertIsNotNone(self.state._db.get_raw(b'fork_state_quarantine'))
+
+        restarted = ChainManager(self.state)
+        restarted.load(self.genesis_block)
+        self.assertEqual(restarted.last_block, block_1_alt)
+
+    @patch('qrl.core.misc.ntp.getTime', new=replacement_getTime)
+    def test_fork_recovery_reloads_tip_when_restoring_old_chain_fails(self):
+        # Putting the old chain back fails after the tip was already moved in
+        # memory. The tip must go back to the block that is actually stored.
+        block_1 = create_block(1, self.genesis_block, alice.address)
+        block_2 = create_block(2, block_1, alice.address)
+        block_1_alt = create_block(1, self.genesis_block, bob.address)
+        block_2_alt = create_block(2, block_1_alt, bob.address)
+        block_3_alt = create_block(3, block_2_alt, bob.address)
+
+        self.chain_manager.load(self.genesis_block)
+        for block in (block_1, block_2, block_1_alt, block_2_alt):
+            self.assertTrue(self.chain_manager.add_block(block))
+
+        update_chainstate = self.chain_manager._update_chainstate
+
+        def failing_update_chainstate(block, batch):
+            if block.headerhash == block_2_alt.headerhash:
+                raise RuntimeError('storage failure')
+            result = update_chainstate(block, batch)
+            if block.headerhash == block_2.headerhash:
+                raise RuntimeError('storage failure after the tip moved')
+            return result
+
+        with patch.object(self.chain_manager, '_update_chainstate', side_effect=failing_update_chainstate):
+            self.assertFalse(self.chain_manager.add_block(block_3_alt))
+
+        self.assertEqual(1, self.state.get_mainchain_height())
+        self.assertEqual(self.chain_manager.last_block, block_1)
+        self.assertEqual(self.chain_manager.get_block_by_number(1), block_1)
+        self.assertIsNone(self.state.get_fork_state())
+
 
 class TestChainManager(TestCase):
     def setUp(self):
@@ -4584,6 +4981,9 @@ class TestChainManager(TestCase):
         # Switching to the new chain should fail!
         self.chain_manager.add_chain = Mock(return_value=False)
         self.chain_manager._rollback = Mock()
+        # The mock blocks below are not in storage. Without this the patched Block
+        # class hands back a blank mock for every lookup, whose parent is not a hash.
+        self.state._db.get_raw.side_effect = KeyError
 
         block_1 = create_m_block(1, self.genesis_block, alice.address)
         block_2 = create_m_block(2, block_1, alice.address)
@@ -5012,3 +5412,175 @@ class TestChainManager(TestCase):
                 # Should cross page boundary and find first unused key on page 2 (8192).
                 # Without >> 3, this raises IndexError at ots_bitfield[1024].
                 self.assertEqual(config.dev.ots_tracking_per_page, result)
+
+    def test_apply_state_changes_returns_false_when_it_raises(self):
+        self.chain_manager._apply_state_changes_or_raise = Mock(side_effect=ValueError('malformed transaction'))
+        block = create_m_block(1, self.genesis_block, alice.address)
+        self.assertFalse(self.chain_manager._apply_state_changes(block, None))
+
+    def test_revert_state_changes_returns_false_when_it_raises(self):
+        self.chain_manager._revert_state_changes_or_raise = Mock(side_effect=ValueError('malformed transaction'))
+        block = create_m_block(1, self.genesis_block, alice.address)
+        self.assertFalse(self.chain_manager.revert_state_changes(block, None))
+
+    def test_validate_all_returns_false_when_transaction_raises(self):
+        tx = Mock(autospec=TransferTransaction)
+        tx.set_affected_address.side_effect = ValueError('Invalid extended_pk size')
+        self.assertFalse(self.chain_manager.validate_all(tx, check_nonce=False))
+
+    def test_fork_recovery_quarantines_journal_when_it_raises(self):
+        self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('boom'))
+        self.chain_manager._rollback = Mock(return_value=([], True))
+        self.chain_manager.add_chain = Mock(return_value=True)
+
+        block_1 = create_m_block(1, self.genesis_block, alice.address)
+        block_1_alt = create_m_block(1, self.genesis_block, alice.address)
+        block_2_alt = create_m_block(2, block_1_alt, alice.address)
+        fork_state = qrlstateinfo_pb2.ForkState(
+            initiator_headerhash=block_2_alt.headerhash,
+            fork_point_headerhash=self.genesis_block.headerhash,
+            old_mainchain_hash_path=[block_1.headerhash],
+            new_mainchain_hash_path=[b.headerhash for b in [block_1_alt, block_2_alt]]
+        )
+
+        with patch.object(Block, 'get_block_by_number', return_value=self.genesis_block):
+            self.assertFalse(self.chain_manager._fork_recovery(block_2_alt, fork_state))
+
+        # The previous chain is put back and the journal is set aside, not left to be resumed.
+        self.chain_manager._rollback.assert_called_once_with(self.genesis_block.headerhash)
+        self.chain_manager.add_chain.assert_called_once_with([block_1.headerhash], fork_state)
+        self.state.quarantine_fork_state.assert_called_once_with(fork_state)
+        self.assertTrue(self.chain_manager.trigger_miner)
+
+    def test_fork_recovery_quarantines_journal_even_if_restore_raises(self):
+        self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('boom'))
+        self.chain_manager._rollback = Mock(side_effect=RuntimeError('boom again'))
+
+        block_1 = create_m_block(1, self.genesis_block, alice.address)
+        fork_state = qrlstateinfo_pb2.ForkState(
+            initiator_headerhash=b'initiator',
+            fork_point_headerhash=self.genesis_block.headerhash,
+            old_mainchain_hash_path=[block_1.headerhash],
+        )
+
+        with patch.object(Block, 'get_block_by_number', return_value=self.genesis_block):
+            self.assertFalse(self.chain_manager._fork_recovery(block_1, fork_state))
+
+        self.state.quarantine_fork_state.assert_called_once_with(fork_state)
+
+    def test_fork_recovery_quarantines_journal_even_if_final_reload_raises(self):
+        self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('recovery failed'))
+        self.chain_manager._reload_last_block = Mock(side_effect=[None, RuntimeError('reload failed')])
+        self.chain_manager.trigger_miner = True
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator')
+
+        self.assertFalse(self.chain_manager._fork_recovery(None, fork_state))
+
+        self.assertEqual(2, self.chain_manager._reload_last_block.call_count)
+        self.state.quarantine_fork_state.assert_called_once_with(fork_state)
+        self.assertFalse(self.chain_manager.trigger_miner)
+
+    def test_fork_recovery_contains_quarantine_error_after_reload_errors(self):
+        self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('recovery failed'))
+        self.chain_manager._reload_last_block = Mock(side_effect=RuntimeError('reload failed'))
+        self.state.quarantine_fork_state.side_effect = RuntimeError('quarantine failed')
+        self.chain_manager.trigger_miner = True
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator')
+
+        self.assertFalse(self.chain_manager._fork_recovery(None, fork_state))
+
+        self.assertEqual(2, self.chain_manager._reload_last_block.call_count)
+        self.state.quarantine_fork_state.assert_called_once_with(fork_state)
+        self.assertFalse(self.chain_manager.trigger_miner)
+
+    def test_fork_recovery_triggers_miner_after_final_reload_even_if_quarantine_fails(self):
+        self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('recovery failed'))
+        self.chain_manager._reload_last_block = Mock(side_effect=[RuntimeError('initial reload failed'), None])
+        self.state.quarantine_fork_state.side_effect = RuntimeError('quarantine failed')
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator')
+
+        self.assertFalse(self.chain_manager._fork_recovery(None, fork_state))
+
+        self.assertEqual(2, self.chain_manager._reload_last_block.call_count)
+        self.state.quarantine_fork_state.assert_called_once_with(fork_state)
+        self.assertTrue(self.chain_manager.trigger_miner)
+
+    def test_fork_recovery_does_not_trigger_miner_when_stored_tip_is_missing(self):
+        self.chain_manager._run_fork_recovery = Mock(side_effect=RuntimeError('recovery failed'))
+        self.chain_manager.trigger_miner = True
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator')
+        original_tip = self.chain_manager.last_block
+
+        with patch.object(Block, 'get_block_by_number', return_value=None):
+            self.assertFalse(self.chain_manager._fork_recovery(None, fork_state))
+
+        self.assertEqual(self.chain_manager.last_block, original_tip)
+        self.state.quarantine_fork_state.assert_called_once_with(fork_state)
+        self.assertFalse(self.chain_manager.trigger_miner)
+
+    def test_remove_block_from_mainchain_keeps_dev_config_when_undo_fails(self):
+        # The block that activated the current dev config cannot be undone:
+        # the active config must still be the current one afterwards.
+        active = config.dev.pbdata
+        block = create_m_block(config.dev.activation_block_number, self.genesis_block, alice.address)
+        self.state.get_dev_config_state.return_value = Mock(name='older dev config')
+        try:
+            self.chain_manager.revert_state_changes = Mock(return_value=False)
+            self.assertFalse(self.chain_manager._remove_block_from_mainchain(block, block.block_number, None))
+            self.assertIs(active, config.dev.pbdata)
+
+            self.chain_manager.revert_state_changes = Mock(side_effect=RuntimeError('boom'))
+            with self.assertRaises(RuntimeError):
+                self.chain_manager._remove_block_from_mainchain(block, block.block_number, None)
+            self.assertIs(active, config.dev.pbdata)
+        finally:
+            config.dev.update_from_pbdata(active)
+
+    def test_rollback_keeps_dev_config_when_removal_is_not_stored(self):
+        active = config.dev.pbdata
+        older = Mock(name='older dev config')
+        block_1 = create_m_block(1, self.genesis_block, alice.address)
+        self.chain_manager._last_block = block_1
+
+        def remove_and_switch_config(block, latest_block_number, batch):
+            config.dev.update_from_pbdata(older)
+            return True
+
+        self.chain_manager._remove_block_from_mainchain = Mock(side_effect=remove_and_switch_config)
+        self.state.write_batch.side_effect = RuntimeError('disk full')
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator',
+                                                fork_point_headerhash=self.genesis_block.headerhash)
+        try:
+            with patch.object(Block, 'get_block', return_value=block_1), \
+                    patch.object(Block, 'get_block_by_number', return_value=block_1):
+                with self.assertRaises(RuntimeError):
+                    self.chain_manager._rollback(self.genesis_block.headerhash, fork_state)
+
+            self.assertIs(active, config.dev.pbdata)
+            # A removal that was not stored is not recorded as done.
+            self.assertEqual([], list(fork_state.old_mainchain_hash_path))
+            self.assertEqual(block_1, self.chain_manager._last_block)
+        finally:
+            config.dev.update_from_pbdata(active)
+
+    def test_restore_old_mainchain_skips_replay_when_rollback_fails(self):
+        self.chain_manager._rollback = Mock(return_value=([], False))
+        self.chain_manager.add_chain = Mock(return_value=True)
+        block_1 = create_m_block(1, self.genesis_block, alice.address)
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator',
+                                                fork_point_headerhash=self.genesis_block.headerhash,
+                                                old_mainchain_hash_path=[block_1.headerhash])
+
+        self.assertFalse(self.chain_manager._restore_old_mainchain(fork_state))
+        self.chain_manager.add_chain.assert_not_called()
+
+    def test_restore_old_mainchain_with_nothing_rolled_back(self):
+        self.chain_manager._rollback = Mock()
+        self.chain_manager.add_chain = Mock()
+        fork_state = qrlstateinfo_pb2.ForkState(initiator_headerhash=b'initiator',
+                                                fork_point_headerhash=self.genesis_block.headerhash)
+
+        self.assertTrue(self.chain_manager._restore_old_mainchain(fork_state))
+        self.chain_manager._rollback.assert_not_called()
+        self.chain_manager.add_chain.assert_not_called()
+        self.state.delete_fork_state.assert_called_once_with()
