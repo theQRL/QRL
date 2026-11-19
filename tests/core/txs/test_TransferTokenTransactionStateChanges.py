@@ -182,6 +182,42 @@ class TestTransferTokenTransactionStateChanges(TestCase):
         self.assertEqual(tokens.data[(self.alice.address, tx.token_txhash)].balance, 1000)
         self.assertEqual(tokens.data[(self.bob.address, tx.token_txhash)].balance, 0)
 
+    def test_apply_reactivates_receiver_token_after_revert(self):
+        """
+        Re-applying a reverted transfer on the same StateContainer must restore
+        both the receiver token entry and its paginated index.
+        """
+        tx = TransferTokenTransaction.create(**self.params)
+        tx.sign(self.alice)
+        addresses_state = dict(self.addresses_state)
+        tokens = Indexer(b'token', None)
+        tokens.data[(self.alice.address, tx.token_txhash)] = TokenBalance(balance=1000)
+        state_container = StateContainer(addresses_state=addresses_state,
+                                         tokens=tokens,
+                                         slaves=Indexer(b'slave', None),
+                                         lattice_pk=Indexer(b'lattice_pk', None),
+                                         multi_sig_spend_txs=dict(),
+                                         votes_stats=dict(),
+                                         block_number=1,
+                                         total_coin_supply=1000,
+                                         current_dev_config=config.dev,
+                                         write_access=True,
+                                         my_db=self.state._db,
+                                         batch=None)
+
+        bob_token_key = (self.bob.address, tx.token_txhash)
+
+        self.assertTrue(tx.apply(self.state, state_container))
+        self.assertTrue(tx.revert(self.state, state_container))
+        self.assertTrue(tokens.data[bob_token_key].delete)
+        self.assertEqual(0, addresses_state[self.bob.address].tokens_count())
+
+        self.assertTrue(tx.apply(self.state, state_container))
+
+        self.assertEqual(100, tokens.data[bob_token_key].balance)
+        self.assertFalse(tokens.data[bob_token_key].delete)
+        self.assertEqual(1, addresses_state[self.bob.address].tokens_count())
+
     def test_revert_transfer_token_txn_multi_send(self):
         """
         Alice has 1100 tokens and 100 QRL, Bob and Slave have none. Alice sends some tokens to Bob and Slave.

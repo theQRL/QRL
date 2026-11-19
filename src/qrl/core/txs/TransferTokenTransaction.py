@@ -173,18 +173,23 @@ class TransferTokenTransaction(Transaction):
             addr_to = self.addrs_to[index]
             amount = self.amounts[index]
             address_state = state_container.addresses_state[addr_to]
+            key = (addr_to, self.token_txhash)
 
             # If receiver doesn't have this token before, then initialize token balance data into state
             # before adding the new balance.
-            if (addr_to, self.token_txhash) not in state_container.tokens.data:
-                state_container.tokens.data[(addr_to,
-                                             self.token_txhash)] = TokenBalance(balance=0,
-                                                                                decimals=decimals,
-                                                                                tx_hash=self.txhash,
-                                                                                delete=False)
+            if key not in state_container.tokens.data:
+                state_container.tokens.data[key] = TokenBalance(balance=0,
+                                                                decimals=decimals,
+                                                                tx_hash=self.txhash,
+                                                                delete=False)
+                state_container.paginated_tokens_hash.insert(address_state, self.token_txhash)
+            elif state_container.tokens.data[key].delete:
+                # Keep apply() safe for callers that reuse a StateContainer after
+                # reverting a transfer which originally created this token entry.
+                state_container.tokens.data[key].delete = False
                 state_container.paginated_tokens_hash.insert(address_state, self.token_txhash)
 
-            state_container.tokens.data[(addr_to, self.token_txhash)].balance += amount
+            state_container.tokens.data[key].balance += amount
 
             if self.addr_from != addr_to:
                 state_container.paginated_tx_hash.insert(address_state, self.txhash)
