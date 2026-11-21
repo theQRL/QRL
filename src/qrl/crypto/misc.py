@@ -14,6 +14,7 @@ ADDRESS_HASH_SIZE = 32
 ADDRESS_CHECKSUM_SIZE = 4
 ADDRESS_SIZE = ADDRESS_DESCRIPTOR_SIZE + ADDRESS_HASH_SIZE + ADDRESS_CHECKSUM_SIZE
 ADDRESS_FORMAT_SHA256_2X = 0
+EXTENDED_PK_SIZE = 67
 
 
 def address_is_well_formed(address: bytes) -> bool:
@@ -41,6 +42,65 @@ def address_is_well_formed(address: bytes) -> bool:
         return False
     payload = address[:ADDRESS_DESCRIPTOR_SIZE + ADDRESS_HASH_SIZE]
     return hashlib.sha256(payload).digest()[-ADDRESS_CHECKSUM_SIZE:] == address[-ADDRESS_CHECKSUM_SIZE:]
+
+
+def address_from_extended_pk(extended_pk: bytes) -> bytes:
+    """
+    Consensus rule for deriving an address from a 67 byte extended XMSS public
+    key (3 descriptor bytes, then root and public seed).
+
+    The address is a normalised 3 byte descriptor (hash function nibble, tree
+    height nibble, zero), then SHA2-256 over the whole extended public key
+    exactly as given, then the last 4 bytes of SHA2-256 over those 35 bytes.
+    The signature-type nibble and the third descriptor byte of the key do not
+    appear in the address descriptor, but they are part of the hashed bytes.
+    A key whose address-format nibble is not SHA256_2X has no address.
+
+    This is the rule qrllib v1.2.4 applied when mainnet was built. It is kept
+    here rather than delegated to QRLHelper.getAddress so that a qrllib
+    upgrade cannot change consensus: qrllib 1.2.8 and later refuse keys that
+    v1.2.4 derived an address for.
+
+    Raises ValueError for a key of the wrong size or address format.
+
+    >>> pk = bytes(hstr2bin('010400' + '11' * 64))
+    >>> bin2hstr(address_from_extended_pk(pk))
+    '0104005885508e5ff29881adfbc309663caf06d2085d11c7baabd98796b337cd6777226ecb9f64'
+    >>> address_is_well_formed(address_from_extended_pk(pk))
+    True
+    >>> address_from_extended_pk(b'')
+    Traceback (most recent call last):
+        ...
+    ValueError: Invalid extended_pk size. It should be 67 bytes
+    """
+    if not isinstance(extended_pk, (bytes, bytearray)) or len(extended_pk) != EXTENDED_PK_SIZE:
+        raise ValueError('Invalid extended_pk size. It should be %d bytes' % EXTENDED_PK_SIZE)
+    if extended_pk[1] >> 4 != ADDRESS_FORMAT_SHA256_2X:
+        raise ValueError('Address format type not supported')
+    payload = bytes([extended_pk[0] & 0x0F, extended_pk[1] & 0x0F, 0]) + hashlib.sha256(extended_pk).digest()
+    return payload + hashlib.sha256(payload).digest()[-ADDRESS_CHECKSUM_SIZE:]
+
+
+def extended_pk_for_verification(extended_pk: bytes) -> bytes:
+    """
+    Returns the extended public key in the form signature verification uses.
+
+    qrllib v1.2.4, which mainnet was built with, read only the hash function,
+    tree height and address format from the descriptor when it verified an
+    XMSS signature. The signature-type nibble and the third descriptor byte
+    were ignored. They are cleared here before the key is handed to the
+    library, so that verification gives the same answer whichever qrllib
+    version is installed. Everything else is passed through unchanged, and a
+    key of the wrong size is returned as it is for the library to reject.
+
+    >>> bin2hstr(extended_pk_for_verification(bytes(hstr2bin('210401' + '11' * 64))))[:6]
+    '010400'
+    >>> extended_pk_for_verification(b'abc')
+    b'abc'
+    """
+    if not isinstance(extended_pk, (bytes, bytearray)) or len(extended_pk) != EXTENDED_PK_SIZE:
+        return extended_pk
+    return bytes([extended_pk[0] & 0x0F, extended_pk[1], 0]) + bytes(extended_pk[ADDRESS_DESCRIPTOR_SIZE:])
 
 
 def sha256(message: bytes) -> bytes:

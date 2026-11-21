@@ -4,7 +4,7 @@
 from decimal import Decimal
 from typing import Optional, List, Iterator, Tuple
 
-from pyqrllib.pyqrllib import QRLHelper, bin2hstr
+from pyqrllib.pyqrllib import bin2hstr
 from twisted.internet import reactor
 
 from qrl.core import config
@@ -32,6 +32,7 @@ from qrl.core.txs.TokenTransaction import TokenTransaction
 from qrl.core.txs.TransferTokenTransaction import TransferTokenTransaction
 from qrl.core.txs.TransferTransaction import TransferTransaction
 from qrl.generated import qrl_pb2
+from qrl.crypto.misc import address_from_extended_pk
 
 
 class QRLNode:
@@ -366,7 +367,7 @@ class QRLNode:
         if master_addr:
             return master_addr
 
-        return bytes(QRLHelper.getAddress(xmss_pk))
+        return address_from_extended_pk(xmss_pk)
 
     def get_address_is_used(self, address: bytes) -> bool:
         if not OptimizedAddressState.address_is_valid(address):
@@ -722,7 +723,7 @@ class QRLNode:
         for tx_hash in slave_hashes:
             tx, _ = self._chain_manager.get_tx_metadata(tx_hash)
             for index in range(0, len(tx.slave_pks)):
-                transaction_detail = qrl_pb2.SlaveDetail(slave_address=bytes(QRLHelper.getAddress(tx.slave_pks[index])),
+                transaction_detail = qrl_pb2.SlaveDetail(slave_address=address_from_extended_pk(tx.slave_pks[index]),
                                                          access_type=tx.access_types[index])
                 response.slaves_detail.extend([transaction_detail])
 

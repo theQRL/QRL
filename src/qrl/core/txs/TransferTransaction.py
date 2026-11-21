@@ -1,4 +1,4 @@
-from pyqrllib.pyqrllib import bin2hstr, QRLHelper
+from pyqrllib.pyqrllib import bin2hstr
 from typing import Union
 
 from qrl.core.State import State
@@ -7,6 +7,7 @@ from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.MultiSigAddressState import MultiSigAddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
+from qrl.crypto.misc import address_from_extended_pk
 
 
 class TransferTransaction(Transaction):
@@ -159,7 +160,7 @@ class TransferTransaction(Transaction):
         address_state.update_balance(state_container, self.total_amount + self.fee, subtract=True)
         state_container.paginated_tx_hash.insert(address_state, self.txhash)
 
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         for index in range(0, len(self.addrs_to)):
             addr_to = self.addrs_to[index]
             amount = self.amounts[index]
@@ -180,7 +181,7 @@ class TransferTransaction(Transaction):
                                      self.total_amount + self.fee)
         state_container.paginated_tx_hash.remove(address_state, self.txhash)
 
-        addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+        addr_from_pk = address_from_extended_pk(self.PK)
         for index in range(0, len(self.addrs_to)):
             addr_to = self.addrs_to[index]
             amount = self.amounts[index]

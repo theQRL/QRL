@@ -185,6 +185,15 @@ def get_bob_xmss(xmss_height=6) -> XMSS:
     return XMSS(XmssFast(seed, xmss_height))
 
 
+def with_pk_descriptor(extended_pk: bytes, signature_type: int = 0, reserved: int = 0) -> bytes:
+    """Replace the signature-type nibble and reserved byte of an XMSS key.
+
+    The hash function, height, root and public seed
+    are untouched, so signatures made with the key still verify against it.
+    """
+    return bytes([(signature_type << 4) | (extended_pk[0] & 0x0F), extended_pk[1], reserved]) + bytes(extended_pk[3:])
+
+
 def get_slave_xmss() -> XMSS:
     xmss_height = 6
     seed = bytes([i + 10 for i in range(48)])
