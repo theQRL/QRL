@@ -1,2 +1,7 @@
 include versioneer.py
 include src/qrl/_version.py
+
+# Data files the node needs at runtime (genesis, testnet config, protos,
+# token migration data) plus the tools/ helpers. These must be listed here:
+# include_package_data only picks up what the manifest names.
+recursive-include src/qrl *.yml *.proto *.csv *.json *.ipynb *.md *.sh

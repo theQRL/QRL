@@ -1,4 +1,4 @@
-from pyqrllib.pyqrllib import bin2hstr, QRLHelper
+from pyqrllib.pyqrllib import bin2hstr
 from typing import Union
 
 from qrl.core.State import State
@@ -6,6 +6,7 @@ from qrl.core.StateContainer import StateContainer
 from qrl.core.OptimizedAddressState import OptimizedAddressState
 from qrl.core.misc import logger
 from qrl.core.txs.Transaction import Transaction
+from qrl.crypto.misc import address_from_extended_pk
 
 
 class MessageTransaction(Transaction):
@@ -101,7 +102,7 @@ class MessageTransaction(Transaction):
         state_container.paginated_tx_hash.insert(address_state, self.txhash)
 
         if self.addr_to:
-            addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+            addr_from_pk = address_from_extended_pk(self.PK)
             address_state = state_container.addresses_state[self.addr_to]
             if self.addr_to not in (self.addr_from, addr_from_pk):
                 state_container.paginated_tx_hash.insert(address_state, self.txhash)
@@ -118,7 +119,7 @@ class MessageTransaction(Transaction):
         state_container.paginated_tx_hash.remove(address_state, self.txhash)
 
         if self.addr_to:
-            addr_from_pk = bytes(QRLHelper.getAddress(self.PK))
+            addr_from_pk = address_from_extended_pk(self.PK)
             address_state = state_container.addresses_state[self.addr_to]
             if self.addr_to not in (self.addr_from, addr_from_pk):
                 state_container.paginated_tx_hash.remove(address_state, self.txhash)

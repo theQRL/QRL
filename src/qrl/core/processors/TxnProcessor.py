@@ -29,6 +29,16 @@ class TxnProcessor:
 
         tx, timestamp, ip = tx_timestamp_ip
 
+        # One transaction that raises must not stop the worker: the pending
+        # transactions queued behind it still have to be processed.
+        try:
+            return self._process(tx, timestamp)
+        except Exception as e:
+            logger.warning('Pending transaction raised while being processed, dropping it')
+            logger.exception(e)
+            return False
+
+    def _process(self, tx, timestamp) -> bool:
         if not self.chain_manager.validate_all(tx, check_nonce=False):
             return False
 
